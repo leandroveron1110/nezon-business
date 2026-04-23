@@ -9,6 +9,7 @@ import OrderStatusBadge from "../OrderStatusBadge";
 import { formatPrice } from "@/features/common/utils/formatPrice";
 import {
   DeliveryType,
+  OrderStatus,
   PaymentMethodType,
 } from "@/types/order";
 import { IOrder } from "../../types/order";
@@ -20,123 +21,61 @@ interface Props {
 
 export function OrderList({ order, onClick }: Props) {
   const createdAt = new Date(order.createdAt);
-
-  const date = createdAt.toLocaleDateString("es-AR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: '2-digit'
-  });
-
-  const time = createdAt.toLocaleTimeString("es-AR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
-  const DeliveryIcon =
-    order.deliveryType === DeliveryType.PICKUP ? Package : Truck;
-
-  const PaymentIcon =
-    order.orderPaymentMethod === PaymentMethodType.CASH
-      ? DollarSign
-      : Wallet;
+  const time = createdAt.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+  
+  const isPickup = order.deliveryType === DeliveryType.PICKUP;
+  const isCash = order.orderPaymentMethod === PaymentMethodType.CASH;
 
   return (
     <div
       onClick={onClick}
-      className="bg-white border-b hover:bg-gray-50 transition cursor-pointer"
+      className="group bg-white hover:bg-blue-50/50 transition-all cursor-pointer border-l-4 border-l-transparent hover:border-l-blue-500"
     >
-      {/* ================= MOBILE ================= */}
+      {/* MOBILE: Card layout */}
       <div className="md:hidden p-4 space-y-3">
-        {/* Header */}
-        <div className="flex justify-between items-start">
-          <div className="text-xs text-gray-500">
-            #{order.id.slice(0, 6)} • {date} {time}
+        <div className="flex justify-between items-center">
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
+            #{order.id.slice(-6)} • {time}
+          </span>
+          <span className="text-lg font-black text-gray-900">{formatPrice(order.total)}</span>
+        </div>
+        <div className="font-bold text-gray-800">{order.user.fullName}</div>
+        <div className="flex justify-between items-center">
+          {/* <OrderStatusBadge status={order.status} {...order} /> */}
+          <div className="flex gap-2">
+             {isPickup ? <Package className="w-4 h-4 text-orange-500" /> : <Truck className="w-4 h-4 text-blue-500" />}
+             {isCash ? <DollarSign className="w-4 h-4 text-green-600" /> : <Wallet className="w-4 h-4 text-purple-600" />}
           </div>
-
-          <span className="font-semibold text-green-700">
-            {formatPrice(order.total)}
-          </span>
         </div>
-
-        {/* Cliente */}
-        <div className="font-medium truncate">
-          {order.user.fullName}
-        </div>
-
-        {/* Info */}
-        <div className="flex flex-wrap gap-3 text-xs text-gray-600">
-          <span className="flex items-center gap-1">
-            <DeliveryIcon className="w-3.5 h-3.5" />
-            {order.deliveryType === DeliveryType.PICKUP
-              ? "Retiro"
-              : "Domicilio"}
-          </span>
-
-          <span className="flex items-center gap-1">
-            <PaymentIcon className="w-3.5 h-3.5" />
-            {order.orderPaymentMethod === PaymentMethodType.CASH
-              ? "Efectivo"
-              : "Transferencia"}
-          </span>
-        </div>
-
-        {/* Estado */}
-        <OrderStatusBadge
-          status={order.status}
-          paymentStatus={order.paymentStatus}
-          orderPaymentMethod={order.orderPaymentMethod}
-        />
       </div>
 
-      {/* ================= DESKTOP ================= */}
-      <div className="hidden md:grid grid-cols-[90px_80px_80px_160px_160px_140px_140px_120px] items-center px-4 py-3 text-sm">
-        {/* ID */}
-        <span className="text-xs text-gray-500">
-          #{order.id.slice(0, 6)}
-        </span>
+      {/* DESKTOP: Row layout */}
+      <div className="hidden md:grid grid-cols-[100px_1fr_150px_140px_140px_120px] items-center px-6 py-4 text-sm">
+        <div className="flex flex-col">
+          <span className="font-bold text-gray-900">#{order.id.slice(-6).toUpperCase()}</span>
+          <span className="text-xs text-gray-400 font-medium">{time} hs</span>
+        </div>
 
-        {/* Fecha */}
-        <span className="text-xs text-gray-500">
-          {date}
-        </span>
+        <div className="flex flex-col truncate pr-4">
+          <span className="font-semibold text-gray-800 truncate">{order.user.fullName}</span>
+          <span className="text-xs text-gray-400 italic">{order.user.phone || 'Sin teléfono'}</span>
+        </div>
 
-        {/* Hora */}
-        <span className="text-xs text-gray-500">
-          {time}
-        </span>
+        {/* <OrderStatusBadge status={order.status as OrderStatus} {...order} /> */}
 
-        {/* Cliente */}
-        <span className="truncate font-medium">
-          {order.user.fullName}
-        </span>
+        <div className="flex items-center gap-2 text-gray-600 font-medium">
+          {isPickup ? <Package className="w-4 h-4 opacity-70" /> : <Truck className="w-4 h-4 opacity-70" />}
+          <span className="text-xs">{isPickup ? "Retiro" : "Envío"}</span>
+        </div>
 
-        {/* Estado */}
-        <OrderStatusBadge
-          status={order.status}
-          paymentStatus={order.paymentStatus}
-          orderPaymentMethod={order.orderPaymentMethod}
-        />
+        <div className="flex items-center gap-2 text-gray-600 font-medium">
+          {isCash ? <DollarSign className="w-4 h-4 text-green-600" /> : <Wallet className="w-4 h-4 text-blue-600" />}
+          <span className="text-xs">{isCash ? "Efectivo" : "Transf."}</span>
+        </div>
 
-        {/* Tipo */}
-        <span className="flex items-center gap-2 text-gray-700 p-2">
-          <DeliveryIcon className="w-4 h-4" />
-          {order.deliveryType === DeliveryType.PICKUP
-            ? "Retiro"
-            : "Domicilio"}
-        </span>
-
-        {/* Pago */}
-        <span className="flex items-center gap-2 text-gray-700">
-          <PaymentIcon className="w-4 h-4" />
-          {order.orderPaymentMethod === PaymentMethodType.CASH
-            ? "Efectivo"
-            : "Transferencia"}
-        </span>
-
-        {/* Total */}
-        <span className="text-right font-semibold text-green-700">
-          {formatPrice(order.total)}
-        </span>
+        <div className="text-right">
+          <span className="font-bold text-gray-900 text-base">{formatPrice(order.total)}</span>
+        </div>
       </div>
     </div>
   );

@@ -3,28 +3,20 @@
 import { useState } from "react";
 import {
   X,
-  Package,
   Truck,
-  DollarSign,
-  Wallet,
-  ExternalLink,
-  Image as ImageIcon,
   AlertTriangle,
-  CreditCard,
-  Banknote,
-  CheckCircle,
-  XCircle,
+  Printer,
 } from "lucide-react";
 
 import { EOrderStatus, IOrder } from "../../types/order";
 import {
   DeliveryType,
+  OrderStatus,
   PaymentMethodType,
   PaymentStatus,
 } from "@/types/order";
 
 import { formatPrice } from "@/features/common/utils/formatPrice";
-import OrderStatusBadge from "../OrderStatusBadge";
 import {
   fetchUpdateOrdersByOrderID,
   fetchUpdateOrdersPaymentByOrderID,
@@ -38,350 +30,213 @@ interface Props {
 
 const getNextOrderStatus = (
   current: EOrderStatus,
-  deliveryType: DeliveryType
+  deliveryType: DeliveryType,
 ): EOrderStatus | null => {
   switch (current) {
     case EOrderStatus.PENDING:
-      return EOrderStatus.PREPARING;
     case EOrderStatus.CONFIRMED:
-      return EOrderStatus.PREPARING
+      return EOrderStatus.PREPARING;
+
     case EOrderStatus.PREPARING:
       return deliveryType === DeliveryType.PICKUP
         ? EOrderStatus.READY_FOR_CUSTOMER_PICKUP
         : EOrderStatus.READY_FOR_DELIVERY_PICKUP;
+
     case EOrderStatus.READY_FOR_CUSTOMER_PICKUP:
     case EOrderStatus.READY_FOR_DELIVERY_PICKUP:
       return EOrderStatus.COMPLETED;
+
     default:
       return null;
   }
 };
 
-export function OrderDetailsModal({ order, onClose }: Props) {
-  const createdAt = new Date(order.createdAt);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+// Fuera del componente para mantenerlo puro
+const getStatusAction = (status: OrderStatus, deliveryType: DeliveryType) => {
+  const actions: Record<
+    string,
+    { label: string; next: OrderStatus; color: string }
+  > = {
+    [OrderStatus.PENDING]: {
+      label: "ACEPTAR PEDIDO",
+      next: OrderStatus.CONFIRMED,
+      color: "bg-blue-600",
+    },
+    [OrderStatus.CONFIRMED]: {
+      label: "EMPEZAR A PREPARAR",
+      next: OrderStatus.PREPARING,
+      color: "bg-orange-500",
+    },
+    [OrderStatus.PREPARING]: {
+      label:
+        deliveryType === DeliveryType.PICKUP
+          ? "LISTO PARA RETIRO"
+          : "LLAMAR CADETE",
+      next:
+        deliveryType === DeliveryType.PICKUP
+          ? OrderStatus.READY_FOR_CUSTOMER_PICKUP
+          : OrderStatus.READY_FOR_DELIVERY_PICKUP,
+      color: "bg-green-600",
+    },
+    [OrderStatus.READY_FOR_CUSTOMER_PICKUP]: {
+      label: "ENTREGAR Y CERRAR",
+      next: OrderStatus.COMPLETED,
+      color: "bg-gray-900",
+    },
+  };
+  return actions[status] || null;
+};
 
+export function OrderDetailsModal({ order, onClose }: Props) {
+  const [loading, setLoading] = useState(false);
   const { addAlert } = useAlert();
 
-  /* ================== TOTALES ================== */
-  const totals = order.items.reduce(
-    (acc, item) => {
-      const subtotal = item.priceAtPurchase * item.quantity;
-      if (item.productPaymentMethod === PaymentMethodType.CASH) {
-        acc.cash += subtotal;
-      } else {
-        acc.transfer += subtotal;
-      }
-      return acc;
-    },
-    { cash: 0, transfer: 0 }
-  );
+  const action = getStatusAction(order.status, order.deliveryType);
+  const isTransfer = order.orderPaymentMethod === PaymentMethodType.TRANSFER;
+  const needsPaymentConfirmation =
+    isTransfer && order.paymentStatus !== PaymentStatus.CONFIRMED;
 
-  const isTransferOrder =
-    order.orderPaymentMethod === PaymentMethodType.TRANSFER;
-
-  const hasPaymentConflict = isTransferOrder && totals.cash > 0;
-
-  const nextStatus = getNextOrderStatus(
-    order.status as unknown as EOrderStatus,
-    order.deliveryType
-  );
-
-  const handleAdvanceStatus = async () => {
-    if (!nextStatus) return;
-
+  const handleAdvance = async () => {
+    if (!action) return;
     try {
       setLoading(true);
-      setError(null);
-
-      if (
-        isTransferOrder &&
-        order.paymentStatus === PaymentStatus.IN_PROGRESS
-      ) {
+      // Si es transferencia y está pendiente, confirmamos pago y avanzamos orden
+      if (needsPaymentConfirmation) {
         await fetchUpdateOrdersPaymentByOrderID(
           order.id,
-          PaymentStatus.CONFIRMED
+          PaymentStatus.CONFIRMED,
         );
-        addAlert({
-          message: "Pago confirmado",
-          type: "success",
-        });
       }
-
-      await fetchUpdateOrdersByOrderID(order.id, nextStatus);
+      await fetchUpdateOrdersByOrderID(order.id, action.next);
       addAlert({
-        message: `Orden actualizada`,
-        type: "info",
+        message: `Pedido en estado: ${action.next}`,
+        type: "success",
       });
       onClose();
-    } catch {
-      setError("Error al actualizar el pedido");
-      addAlert({
-        message: "Error al actualizar el pedido",
-        type: "error",
-      });
+    } catch (e) {
+      addAlert({ message: "Error al actualizar", type: "error" });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCancelOrder = async () => {
-    try {
-      setLoading(true);
-      setError(null);
 
-      if (
-        isTransferOrder &&
-        order.paymentStatus === PaymentStatus.IN_PROGRESS
-      ) {
-        await fetchUpdateOrdersPaymentByOrderID(
-          order.id,
-          PaymentStatus.REJECTED
-        );
-        addAlert({
-          message: "Pago rechazado",
-          type: "info",
-        });
-      }
-      await fetchUpdateOrdersByOrderID(
-        order.id,
-        EOrderStatus.CANCELLED_BY_BUSINESS
-      );
-      addAlert({
-          message: "Pedido rechazado",
-          type: "info",
-        });
-      onClose();
-    } catch {
-      setError("Error al cancelar el pedido");
-      addAlert({
-        message: "Error al cancelar el pedido",
-        type: "error",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const nextActionLabel = (() => {
-    switch (nextStatus) {
-      case EOrderStatus.PREPARING:
-        return "Aceptar y preparar pedido";
-      case EOrderStatus.CONFIRMED:
-        return "Listo para retirar"
-      case EOrderStatus.READY_FOR_CUSTOMER_PICKUP:
-        return "Listo para retirar";
-      case EOrderStatus.READY_FOR_DELIVERY_PICKUP:
-        return "Listo para envío";
-      case EOrderStatus.COMPLETED:
-        return "Finalizar pedido";
-      default:
-        return null;
-    }
-  })();
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-      <div className="bg-white w-full max-w-3xl rounded-xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
-        {/* ================= HEADER ================= */}
-        <div className="flex items-center justify-between px-6 py-4 border-b">
+    <div className="fixed inset-0 bg-black/70 z-50 flex justify-center items-end sm:items-center p-0 sm:p-4">
+      <div className="bg-white w-full max-w-xl rounded-t-3xl sm:rounded-2xl flex flex-col max-h-[90vh] shadow-2xl">
+        {/* HEADER: Info del Cliente */}
+        <div className="p-4 border-b flex justify-between items-start bg-gray-50 rounded-t-3xl sm:rounded-t-2xl">
           <div>
-            <h2 className="text-lg font-semibold">
-              Pedido #{order.id.slice(0, 6)}
+            <h2 className="text-xl font-bold text-gray-800">
+              {order.user.fullName}
             </h2>
-            <p className="text-xs text-gray-500">
-              {createdAt.toLocaleDateString("es-AR")} •{" "}
-              {createdAt.toLocaleTimeString("es-AR", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <OrderStatusBadge
-              status={order.status}
-              paymentStatus={order.paymentStatus}
-              orderPaymentMethod={order.orderPaymentMethod}
-            />
-            <button onClick={onClose}>
-              <X className="w-5 h-5 text-gray-500 hover:text-gray-700" />
-            </button>
-          </div>
-        </div>
-
-        {/* ================= CONTENT ================= */}
-        <div className="p-6 space-y-6 overflow-y-auto">
-          {/* CLIENTE */}
-          <section className="space-y-1">
-            <h3 className="text-sm font-semibold text-gray-700">Cliente</h3>
-            <p className="font-medium">{order.user.fullName}</p>
-            {order.user.phone && (
-              <p className="text-sm text-gray-500">{order.user.phone}</p>
-            )}
-            {order.user.address && (
-              <p className="text-sm text-gray-500">{order.user.address}</p>
-            )}
-          </section>
-
-          {/* ENTREGA */}
-          <section>
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">
-              Entrega
-            </h3>
-            <div className="flex items-center gap-2 text-sm">
-              {order.deliveryType === DeliveryType.PICKUP ? (
-                <>
-                  <Package className="w-4 h-4 text-gray-600" />
-                  Retiro en local
-                </>
-              ) : (
-                <>
-                  <Truck className="w-4 h-4 text-gray-600" />
-                  Envío a domicilio
-                </>
-              )}
-            </div>
-          </section>
-
-          {/* PRODUCTOS */}
-          <section>
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">
-              Productos
-            </h3>
-
-            <div className="space-y-3">
-              {order.items.map((item) => (
-                <div key={item.id} className="border rounded-lg p-4 space-y-2">
-                  <div className="flex justify-between font-medium text-sm">
-                    <span>
-                      {item.quantity}× {item.productName}
-                    </span>
-                    <span>
-                      {formatPrice(item.priceAtPurchase * item.quantity)}
-                    </span>
-                  </div>
-
-                  <span
-                    className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium
-                    ${
-                      item.productPaymentMethod === PaymentMethodType.CASH
-                        ? "bg-yellow-100 text-yellow-800"
-                        : "bg-blue-100 text-blue-800"
-                    }`}
-                  >
-                    {item.productPaymentMethod === PaymentMethodType.CASH ? (
-                      <Banknote className="w-3.5 h-3.5" />
-                    ) : (
-                      <CreditCard className="w-3.5 h-3.5" />
-                    )}
-                    {item.productPaymentMethod === PaymentMethodType.CASH
-                      ? "Solo efectivo"
-                      : "Transferencia"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* PAGO */}
-          <section className="space-y-3">
-            <h3 className="text-sm font-semibold text-gray-700">Pago</h3>
-
-            <div className="flex items-center gap-2 text-sm">
-              {isTransferOrder ? (
-                <>
-                  <Wallet className="w-4 h-4 text-gray-600" />
-                  Transferencia bancaria
-                </>
-              ) : (
-                <>
-                  <DollarSign className="w-4 h-4 text-gray-600" />
-                  Pago en efectivo
-                </>
-              )}
-            </div>
-
-            <div className="text-sm space-y-1">
-              {totals.transfer > 0 && (
-                <p className="flex items-center gap-2">
-                  <CreditCard className="w-4 h-4 text-blue-600" />
-                  Transferencia: {formatPrice(totals.transfer)}
-                </p>
-              )}
-              {totals.cash > 0 && (
-                <p className="flex items-center gap-2">
-                  <Banknote className="w-4 h-4 text-yellow-600" />
-                  Efectivo: {formatPrice(totals.cash)}
-                </p>
-              )}
-            </div>
-
-            <p className="text-lg font-semibold text-green-700">
-              Total: {formatPrice(order.total)}
-            </p>
-
-            {hasPaymentConflict && (
-              <div className="flex gap-2 p-3 rounded-lg bg-red-50 text-red-700 text-sm">
-                <AlertTriangle className="w-4 h-4 mt-0.5" />
-                El cliente transfiere {formatPrice(totals.transfer)} y paga{" "}
-                {formatPrice(totals.cash)} en efectivo al entregar.
-              </div>
-            )}
-
-            {order.paymentReceiptUrl && (
-              <div className="space-y-2">
-                <a
-                  href={order.paymentReceiptUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-sm text-blue-600 hover:underline"
-                >
-                  <ImageIcon className="w-4 h-4" />
-                  Ver comprobante
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-
-                <div className="border rounded-lg overflow-hidden max-w-xs">
-                  <img
-                    src={order.paymentReceiptUrl}
-                    alt="Comprobante"
-                    className="w-full object-cover"
-                  />
-                </div>
-              </div>
-            )}
-          </section>
-
-          {error && (
-            <p className="text-sm text-red-600 flex items-center gap-2">
-              <XCircle className="w-4 h-4" />
-              {error}
-            </p>
-          )}
-        </div>
-
-        {/* ================= FOOTER ================= */}
-        <div className="px-6 py-4 border-t flex justify-between items-center">
-          <button
-            onClick={handleCancelOrder}
-            disabled={loading}
-            className="px-4 py-2 text-sm rounded-lg border border-red-200 text-red-600 hover:bg-red-50"
-          >
-            Cancelar pedido
-          </button>
-
-          {nextStatus && (
             <button
-              onClick={handleAdvanceStatus}
-              disabled={loading}
-              className="px-5 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-2"
+              onClick={() =>
+                window.open(`https://wa.me/${order.user.phone}`, "_blank")
+              }
+              className="text-green-600 text-sm font-medium flex items-center gap-1 mt-1"
             >
-              <CheckCircle className="w-4 h-4" />
-              {nextActionLabel}
+              <Truck className="w-3 h-3" /> WhatsApp: {order.user.phone}
             </button>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+          >
+            <X className="text-gray-500" />
+          </button>
+        </div>
+
+        {/* ALERTA DE PAGO (CRÍTICO) */}
+        {isTransfer && (
+          <div
+            className={`p-3 flex items-center gap-3 ${needsPaymentConfirmation ? "bg-amber-50 text-amber-800" : "bg-green-50 text-green-800"}`}
+          >
+            <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+            <div className="text-xs">
+              <p className="font-bold">PAGO POR TRANSFERENCIA</p>
+              <p>
+                {needsPaymentConfirmation
+                  ? "Verificar comprobante antes de avanzar."
+                  : "Pago ya confirmado."}
+              </p>
+            </div>
+          </div>
+        )}
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* LISTA DE PRODUCTOS */}
+          <div className="space-y-2">
+            {order.items.map((item) => (
+              <div
+                key={item.id}
+                className="flex gap-3 p-3 border-b border-gray-100 last:border-0"
+              >
+                <div className="bg-gray-900 text-white font-bold h-8 w-8 rounded flex items-center justify-center flex-shrink-0">
+                  {item.quantity}
+                </div>
+                <div className="flex-1">
+                  <p className="font-bold text-gray-900 uppercase">
+                    {item.productName}
+                  </p>
+                  {item.optionGroups
+                    .flatMap((g) => g.options)
+                    .map((o) => (
+                      <span
+                        key={o.id}
+                        className="text-sm text-gray-500 mr-2 italic"
+                      >
+                        +{o.optionName}
+                      </span>
+                    ))}
+                  {item.notes && (
+                    <div className="mt-2 p-2 bg-red-50 border-l-4 border-red-500 text-red-700 text-xs font-medium">
+                      NOTAS: {item.notes}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* OBSERVACIONES DEL CLIENTE */}
+          {order.customerObservations && (
+            <div className="p-3 bg-blue-50 rounded-xl text-blue-800 text-sm italic">
+              " {order.customerObservations} "
+            </div>
           )}
+        </div>
+
+        {/* TOTAL Y ACCIÓN */}
+        <div className="p-4 border-t bg-gray-50 space-y-3">
+          <div className="flex justify-between items-end">
+            <span className="text-gray-500 text-sm font-medium uppercase tracking-wider">
+              Total a cobrar
+            </span>
+            <span className="text-3xl font-black text-gray-900">
+              {formatPrice(order.total)}
+            </span>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              disabled={loading}
+              onClick={onClose}
+              className="px-6 py-4 rounded-xl border-2 border-gray-200 font-bold text-gray-500 hover:bg-gray-100 transition-colors"
+            >
+              SALIR
+            </button>
+            {action && (
+              <button
+                onClick={handleAdvance}
+                disabled={loading}
+                className={`flex-1 ${action.color} text-white rounded-xl py-4 font-black text-lg shadow-lg active:scale-95 transition-all flex justify-center items-center gap-2`}
+              >
+                {loading ? "..." : action.label}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
