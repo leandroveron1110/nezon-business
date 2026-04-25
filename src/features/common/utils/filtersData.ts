@@ -1,8 +1,6 @@
-// filtersData.ts
+import { IOrderShortDto, OrderStatus, PaymentMethodType } from "@/types/order";
 
-import { IOrder, OrderStatus, PaymentMethodType, PaymentStatus } from "@/features/order/types/order";
-
-
+// Mantenemos tu mapa de prioridades para el ordenamiento
 export const statusPriority: Record<OrderStatus, number> = {
   [OrderStatus.PENDING]: 1,
   [OrderStatus.WAITING_FOR_PAYMENT]: 2,
@@ -33,38 +31,46 @@ export const statusPriority: Record<OrderStatus, number> = {
   [OrderStatus.FAILED]: 70,
 };
 
-export const simplifiedFilters = [
+// Definimos la interfaz del filtro para que TypeScript no se queje
+export interface ISimplifiedFilter {
+  label: string;
+  statuses: OrderStatus[];
+  condition?: (order: IOrderShortDto) => boolean;
+}
+
+export const simplifiedFilters: ISimplifiedFilter[] = [
   {
     label: "Todos",
-    statuses: [],
+    statuses: [], // Se maneja por lógica de "mostrar todo"
   },
-    {
-    label: "Pago pendiente",
+  {
+    label: "Pendientes",
     statuses: [
       OrderStatus.PENDING,
-
+      OrderStatus.WAITING_FOR_PAYMENT,
+      OrderStatus.PENDING_CONFIRMATION
     ],
-    condition: (order: IOrder) =>
-      (order.orderPaymentMethod === PaymentMethodType.TRANSFER &&
-      (order.paymentStatus === PaymentStatus.PENDING ||
-        order.paymentStatus === PaymentStatus.IN_PROGRESS) || order.orderPaymentMethod == PaymentMethodType.CASH && (order.paymentStatus === PaymentStatus.PENDING ||
-        order.paymentStatus === PaymentStatus.IN_PROGRESS)),
+    // Simplificamos la condición: Si es transferencia y está en estado inicial, es pendiente.
+    // El DTO corto nos obliga a confiar más en el status general.
+    condition: (order: IOrderShortDto) => 
+      order.status === OrderStatus.PENDING || 
+      order.status === OrderStatus.WAITING_FOR_PAYMENT ||
+      order.status === OrderStatus.PENDING_CONFIRMATION
   },
   {
     label: "En curso",
     statuses: [
-      OrderStatus.WAITING_FOR_PAYMENT,
-      OrderStatus.PENDING_CONFIRMATION,
       OrderStatus.CONFIRMED,
       OrderStatus.PREPARING,
       OrderStatus.READY_FOR_CUSTOMER_PICKUP,
       OrderStatus.READY_FOR_DELIVERY_PICKUP,
-      OrderStatus.OUT_FOR_DELIVERY,
+      OrderStatus.DELIVERY_PENDING,
       OrderStatus.DELIVERY_ASSIGNED,
       OrderStatus.DELIVERY_ACCEPTED,
       OrderStatus.OUT_FOR_PICKUP,
       OrderStatus.PICKED_UP,
-      OrderStatus.DELIVERY_REASSIGNING, // Añadido para un seguimiento más preciso
+      OrderStatus.OUT_FOR_DELIVERY,
+      OrderStatus.DELIVERY_REASSIGNING,
     ],
   },
   {
@@ -72,7 +78,6 @@ export const simplifiedFilters = [
     statuses: [
       OrderStatus.DELIVERED,
       OrderStatus.COMPLETED,
-      OrderStatus.REFUNDED, // Agregado aquí ya que la acción finaliza el ciclo
     ],
   },
   {
@@ -82,6 +87,7 @@ export const simplifiedFilters = [
       OrderStatus.DELIVERY_REJECTED,
       OrderStatus.DELIVERY_FAILED,
       OrderStatus.RETURNED,
+      OrderStatus.REFUNDED,
       OrderStatus.CANCELLED_BY_USER,
       OrderStatus.CANCELLED_BY_BUSINESS,
       OrderStatus.CANCELLED_BY_DELIVERY,

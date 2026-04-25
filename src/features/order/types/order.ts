@@ -1,5 +1,7 @@
+import { IOrderShortDto } from "@/types/order";
+
 export interface SyncResponse {
-  newOrUpdatedOrders: IOrder[];
+  orders: IOrderShortDto[];
   latestTimestamp: string;
 }
 

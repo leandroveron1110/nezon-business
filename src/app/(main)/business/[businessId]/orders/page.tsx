@@ -23,17 +23,14 @@ export default function BusinessCatalog() {
   }
 
   return (
-    <>
+    <div className="relative">
       <Header />
-
-      <div className="bg-gray-50 min-h-[calc(100vh-60px)] pt-4 pb-12 relative">
-        <div className="ml-4 mb-4">
-          <BackButton />
-        </div>
-        <div className="">
-          <Order businessId={businessId} />
-        </div>
+      {/* Botón absoluto y circular */}
+      <div className="absolute top-2 left-4 z-20">
+        <BackButton />
       </div>
-    </>
+
+      <Order businessId={businessId} />
+    </div>
   );
 }

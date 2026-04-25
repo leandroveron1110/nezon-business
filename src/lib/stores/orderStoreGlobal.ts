@@ -1,40 +1,36 @@
-// src/stores/useGlobalBusinessOrdersStore.ts
-
-import { Order, OrderStatus, PaymentStatus } from "@/types/order";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
+import { 
+  IOrderShortDto, 
+  OrderStatus 
+} from "@/types/order";
 
-// 💡 Tipo: Un mapa de arrays de órdenes, donde el valor puede ser undefined
-type OrdersByBusiness = Record<string, Order[] | undefined>;
+type OrdersByBusiness = Record<string, IOrderShortDto[] | undefined>;
 type LastSyncTimes = Record<string, string | undefined>;
 
 interface GlobalOrdersState {
   businessOrders: OrdersByBusiness;
   lastSyncTimes: LastSyncTimes;
 
-  // Acciones:
-  getOrders: (businessId: string) => Order[] | undefined;
-  getOrderById: (businessId: string, orderId: string) => Order | undefined;
-  setOrdersForBusiness: (
-    businessId: string,
-    orders: Order[],
-    syncTime: string
-  ) => void; // 💡 La función ahora acepta syncTime
+  // Acciones
+  getOrders: (businessId: string) => IOrderShortDto[] | undefined;
   getLastSyncTime: (businessId: string) => string | undefined;
+  
+  // Sincronización masiva
+  setOrdersForBusiness: (
+    businessId: string, 
+    orders: IOrderShortDto[], 
+    syncTime: string
+  ) => void;
 
-  addOrder: (businessId: string, order: Order) => void;
-  updateOrder: (businessId: string, order: Order) => void;
+  // Actualizaciones granulares (Sockets / Sincronización incremental)
+  addOrUpdateOrder: (businessId: string, order: IOrderShortDto) => void;
   updateOrderStatus: (
-    businessId: string,
-    orderId: string,
-    status: string
+    businessId: string, 
+    orderId: string, 
+    status: OrderStatus
   ) => void;
-  updatePaymentStatus: (
-    businessId: string,
-    orderId: string,
-    newPaymentStatus: PaymentStatus,
-    paymentReceiptUrl: string
-  ) => void;
+  
   reset: () => void;
 }
 
@@ -43,95 +39,50 @@ export const useGlobalBusinessOrdersStore = create<GlobalOrdersState>()(
     businessOrders: {},
     lastSyncTimes: {},
 
-    // 🎯 NUEVO GETTER
     getLastSyncTime: (businessId) => get().lastSyncTimes[businessId],
+    getOrders: (businessId) => get().businessOrders[businessId],
 
-    getOrderById: (businessId, orderId) => {
-        return get().businessOrders[businessId]?.find(o => o.id === orderId);
-    },
-
-    // 🎯 SETTER ACTUALIZADO para guardar los datos Y la marca de tiempo
     setOrdersForBusiness: (businessId, orders, syncTime) => {
       set((state) => {
-        // 1. Guardar las órdenes
         state.businessOrders[businessId] = orders;
-        // 2. Guardar la marca de tiempo
         state.lastSyncTimes[businessId] = syncTime;
       });
     },
-    // ⚙️ SELECTOR (para usar con useMemo en el componente)
-    getOrders: (businessId) => get().businessOrders[businessId],
 
-    // ⚙️ AGREGAR ORDEN (Usado para sockets o nuevas sincronizaciones)
-    addOrder: (businessId, order) => {
+    // Unificamos add y update para manejar lógica incremental de forma más sencilla
+    addOrUpdateOrder: (businessId, incomingOrder) => {
       set((state) => {
-        const orders = state.businessOrders[businessId];
-        // Inicializar el array si no existe
-        if (!orders) {
-          state.businessOrders[businessId] = [order];
+        if (!state.businessOrders[businessId]) {
+          state.businessOrders[businessId] = [incomingOrder];
           return;
         }
 
-        // Evitar duplicados y agregar al inicio (LIFO: Last In, First Out)
-        if (!orders.some((o) => o.id === order.id)) {
-          orders.unshift(order);
-        }
-      });
-    },
+        const orders = state.businessOrders[businessId]!;
+        const index = orders.findIndex((o) => o.id === incomingOrder.id);
 
-    // ⚙️ ACTUALIZAR ORDEN COMPLETA (Usado para sincronización incremental)
-    updateOrder: (businessId, updatedOrder) => {
-      set((state) => {
-        const orders = state.businessOrders[businessId];
-        if (!orders) return;
-
-        const index = orders.findIndex((o) => o.id === updatedOrder.id);
         if (index !== -1) {
-          // Sobrescribir la orden si se encuentra
-          orders[index] = updatedOrder;
+          // Si ya existe, actualizamos los campos que el DTO permite
+          orders[index] = { ...orders[index], ...incomingOrder };
         } else {
-          // Si no existe (orden nueva), la añadimos
-          orders.unshift(updatedOrder);
+          // Si es nueva, va al principio (LIFO)
+          orders.unshift(incomingOrder);
         }
       });
     },
 
-    // ⚙️ ACTUALIZAR SOLO EL ESTADO DE ORDEN
     updateOrderStatus: (businessId, orderId, status) => {
       set((state) => {
-        const orders = state.businessOrders[businessId];
-        if (!orders) return;
-
-        const order = orders.find((o) => o.id === orderId);
+        const order = state.businessOrders[businessId]?.find((o) => o.id === orderId);
         if (order) {
-          order.status = status as OrderStatus;
+          order.status = status;
         }
       });
     },
 
-    // ⚙️ ACTUALIZAR ESTADO DE PAGO Y RECIBO
-    updatePaymentStatus: (
-      businessId,
-      orderId,
-      newPaymentStatus,
-      paymentReceiptUrl
-    ) => {
-      set((state) => {
-        const orders = state.businessOrders[businessId];
-        if (!orders) return;
-
-        const order = orders.find((o) => o.id === orderId);
-        if (order) {
-          order.paymentStatus = newPaymentStatus;
-          order.paymentReceiptUrl = paymentReceiptUrl;
-        }
-      });
-    },
-
-    // ⚙️ RESETEAR TODO EL CACHÉ GLOBAL
     reset: () => {
       set((state) => {
         state.businessOrders = {};
+        state.lastSyncTimes = {};
       });
     },
   }))

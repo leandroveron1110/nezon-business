@@ -13,3 +13,24 @@ body {
     background-color: #E8E8E8;
 }
 
+
+@media print {
+  /* Oculta todo menos el componente que tiene la clase print:block */
+  body * {
+    visibility: hidden;
+  }
+  .print\:block, .print\:block * {
+    visibility: visible;
+  }
+  .print\:block {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  /* Ajustes para tickeadora térmica */
+  @page {
+    margin: 0;
+    size: auto;
+  }
+}

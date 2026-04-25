@@ -1,22 +1,19 @@
 import { useEffect } from "react";
-import { IOrder } from "../types/order";
 import { useBusinessSocket } from "@/features/common/hooks/useBusinessSocket";
 import { useGlobalBusinessOrdersStore } from "@/lib/stores/orderStoreGlobal";
+import { IOrderShortDto } from "@/types/order";
 
 export function useBusinessOrdersSocket(businessId: string) {
   const socket = useBusinessSocket(businessId);
-  const addOrder = useGlobalBusinessOrdersStore((s) => s.addOrder);
+  const addOrder = useGlobalBusinessOrdersStore((s) => s.addOrUpdateOrder);
   const updateOrderStatus = useGlobalBusinessOrdersStore(
     (s) => s.updateOrderStatus
-  );
-  const updatePaymentStatus = useGlobalBusinessOrdersStore(
-    (s) => s.updatePaymentStatus
   );
 
   useEffect(() => {
     if (!socket) return;
 
-    socket.on("new_order", (order: IOrder) => {
+    socket.on("new_order", (order: IOrderShortDto) => {
       addOrder(businessId, order);
     });
 
@@ -24,19 +21,9 @@ export function useBusinessOrdersSocket(businessId: string) {
       updateOrderStatus(businessId, data.orderId, data.status);
     });
 
-    socket.on("payment_updated", (data) => {
-      updatePaymentStatus(
-        businessId,
-        data.orderId,
-        data.paymentStatus,
-        data.paymentReceiptUrl
-      );
-    });
-
     return () => {
       socket.off("new_order");
       socket.off("order_status_updated");
-      socket.off("payment_updated");
     };
-  }, [addOrder, updateOrderStatus, updatePaymentStatus, socket]);
+  }, [addOrder, updateOrderStatus, socket]);
 }

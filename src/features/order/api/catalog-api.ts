@@ -14,14 +14,29 @@ export const fetchOrdersByBusinessId = async (
   }
 };
 
+export const fetchOrderById = async (
+  orderId: string
+): Promise<ApiResult<IOrder>> => {
+  try {
+    const res = await apiGet<IOrder>(`/orders/${orderId}`);
+    return res.data;
+  } catch (error: unknown) {
+    throw handleApiError(error, "Error al obtener las ordenes del negocio");
+  }
+};
+
 export const syncOrdersByBusinessId = async (
   businessId: string,
-  lastSyncTime?: string
+  lastSyncTime?: string,
+  daysBack?: number | null,
+  specificDate?: string | null
 ) => {
   try {
     const res = await apiPost<SyncResponse>(`/orders/sync/business`, {
       id: businessId,
       lastSyncTime,
+      daysBack,    // <--- Agregado
+      specificDate // <--- Agregado
     });
 
     if (!res.success || !res.data) {
@@ -31,7 +46,7 @@ export const syncOrdersByBusinessId = async (
       );
     }
     return {
-      newOrUpdatedOrders: res.data.newOrUpdatedOrders,
+      orders: res.data.orders,
       latestTimestamp: res.timestamp,
     };
   } catch (error: unknown) {

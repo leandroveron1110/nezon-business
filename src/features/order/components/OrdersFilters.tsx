@@ -1,34 +1,31 @@
-import { IOrder, OrderStatus, PaymentStatus } from "../types/order";
+"use client";
 
-type StatusFilter = OrderStatus | PaymentStatus;
-
-
-interface Filter {
-  label: string;
-  statuses: StatusFilter[];
-  condition?: (order: IOrder) => boolean;
-}
+import { IOrderShortDto, OrderStatus } from "@/types/order";
+import { ISimplifiedFilter } from "@/features/common/utils/filtersData";
 
 interface OrdersFiltersProps {
-  quickFilters: Filter[];
+  quickFilters: ISimplifiedFilter[];
   activeFilter: string;
   setActiveFilter: (filter: string) => void;
-  orders: IOrder[];
+  orders: IOrderShortDto[]; // Ahora usa el DTO corto
 }
 
 export default function OrdersFilters({
   quickFilters,
   activeFilter,
   setActiveFilter,
-  orders,
+  orders = [], // Fallback defensivo: si llega undefined, es un array vacío
 }: OrdersFiltersProps) {
   return (
     <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide lg:overflow-x-visible lg:flex-wrap">
       {quickFilters.map((filter) => {
+        // Lógica de conteo optimizada
         const count = filter.label === "Todos"
           ? orders.length
           : orders.filter((o) =>
-              filter.condition ? filter.condition(o) : filter.statuses.includes(o.status)
+              filter.condition 
+                ? filter.condition(o) 
+                : filter.statuses.includes(o.status as OrderStatus)
             ).length;
 
         return (

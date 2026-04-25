@@ -1,243 +1,357 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   X,
   Truck,
   AlertTriangle,
+  MessageCircle,
+  Clock,
+  ChevronRight,
+  Receipt,
+  Loader2,
   Printer,
 } from "lucide-react";
 
-import { EOrderStatus, IOrder } from "../../types/order";
 import {
-  DeliveryType,
   OrderStatus,
+  DeliveryType,
   PaymentMethodType,
   PaymentStatus,
+  ALLOWED_TRANSITIONS,
 } from "@/types/order";
 
 import { formatPrice } from "@/features/common/utils/formatPrice";
+import { useAlert } from "@/features/common/ui/Alert/Alert";
 import {
   fetchUpdateOrdersByOrderID,
   fetchUpdateOrdersPaymentByOrderID,
 } from "../../api/catalog-api";
-import { useAlert } from "@/features/common/ui/Alert/Alert";
+import { useFetchOrderById } from "../../hooks/useFetchOrders";
+import OrderStatusBadge from "../OrderStatusBadge";
+import { queryClient } from "@/lib/queryClient";
+import { OrderCancellationActions } from "./OrderCancellationActions";
+import { IOrder } from "../../types/order";
+import { usePrinterSettings } from "../../hooks/usePrinterSettings";
+import { OrderTicket } from "./OrderTicket";
 
 interface Props {
-  order: IOrder;
+  orderId: string;
   onClose: () => void;
 }
 
-const getNextOrderStatus = (
-  current: EOrderStatus,
-  deliveryType: DeliveryType,
-): EOrderStatus | null => {
-  switch (current) {
-    case EOrderStatus.PENDING:
-    case EOrderStatus.CONFIRMED:
-      return EOrderStatus.PREPARING;
-
-    case EOrderStatus.PREPARING:
-      return deliveryType === DeliveryType.PICKUP
-        ? EOrderStatus.READY_FOR_CUSTOMER_PICKUP
-        : EOrderStatus.READY_FOR_DELIVERY_PICKUP;
-
-    case EOrderStatus.READY_FOR_CUSTOMER_PICKUP:
-    case EOrderStatus.READY_FOR_DELIVERY_PICKUP:
-      return EOrderStatus.COMPLETED;
-
-    default:
-      return null;
-  }
-};
-
-// Fuera del componente para mantenerlo puro
+/**
+ * Mapeo de acciones sugeridas según el estado actual.
+ * Esta es la "intención" del negocio, que luego será validada por el Motor de Estados.
+ */
 const getStatusAction = (status: OrderStatus, deliveryType: DeliveryType) => {
   const actions: Record<
     string,
     { label: string; next: OrderStatus; color: string }
   > = {
+    // --- FASE 1: PAGOS (Si el negocio ayuda a gestionar) ---
     [OrderStatus.PENDING]: {
+      label: "CONFIRMAR INICIO",
+      next: OrderStatus.WAITING_FOR_PAYMENT,
+      color: "bg-slate-600 hover:bg-slate-700",
+    },
+    [OrderStatus.PAYMENT_CONFIRMED]: {
+      label: "PASAR A REVISIÓN",
+      next: OrderStatus.PENDING_CONFIRMATION,
+      color: "bg-indigo-600 hover:bg-indigo-700",
+    },
+
+    // --- FASE 2: GESTIÓN DE TIENDA (Lo más común) ---
+    [OrderStatus.PENDING_CONFIRMATION]: {
       label: "ACEPTAR PEDIDO",
       next: OrderStatus.CONFIRMED,
-      color: "bg-blue-600",
+      color: "bg-blue-600 hover:bg-blue-700",
     },
     [OrderStatus.CONFIRMED]: {
       label: "EMPEZAR A PREPARAR",
       next: OrderStatus.PREPARING,
-      color: "bg-orange-500",
+      color: "bg-orange-500 hover:bg-orange-600",
     },
     [OrderStatus.PREPARING]: {
       label:
         deliveryType === DeliveryType.PICKUP
           ? "LISTO PARA RETIRO"
-          : "LLAMAR CADETE",
+          : "SOLICITAR CADETE",
       next:
         deliveryType === DeliveryType.PICKUP
           ? OrderStatus.READY_FOR_CUSTOMER_PICKUP
           : OrderStatus.READY_FOR_DELIVERY_PICKUP,
-      color: "bg-green-600",
+      color: "bg-green-600 hover:bg-green-700",
     },
+
+    // --- FASE 3: LOGÍSTICA Y RETIROS ---
     [OrderStatus.READY_FOR_CUSTOMER_PICKUP]: {
-      label: "ENTREGAR Y CERRAR",
+      label: "ENTREGAR Y FINALIZAR",
       next: OrderStatus.COMPLETED,
-      color: "bg-gray-900",
+      color: "bg-gray-900 hover:bg-black",
+    },
+    [OrderStatus.READY_FOR_DELIVERY_PICKUP]: {
+      label: "BUSCAR CADETE",
+      next: OrderStatus.DELIVERY_PENDING,
+      color: "bg-purple-600 hover:bg-purple-700",
+    },
+    [OrderStatus.DELIVERY_REJECTED]: {
+      label: "RE-ASIGNAR CADETE",
+      next: OrderStatus.DELIVERY_REASSIGNING,
+      color: "bg-red-500 hover:bg-red-600",
+    },
+    [OrderStatus.DELIVERY_REASSIGNING]: {
+      label: "BUSCAR NUEVO CADETE",
+      next: OrderStatus.DELIVERY_ASSIGNED,
+      color: "bg-purple-600 hover:bg-purple-700",
+    },
+
+    // --- FASE 4: FINALIZACIÓN ---
+    [OrderStatus.DELIVERED]: {
+      label: "COMPLETAR ORDEN",
+      next: OrderStatus.COMPLETED,
+      color: "bg-emerald-600 hover:bg-emerald-700",
+    },
+    [OrderStatus.DELIVERY_FAILED]: {
+      label: "RE-INTENTAR ENVÍO",
+      next: OrderStatus.DELIVERY_PENDING,
+      color: "bg-amber-600 hover:bg-amber-700",
+    },
+    [OrderStatus.RETURNED]: {
+      label: "CERRAR (DEVUELTO)",
+      next: OrderStatus.COMPLETED,
+      color: "bg-slate-700 hover:bg-slate-800",
+    },
+    [OrderStatus.REFUNDED]: {
+      label: "CERRAR (REEMBOLSADO)",
+      next: OrderStatus.COMPLETED,
+      color: "bg-slate-700 hover:bg-slate-800",
+    },
+
+    // --- FASE 5: RECUPERACIÓN ---
+    [OrderStatus.FAILED]: {
+      label: "RE-INTENTAR PEDIDO",
+      next: OrderStatus.PENDING,
+      color: "bg-blue-500 hover:bg-blue-600",
     },
   };
+
   return actions[status] || null;
 };
 
-export function OrderDetailsModal({ order, onClose }: Props) {
+export function OrderDetailsModal({ orderId, onClose }: Props) {
   const [loading, setLoading] = useState(false);
   const { addAlert } = useAlert();
+  const { data: order, isLoading, error } = useFetchOrderById(orderId);
+  const [showDangerZone, setShowDangerZone] = useState(false);
+  const { autoPrint } = usePrinterSettings();
 
-  const action = getStatusAction(order.status, order.deliveryType);
+  // RECALCULAR AUTOMÁTICAMENTE
+  const action = useMemo(() => {
+    if (!order) return null;
+    return getStatusAction(order.status, order.deliveryType);
+  }, [order?.status, order?.deliveryType]); // <--- ESTO es lo que fuerza la actualización
+
+  // VALIDACIÓN SEGURA
+  const isTransitionAllowed = useMemo(() => {
+    if (!order || !action) return false;
+    return ALLOWED_TRANSITIONS[order.status]?.includes(action.next);
+  }, [order?.status, action]);
+
+  if (isLoading) return <OrderDetailsSkeleton />;
+  if (error || !order) return null;
+
   const isTransfer = order.orderPaymentMethod === PaymentMethodType.TRANSFER;
   const needsPaymentConfirmation =
     isTransfer && order.paymentStatus !== PaymentStatus.CONFIRMED;
 
   const handleAdvance = async () => {
-    if (!action) return;
+    if (!action || !isTransitionAllowed || loading) return;
+
     try {
       setLoading(true);
-      // Si es transferencia y está pendiente, confirmamos pago y avanzamos orden
+
+      // Si el negocio tiene activado autoPrint y estamos aceptando el pedido
+      if (action.next === OrderStatus.CONFIRMED && autoPrint) {
+        // Un pequeño delay para asegurar que el estado se procesó
+        setTimeout(() => handlePrint(order), 500);
+      }
+
+      // 1. Si es transferencia, primero aseguramos la confirmación del pago en el backend
       if (needsPaymentConfirmation) {
         await fetchUpdateOrdersPaymentByOrderID(
           order.id,
           PaymentStatus.CONFIRMED,
         );
+
+        // Actualizamos localmente el estado de pago para que la UI reaccione
+        queryClient.setQueryData(["order", orderId], (old: any) => ({
+          ...old,
+          paymentStatus: PaymentStatus.CONFIRMED,
+        }));
       }
+
+      // 2. Avanzamos al siguiente estado lógico
       await fetchUpdateOrdersByOrderID(order.id, action.next);
+
+      queryClient.setQueryData(["order", orderId], (old: any) => ({
+        ...old,
+        status: action.next,
+      }));
+
       addAlert({
-        message: `Pedido en estado: ${action.next}`,
+        message: `Orden actualizada: ${action.label}`,
         type: "success",
       });
       onClose();
     } catch (e) {
-      addAlert({ message: "Error al actualizar", type: "error" });
+      addAlert({
+        message: "No se pudo actualizar la orden. Intente nuevamente.",
+        type: "error",
+      });
     } finally {
       setLoading(false);
     }
   };
 
+  // Dentro de OrderDetailsModal...
 
+  const handleCancelOrder = async (targetStatus: OrderStatus) => {
+    const confirmMessage =
+      targetStatus === OrderStatus.REJECTED_BY_BUSINESS
+        ? "¿Estás seguro de rechazar este pedido?"
+        : "¿Deseas cancelar este pedido ya aceptado?";
 
-  return (
-    <div className="fixed inset-0 bg-black/70 z-50 flex justify-center items-end sm:items-center p-0 sm:p-4">
-      <div className="bg-white w-full max-w-xl rounded-t-3xl sm:rounded-2xl flex flex-col max-h-[90vh] shadow-2xl">
-        {/* HEADER: Info del Cliente */}
-        <div className="p-4 border-b flex justify-between items-start bg-gray-50 rounded-t-3xl sm:rounded-t-2xl">
-          <div>
-            <h2 className="text-xl font-bold text-gray-800">
-              {order.user.fullName}
-            </h2>
-            <button
-              onClick={() =>
-                window.open(`https://wa.me/${order.user.phone}`, "_blank")
-              }
-              className="text-green-600 text-sm font-medium flex items-center gap-1 mt-1"
-            >
-              <Truck className="w-3 h-3" /> WhatsApp: {order.user.phone}
-            </button>
+    if (!window.confirm(confirmMessage)) return;
+
+    try {
+      setLoading(true);
+
+      // 1. Backend
+      await fetchUpdateOrdersByOrderID(order.id, targetStatus);
+
+      // 2. Optimistic Update en React Query (Magia)
+      queryClient.setQueryData(["order", orderId], (old: any) => ({
+        ...old,
+        status: targetStatus,
+      }));
+
+      addAlert({ message: "Pedido cancelado correctamente", type: "info" });
+      onClose(); // Cerramos el modal porque ya no hay acciones posibles
+    } catch (e) {
+      addAlert({ message: "No se pudo cancelar", type: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePrint = (order: IOrder) => {
+    // Cambiamos temporalmente el título del documento
+    // para que el PDF/Impresión se guarde con un nombre útil
+    const originalTitle = document.title;
+    document.title = `Locus_Orden_${order.id.slice(-6)}`;
+
+    window.print();
+
+    // Restauramos el título
+    document.title = originalTitle;
+  };
+
+  // En el JSX del Modal, debajo del botón de handleAdvance:
+
+return (
+  <div className="fixed inset-0 bg-black/80 z-50 flex justify-center items-center p-2 sm:p-4 backdrop-blur-sm">
+    <div className="bg-white w-full max-w-lg rounded-3xl flex flex-col max-h-[92vh] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+      
+      {/* 1. HEADER FIJO */}
+      <div className="px-5 py-4 border-b bg-gray-50/50 flex justify-between items-center shrink-0">
+        <div className="flex items-center gap-3">
+          <OrderStatusBadge status={order.status} paymentStatus={order.paymentStatus} orderPaymentMethod={order.orderPaymentMethod} />
+          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">#{order.id.slice(-6)}</span>
+        </div>
+        <button onClick={onClose} className="p-2 bg-white border rounded-xl hover:bg-gray-100"><X className="w-5 h-5" /></button>
+      </div>
+
+      {/* 2. CUERPO SCROLLEABLE (Aquí va todo lo que crece: Items, Tickets, Notas) */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl font-black uppercase italic tracking-tighter">{order.user.fullName}</h2>
+          <button onClick={() => window.open(`https://wa.me/${order.user.phone.replace(/\D/g, "")}`, "_blank")} 
+                  className="text-green-600 font-black text-[10px] uppercase underline">WhatsApp</button>
+        </div>
+
+        {/* Listado Compacto */}
+        <div className="space-y-2">
+          {order.items.map((item) => (
+            <div key={item.id} className="flex gap-3 bg-gray-50 rounded-2xl p-3 items-center border">
+              <div className="bg-gray-900 text-white font-black h-9 w-9 rounded-lg flex items-center justify-center text-sm">{item.quantity}</div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-black uppercase truncate">{item.productName}</p>
+                {item.optionGroups.flatMap(g => g.options).length > 0 && (
+                  <p className="text-[9px] text-gray-500 truncate italic">{item.optionGroups.flatMap(g => g.options).map(o => o.optionName).join(", ")}</p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+      </div>
+
+        {/* Componente Ticket (ahora vive aquí dentro para no robar espacio al botón) */}
+        <OrderTicket order={order} mode="CUSTOMER" />
+      {/* 3. FOOTER FIJO (Siempre visible, botones siempre al alcance) */}
+      <div className="p-4 border-t bg-white shrink-0 space-y-3">
+        {/* Info y Herramientas */}
+        <div className="flex justify-between items-center px-1">
+          <div className="flex flex-col">
+            <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Total</span>
+            <span className="text-xl font-black italic leading-none">{formatPrice(order.total)}</span>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-200 rounded-full transition-colors"
-          >
-            <X className="text-gray-500" />
+          <button onClick={() => handlePrint(order)} className="flex items-center gap-1.5 text-blue-600 font-black text-[9px] uppercase hover:bg-blue-50 px-2 py-1 rounded-lg">
+            <Printer size={12} /> Re-Imprimir
           </button>
         </div>
 
-        {/* ALERTA DE PAGO (CRÍTICO) */}
-        {isTransfer && (
-          <div
-            className={`p-3 flex items-center gap-3 ${needsPaymentConfirmation ? "bg-amber-50 text-amber-800" : "bg-green-50 text-green-800"}`}
+        {/* Botón Principal */}
+        {action && (
+          <button
+            onClick={handleAdvance}
+            disabled={loading || !isTransitionAllowed}
+            className={`w-full ${action.color} text-white rounded-xl py-3.5 font-black text-sm flex justify-center items-center gap-2 transition-all ${!isTransitionAllowed ? "opacity-30 cursor-not-allowed" : ""}`}
           >
-            <AlertTriangle className="w-5 h-5 flex-shrink-0" />
-            <div className="text-xs">
-              <p className="font-bold">PAGO POR TRANSFERENCIA</p>
-              <p>
-                {needsPaymentConfirmation
-                  ? "Verificar comprobante antes de avanzar."
-                  : "Pago ya confirmado."}
-              </p>
-            </div>
-          </div>
+            {loading ? <Loader2 className="animate-spin" /> : <>{action.label} <ChevronRight size={14} /></>}
+          </button>
         )}
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {/* LISTA DE PRODUCTOS */}
-          <div className="space-y-2">
-            {order.items.map((item) => (
-              <div
-                key={item.id}
-                className="flex gap-3 p-3 border-b border-gray-100 last:border-0"
-              >
-                <div className="bg-gray-900 text-white font-bold h-8 w-8 rounded flex items-center justify-center flex-shrink-0">
-                  {item.quantity}
-                </div>
-                <div className="flex-1">
-                  <p className="font-bold text-gray-900 uppercase">
-                    {item.productName}
-                  </p>
-                  {item.optionGroups
-                    .flatMap((g) => g.options)
-                    .map((o) => (
-                      <span
-                        key={o.id}
-                        className="text-sm text-gray-500 mr-2 italic"
-                      >
-                        +{o.optionName}
-                      </span>
-                    ))}
-                  {item.notes && (
-                    <div className="mt-2 p-2 bg-red-50 border-l-4 border-red-500 text-red-700 text-xs font-medium">
-                      NOTAS: {item.notes}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* OBSERVACIONES DEL CLIENTE */}
-          {order.customerObservations && (
-            <div className="p-3 bg-blue-50 rounded-xl text-blue-800 text-sm italic">
-              " {order.customerObservations} "
+        {/* Zona de Peligro Colapsable */}
+        <div className="border-t pt-2">
+          {!showDangerZone ? (
+            <button onClick={() => setShowDangerZone(true)} className="w-full py-2 rounded-lg border border-red-100 bg-red-50 text-red-500 text-[9px] font-black uppercase tracking-widest hover:bg-red-100 flex items-center justify-center gap-2">
+              <AlertTriangle size={12} /> Gestión de Cancelación
+            </button>
+          ) : (
+            <div className="animate-in fade-in duration-200">
+              <OrderCancellationActions status={order.status} onCancel={handleCancelOrder} loading={loading} />
+              <button onClick={() => setShowDangerZone(false)} className="w-full mt-2 text-[9px] text-gray-400 font-bold uppercase underline">
+                Cancelar acción
+              </button>
             </div>
           )}
         </div>
+      </div>
+    </div>
+  </div>
+);
+}
 
-        {/* TOTAL Y ACCIÓN */}
-        <div className="p-4 border-t bg-gray-50 space-y-3">
-          <div className="flex justify-between items-end">
-            <span className="text-gray-500 text-sm font-medium uppercase tracking-wider">
-              Total a cobrar
-            </span>
-            <span className="text-3xl font-black text-gray-900">
-              {formatPrice(order.total)}
-            </span>
-          </div>
-
-          <div className="flex gap-3">
-            <button
-              disabled={loading}
-              onClick={onClose}
-              className="px-6 py-4 rounded-xl border-2 border-gray-200 font-bold text-gray-500 hover:bg-gray-100 transition-colors"
-            >
-              SALIR
-            </button>
-            {action && (
-              <button
-                onClick={handleAdvance}
-                disabled={loading}
-                className={`flex-1 ${action.color} text-white rounded-xl py-4 font-black text-lg shadow-lg active:scale-95 transition-all flex justify-center items-center gap-2`}
-              >
-                {loading ? "..." : action.label}
-              </button>
-            )}
-          </div>
-        </div>
+function OrderDetailsSkeleton() {
+  return (
+    <div className="fixed inset-0 bg-black/70 z-50 flex justify-center items-center p-4">
+      <div className="bg-white w-full max-w-xl rounded-3xl p-12 flex flex-col items-center">
+        <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-4" />
+        <p className="font-black text-gray-400 text-xs tracking-widest uppercase italic animate-pulse">
+          Sincronizando con Locus...
+        </p>
       </div>
     </div>
   );

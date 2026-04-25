@@ -4,7 +4,11 @@ import { getDisplayErrorMessage } from "@/lib/uiErrors";
 import { useAlert } from "@/features/common/ui/Alert/Alert";
 import { syncOrdersByBusinessId } from "../api/catalog-api";
 
-export function useFetchBusinessOrders(businessId: string) {
+export function useFetchBusinessOrders(
+  businessId: string, 
+  daysBack: number | null, 
+  specificDate: string | null
+) {
   const getLastSyncTime = useGlobalBusinessOrdersStore((s) => s.getLastSyncTime);
   const setOrdersForBusiness = useGlobalBusinessOrdersStore((s) => s.setOrdersForBusiness);
   const getOrders = useGlobalBusinessOrdersStore((s) => s.getOrders);
@@ -12,50 +16,50 @@ export function useFetchBusinessOrders(businessId: string) {
 
   const isSyncingRef = useRef(false);
 
-  const syncOrdersByBusiness = useCallback(async () => {
+  const syncOrdersByBusiness = useCallback(async (forceFullLoad: boolean = false) => {
     if (!businessId || isSyncingRef.current) return;
     isSyncingRef.current = true;
 
-    const lastSyncTime = getLastSyncTime(businessId);
-
-    console.log(`[Sync] Iniciando sync para ${businessId}. Último tiempo: ${lastSyncTime || "N/A"}`);
+    // Si cambiamos el filtro de días o fecha, NO mandamos lastSyncTime para traer todo el lote nuevo
+    const lastSyncTime = forceFullLoad ? undefined : getLastSyncTime(businessId);
 
     try {
-      const res = await syncOrdersByBusinessId(businessId, lastSyncTime);
+      const res = await syncOrdersByBusinessId(
+        businessId, 
+        lastSyncTime, 
+        daysBack, 
+        specificDate
+      );
 
       if (!res) return;
 
-      const { newOrUpdatedOrders, latestTimestamp } = res;
-      const currentOrders = getOrders(businessId) || [];
-
-      if (newOrUpdatedOrders.length > 0) {
-        const existingMap = new Map(currentOrders.map((o) => [o.id, o]));
-        newOrUpdatedOrders.forEach((updated) => existingMap.set(updated.id, updated));
-
-        const mergedOrders = Array.from(existingMap.values());
-        setOrdersForBusiness(businessId, mergedOrders, latestTimestamp);
+      const { orders, latestTimestamp } = res;
+      
+      if (forceFullLoad) {
+        // Reemplazo total de órdenes para el nuevo rango de fechas
+        setOrdersForBusiness(businessId, orders, latestTimestamp);
       } else {
-        console.log(
-          `[Sync Success] No hay cambios. Último sync actualizado a ${latestTimestamp}`
-        );
-        // 💡 Solo actualizar si cambió el timestamp
-        if (latestTimestamp !== lastSyncTime) {
-          setOrdersForBusiness(businessId, currentOrders, latestTimestamp);
-        }
+        // Lógica de merge incremental (la que ya tenías)
+        const currentOrders = getOrders(businessId) || [];
+        const existingMap = new Map(currentOrders.map((o) => [o.id, o]));
+        orders.forEach((updated) => existingMap.set(updated.id, updated));
+        setOrdersForBusiness(businessId, Array.from(existingMap.values()), latestTimestamp);
       }
     } catch (error) {
-      addAlert({
-        message: getDisplayErrorMessage(error),
-        type: "error",
-      });
+      addAlert({ message: getDisplayErrorMessage(error), type: "error" });
     } finally {
       isSyncingRef.current = false;
     }
-  }, [businessId, getLastSyncTime, setOrdersForBusiness, getOrders, addAlert]);
+  }, [businessId, daysBack, specificDate, getLastSyncTime, setOrdersForBusiness, getOrders, addAlert]);
 
-  // 💡 Solo ejecuta una vez cuando cambia el negocio, no en cada timestamp
+  // EFECTO 1: Cuando cambia el filtro (días o calendario), forzamos carga completa
   useEffect(() => {
-    if (!businessId) return;
-    syncOrdersByBusiness();
-  }, [businessId, syncOrdersByBusiness]);
+    syncOrdersByBusiness(true);
+  }, [daysBack, specificDate, businessId]);
+
+  // EFECTO 2: Intervalo para actualizaciones incrementales (opcional)
+  useEffect(() => {
+    const interval = setInterval(() => syncOrdersByBusiness(false), 30000); // cada 30s
+    return () => clearInterval(interval);
+  }, [syncOrdersByBusiness]);
 }
