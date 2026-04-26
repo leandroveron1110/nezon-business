@@ -111,7 +111,7 @@ export default function BusinessOrdersPage({ businessId }: Props) {
           } else {
             // Si el navegador no permite compartir archivos, solo mandamos el link de texto
             window.open(
-              `https://wa.me/${orderToPrint.user.phone.replace(/\D/g, "")}?text=${encodeURIComponent(message)}`,
+              `https://wa.me/3442667301?text=${encodeURIComponent(message)}`,
               "_blank",
             );
           }

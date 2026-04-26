@@ -82,6 +82,7 @@ export interface IOrder {
   origin: string;
   isTest: boolean;
   total: number;
+  totalDeliveryCost: number;
   notes?: string | null;
   createdAt: string; // ISO string
   updatedAt: string; // ISO string
