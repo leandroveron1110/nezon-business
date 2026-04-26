@@ -243,7 +243,7 @@ export function OrderDetailsModal({ orderId, onClose }: Props) {
 
   const handlePrint = () => {
     if (order && ticketRef.current) {
-      print(order, ticketRef.current.innerHTML);
+      print(ticketRef.current.innerHTML);
     }
   };
 

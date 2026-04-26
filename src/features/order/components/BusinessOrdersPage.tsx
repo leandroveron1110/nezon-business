@@ -63,7 +63,7 @@ const executePrint = (mode: "KITCHEN" | "CUSTOMER") => {
     setShowPrintModal(false);
     setTimeout(() => {
       if (printRef.current && orderToPrint) {
-        print(orderToPrint, printRef.current.innerHTML);
+        print(printRef.current.innerHTML);
       }
       setPrintMode(null);
     }, 300);
