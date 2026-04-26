@@ -1,3 +1,5 @@
+import { toPng } from 'html-to-image';
+
 export function usePrintTicket() {
   const print = (contentHtml: string) => {
     // 1. Creamos un contenedor para el área de impresión
@@ -48,5 +50,26 @@ export function usePrintTicket() {
     }, 500);
   };
 
-  return { print };
+  const generateImage = async (element: HTMLElement, fileName: string) => {
+    try {
+      // Convertimos el HTML a una URL de datos (Base64)
+      const dataUrl = await toPng(element, { 
+        quality: 0.95,
+        backgroundColor: '#ffffff', // Forzamos fondo blanco
+        style: {
+          visibility: 'visible', // Nos aseguramos que sea visible para la captura
+        }
+      });
+      
+      // Convertimos esa URL en un objeto de archivo real
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+      return new File([blob], `${fileName}.png`, { type: 'image/png' });
+    } catch (err) {
+      console.error("Error generando imagen del ticket", err);
+      return null;
+    }
+  };
+
+  return { print, generateImage };
 }

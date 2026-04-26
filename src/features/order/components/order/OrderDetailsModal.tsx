@@ -1,13 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import {
-  X,
-  AlertTriangle,
-  ChevronRight,
-  Loader2,
-  Printer,
-} from "lucide-react";
+import { X, AlertTriangle, ChevronRight, Loader2, Printer } from "lucide-react";
 
 import {
   OrderStatus,
@@ -320,8 +314,19 @@ export function OrderDetailsModal({ orderId, onClose }: Props) {
         </div>
 
         {/* Componente Ticket (ahora vive aquí dentro para no robar espacio al botón) */}
-        <div className="hidden">
+        {/* Componente Ticket: Cambiamos hidden por visibilidad absoluta para que el celu lo vea */}
+        <div
+          style={{
+            position: "absolute",
+            left: "-9999px",
+            top: "0",
+            visibility: "visible",
+            opacity: 0,
+            pointerEvents: "none",
+          }}
+        >
           <div ref={ticketRef}>
+            {/* En el modal, forzamos KITCHEN porque es para despacho rápido */}
             <OrderTicket order={order} mode="KITCHEN" />
           </div>
         </div>

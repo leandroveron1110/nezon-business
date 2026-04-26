@@ -2,7 +2,7 @@ import { IOrder, PaymentMethodType, DeliveryType } from "../../types/order";
 
 interface OrderTicketProps {
   order: IOrder;
-  mode: "KITCHEN" | "CUSTOMER";
+  mode: "KITCHEN" | "CUSTOMER" | "SHARE_WHATSAPP";
 }
 
 const PAYMENT_LABELS: Record<PaymentMethodType, string> = {

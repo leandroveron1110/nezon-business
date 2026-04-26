@@ -22,6 +22,7 @@ import { useAlert } from "@/features/common/ui/Alert/Alert";
 import { OrderTicket } from "./order/OrderTicket";
 import { PrintSelectorModal } from "./order/PrintSelectorModal";
 import { usePrintTicket } from "../hooks/usePrintTicket";
+import { toPng } from "html-to-image";
 
 interface Props {
   businessId: string;
@@ -29,12 +30,14 @@ interface Props {
 
 export default function BusinessOrdersPage({ businessId }: Props) {
   const { addAlert } = useAlert();
-  
+
   // Referencia para el contenedor oculto del ticket
-  const { print } = usePrintTicket();
+  const { print, generateImage } = usePrintTicket();
   const printRef = useRef<HTMLDivElement>(null);
 
-  const rawOrders = useGlobalBusinessOrdersStore((s) => s.getOrders(businessId));
+  const rawOrders = useGlobalBusinessOrdersStore((s) =>
+    s.getOrders(businessId),
+  );
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState("Todos");
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
@@ -44,10 +47,12 @@ export default function BusinessOrdersPage({ businessId }: Props) {
   // --- ESTADOS DE IMPRESIÓN ---
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [orderToPrint, setOrderToPrint] = useState<IOrder | null>(null);
-  const [printMode, setPrintMode] = useState<"KITCHEN" | "CUSTOMER" | null>(null);
+  const [printMode, setPrintMode] = useState<
+    "KITCHEN" | "CUSTOMER" | "SHARE_WHATSAPP" | null
+  >(null);
 
   // 1. Inicia el proceso buscando la orden completa
-const handlePrintRequest = async (id: string) => {
+  const handlePrintRequest = async (id: string) => {
     try {
       const fullOrder = await fetchOrderById(id);
       setOrderToPrint(fullOrder);
@@ -57,22 +62,86 @@ const handlePrintRequest = async (id: string) => {
     }
   };
 
-  // 2. Ejecuta la impresión vía iframe
-const executePrint = (mode: "KITCHEN" | "CUSTOMER") => {
-    setPrintMode(mode);
-    setShowPrintModal(false);
-    setTimeout(() => {
-      if (printRef.current && orderToPrint) {
-        print(printRef.current.innerHTML);
-      }
-      setPrintMode(null);
-    }, 300);
+  const executePrint = async (
+    mode: "KITCHEN" | "CUSTOMER" | "SHARE_WHATSAPP",
+  ) => {
+    if (!orderToPrint) return;
+
+    if (mode === "SHARE_WHATSAPP") {
+      setShowPrintModal(false);
+      // 1. Forzamos el renderizado del ticket en modo Cliente
+      setPrintMode("CUSTOMER");
+
+      // 2. Esperamos un poco más para que React lo inyecte en el DOM y las fuentes carguen
+      setTimeout(async () => {
+        if (!printRef.current) return;
+
+        try {
+          // Configuraciones extra para asegurar la captura en móviles
+          const dataUrl = await toPng(printRef.current, {
+            cacheBust: true, // Evita problemas de caché de imágenes
+            pixelRatio: 2, // Mejora la calidad para que no se vea pixelado
+            backgroundColor: "#ffffff",
+            skipFonts: false, // Asegura que use la fuente monoespaciada
+          });
+
+          const blob = await (await fetch(dataUrl)).blob();
+
+          // // Verificación de seguridad
+          // if (blob.size < 1) {
+          //   throw new Error("Imagen generada vacía");
+          // }
+
+          const ticketFile = new File(
+            [blob],
+            `Ticket_${orderToPrint.id.slice(-6)}.png`,
+            { type: "image/png" },
+          );
+          const message = `¡Hola! 👋 Acá tenés el detalle de tu pedido #${orderToPrint.id.slice(-6).toUpperCase()}.`;
+
+          if (
+            navigator.canShare &&
+            navigator.canShare({ files: [ticketFile] })
+          ) {
+            await navigator.share({
+              files: [ticketFile],
+              title: "Ticket de Pedido",
+              text: message,
+            });
+          } else {
+            // Si el navegador no permite compartir archivos, solo mandamos el link de texto
+            window.open(
+              `https://wa.me/${orderToPrint.user.phone.replace(/\D/g, "")}?text=${encodeURIComponent(message)}`,
+              "_blank",
+            );
+          }
+        } catch (error) {
+          console.error("Error capturando ticket:", error);
+          addAlert({
+            message: "No se pudo generar la imagen del ticket",
+            type: "error",
+          });
+        } finally {
+          setPrintMode(null); // Limpiamos el estado
+        }
+      }, 800); // Subimos a 800ms para darle tiempo al celu
+    } else {
+      setPrintMode(mode);
+      setShowPrintModal(false);
+      setTimeout(() => {
+        if (printRef.current && orderToPrint) {
+          print(printRef.current.innerHTML);
+        }
+        setPrintMode(null);
+      }, 300);
+    }
   };
 
-  // ... (Resto de lógica de sockets y filtrado igual)
   useFetchBusinessOrders(businessId, daysRange, specificDate);
   useBusinessOrdersSocket(businessId);
-  const resetNotificationOrder = useBusinessNotificationsStore((s) => s.clearNotificationsByType);
+  const resetNotificationOrder = useBusinessNotificationsStore(
+    (s) => s.clearNotificationsByType,
+  );
 
   useEffect(() => {
     if (businessId) resetNotificationOrder(businessId, "NEW_ORDER");
@@ -83,26 +152,48 @@ const executePrint = (mode: "KITCHEN" | "CUSTOMER") => {
     return orders
       .filter((order) => {
         const term = searchTerm.toLowerCase();
-        const matchesSearch = !searchTerm || order.id.toLowerCase().includes(term) || order.customerName.toLowerCase().includes(term);
-        const currentFilter = simplifiedFilters.find((f) => f.label === activeFilter);
-        const matchesTab = !currentFilter || activeFilter === "Todos" ? true : currentFilter.condition ? currentFilter.condition(order) : currentFilter.statuses.includes(order.status);
+        const matchesSearch =
+          !searchTerm ||
+          order.id.toLowerCase().includes(term) ||
+          order.customerName.toLowerCase().includes(term);
+        const currentFilter = simplifiedFilters.find(
+          (f) => f.label === activeFilter,
+        );
+        const matchesTab =
+          !currentFilter || activeFilter === "Todos"
+            ? true
+            : currentFilter.condition
+              ? currentFilter.condition(order)
+              : currentFilter.statuses.includes(order.status);
         return matchesSearch && matchesTab;
       })
       .sort((a, b) => {
         const priorityA = getOrderPriority(a);
         const priorityB = getOrderPriority(b);
         if (priorityA !== priorityB) return priorityA - priorityB;
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        return (
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
       });
   }, [rawOrders, activeFilter, searchTerm]);
 
   return (
     <div className="w-full h-full bg-gray-50 flex flex-col overflow-hidden">
-      
-{/* CAPTURA OCULTA */}
-      <div className="hidden">
+      {/* CAPTURA OCULTA */}
+      <div
+        style={{
+          position: "absolute",
+          left: "-9999px", // Lo mandamos "a la China" para que no se vea
+          top: "0",
+          visibility: "visible", // El navegador lo procesa normalmente
+          opacity: 0, // Es totalmente transparente
+          pointerEvents: "none", // Evita que alguien haga click accidentalmente en el aire
+        }}
+      >
         <div ref={printRef}>
-          {orderToPrint && printMode && <OrderTicket order={orderToPrint} mode={printMode} />}
+          {orderToPrint && printMode && (
+            <OrderTicket order={orderToPrint} mode={printMode} />
+          )}
         </div>
       </div>
 
@@ -122,8 +213,14 @@ const executePrint = (mode: "KITCHEN" | "CUSTOMER") => {
           <OrderFilterHeader
             daysRange={daysRange}
             selectedDate={specificDate}
-            onRangeChange={(d) => { setSpecificDate(null); setDaysRange(d); }}
-            onDateChange={(date) => { setDaysRange(null); setSpecificDate(date); }}
+            onRangeChange={(d) => {
+              setSpecificDate(null);
+              setDaysRange(d);
+            }}
+            onDateChange={(date) => {
+              setDaysRange(null);
+              setSpecificDate(date);
+            }}
           />
 
           <div className="relative">

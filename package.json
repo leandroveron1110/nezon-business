@@ -17,6 +17,7 @@
     "esri-leaflet": "^3.0.18",
     "esri-leaflet-geocoder": "^3.1.6",
     "framer-motion": "^12.23.16",
+    "html-to-image": "^1.11.13",
     "leaflet": "^1.9.4",
     "leaflet-geosearch": "^4.2.0",
     "lucide-react": "^0.525.0",
