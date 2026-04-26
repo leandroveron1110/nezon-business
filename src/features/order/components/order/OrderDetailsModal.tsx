@@ -1,14 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   X,
-  Truck,
   AlertTriangle,
-  MessageCircle,
-  Clock,
   ChevronRight,
-  Receipt,
   Loader2,
   Printer,
 } from "lucide-react";
@@ -31,9 +27,9 @@ import { useFetchOrderById } from "../../hooks/useFetchOrders";
 import OrderStatusBadge from "../OrderStatusBadge";
 import { queryClient } from "@/lib/queryClient";
 import { OrderCancellationActions } from "./OrderCancellationActions";
-import { IOrder } from "../../types/order";
 import { usePrinterSettings } from "../../hooks/usePrinterSettings";
 import { OrderTicket } from "./OrderTicket";
+import { usePrintTicket } from "../../hooks/usePrintTicket";
 
 interface Props {
   orderId: string;
@@ -142,6 +138,8 @@ const getStatusAction = (status: OrderStatus, deliveryType: DeliveryType) => {
 export function OrderDetailsModal({ orderId, onClose }: Props) {
   const [loading, setLoading] = useState(false);
   const { addAlert } = useAlert();
+  const { print } = usePrintTicket();
+  const ticketRef = useRef<HTMLDivElement>(null);
   const { data: order, isLoading, error } = useFetchOrderById(orderId);
   const [showDangerZone, setShowDangerZone] = useState(false);
   const { autoPrint } = usePrinterSettings();
@@ -174,7 +172,7 @@ export function OrderDetailsModal({ orderId, onClose }: Props) {
       // Si el negocio tiene activado autoPrint y estamos aceptando el pedido
       if (action.next === OrderStatus.CONFIRMED && autoPrint) {
         // Un pequeño delay para asegurar que el estado se procesó
-        setTimeout(() => handlePrint(order), 500);
+        setTimeout(() => handlePrint(), 500);
       }
 
       // 1. Si es transferencia, primero aseguramos la confirmación del pago en el backend
@@ -214,8 +212,6 @@ export function OrderDetailsModal({ orderId, onClose }: Props) {
     }
   };
 
-  // Dentro de OrderDetailsModal...
-
   const handleCancelOrder = async (targetStatus: OrderStatus) => {
     const confirmMessage =
       targetStatus === OrderStatus.REJECTED_BY_BUSINESS
@@ -245,103 +241,156 @@ export function OrderDetailsModal({ orderId, onClose }: Props) {
     }
   };
 
-  const handlePrint = (order: IOrder) => {
-    // Cambiamos temporalmente el título del documento
-    // para que el PDF/Impresión se guarde con un nombre útil
-    const originalTitle = document.title;
-    document.title = `Locus_Orden_${order.id.slice(-6)}`;
-
-    window.print();
-
-    // Restauramos el título
-    document.title = originalTitle;
+  const handlePrint = () => {
+    if (order && ticketRef.current) {
+      print(order, ticketRef.current.innerHTML);
+    }
   };
 
   // En el JSX del Modal, debajo del botón de handleAdvance:
 
-return (
-  <div className="fixed inset-0 bg-black/80 z-50 flex justify-center items-center p-2 sm:p-4 backdrop-blur-sm">
-    <div className="bg-white w-full max-w-lg rounded-3xl flex flex-col max-h-[92vh] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-      
-      {/* 1. HEADER FIJO */}
-      <div className="px-5 py-4 border-b bg-gray-50/50 flex justify-between items-center shrink-0">
-        <div className="flex items-center gap-3">
-          <OrderStatusBadge status={order.status} paymentStatus={order.paymentStatus} orderPaymentMethod={order.orderPaymentMethod} />
-          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">#{order.id.slice(-6)}</span>
+  return (
+    <div className="fixed inset-0 bg-black/80 z-50 flex justify-center items-center p-2 sm:p-4 backdrop-blur-sm">
+      <div className="bg-white w-full max-w-lg rounded-3xl flex flex-col max-h-[92vh] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        {/* 1. HEADER FIJO */}
+        <div className="px-5 py-4 border-b bg-gray-50/50 flex justify-between items-center shrink-0">
+          <div className="flex items-center gap-3">
+            <OrderStatusBadge
+              status={order.status}
+              paymentStatus={order.paymentStatus}
+              orderPaymentMethod={order.orderPaymentMethod}
+            />
+            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+              #{order.id.slice(-6)}
+            </span>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 bg-white border rounded-xl hover:bg-gray-100"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
-        <button onClick={onClose} className="p-2 bg-white border rounded-xl hover:bg-gray-100"><X className="w-5 h-5" /></button>
-      </div>
 
-      {/* 2. CUERPO SCROLLEABLE (Aquí va todo lo que crece: Items, Tickets, Notas) */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-xl font-black uppercase italic tracking-tighter">{order.user.fullName}</h2>
-          <button onClick={() => window.open(`https://wa.me/${order.user.phone.replace(/\D/g, "")}`, "_blank")} 
-                  className="text-green-600 font-black text-[10px] uppercase underline">WhatsApp</button>
-        </div>
+        {/* 2. CUERPO SCROLLEABLE (Aquí va todo lo que crece: Items, Tickets, Notas) */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-black uppercase italic tracking-tighter">
+              {order.user.fullName}
+            </h2>
+            <button
+              onClick={() =>
+                window.open(
+                  `https://wa.me/${order.user.phone.replace(/\D/g, "")}`,
+                  "_blank",
+                )
+              }
+              className="text-green-600 font-black text-[10px] uppercase underline"
+            >
+              WhatsApp
+            </button>
+          </div>
 
-        {/* Listado Compacto */}
-        <div className="space-y-2">
-          {order.items.map((item) => (
-            <div key={item.id} className="flex gap-3 bg-gray-50 rounded-2xl p-3 items-center border">
-              <div className="bg-gray-900 text-white font-black h-9 w-9 rounded-lg flex items-center justify-center text-sm">{item.quantity}</div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-black uppercase truncate">{item.productName}</p>
-                {item.optionGroups.flatMap(g => g.options).length > 0 && (
-                  <p className="text-[9px] text-gray-500 truncate italic">{item.optionGroups.flatMap(g => g.options).map(o => o.optionName).join(", ")}</p>
-                )}
+          {/* Listado Compacto */}
+          <div className="space-y-2">
+            {order.items.map((item) => (
+              <div
+                key={item.id}
+                className="flex gap-3 bg-gray-50 rounded-2xl p-3 items-center border"
+              >
+                <div className="bg-gray-900 text-white font-black h-9 w-9 rounded-lg flex items-center justify-center text-sm">
+                  {item.quantity}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-black uppercase truncate">
+                    {item.productName}
+                  </p>
+                  {item.optionGroups.flatMap((g) => g.options).length > 0 && (
+                    <p className="text-[9px] text-gray-500 truncate italic">
+                      {item.optionGroups
+                        .flatMap((g) => g.options)
+                        .map((o) => o.optionName)
+                        .join(", ")}
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-
-      </div>
 
         {/* Componente Ticket (ahora vive aquí dentro para no robar espacio al botón) */}
-        <OrderTicket order={order} mode="CUSTOMER" />
-      {/* 3. FOOTER FIJO (Siempre visible, botones siempre al alcance) */}
-      <div className="p-4 border-t bg-white shrink-0 space-y-3">
-        {/* Info y Herramientas */}
-        <div className="flex justify-between items-center px-1">
-          <div className="flex flex-col">
-            <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Total</span>
-            <span className="text-xl font-black italic leading-none">{formatPrice(order.total)}</span>
+        <div className="hidden">
+          <div ref={ticketRef}>
+            <OrderTicket order={order} mode="KITCHEN" />
           </div>
-          <button onClick={() => handlePrint(order)} className="flex items-center gap-1.5 text-blue-600 font-black text-[9px] uppercase hover:bg-blue-50 px-2 py-1 rounded-lg">
-            <Printer size={12} /> Re-Imprimir
-          </button>
         </div>
-
-        {/* Botón Principal */}
-        {action && (
-          <button
-            onClick={handleAdvance}
-            disabled={loading || !isTransitionAllowed}
-            className={`w-full ${action.color} text-white rounded-xl py-3.5 font-black text-sm flex justify-center items-center gap-2 transition-all ${!isTransitionAllowed ? "opacity-30 cursor-not-allowed" : ""}`}
-          >
-            {loading ? <Loader2 className="animate-spin" /> : <>{action.label} <ChevronRight size={14} /></>}
-          </button>
-        )}
-
-        {/* Zona de Peligro Colapsable */}
-        <div className="border-t pt-2">
-          {!showDangerZone ? (
-            <button onClick={() => setShowDangerZone(true)} className="w-full py-2 rounded-lg border border-red-100 bg-red-50 text-red-500 text-[9px] font-black uppercase tracking-widest hover:bg-red-100 flex items-center justify-center gap-2">
-              <AlertTriangle size={12} /> Gestión de Cancelación
-            </button>
-          ) : (
-            <div className="animate-in fade-in duration-200">
-              <OrderCancellationActions status={order.status} onCancel={handleCancelOrder} loading={loading} />
-              <button onClick={() => setShowDangerZone(false)} className="w-full mt-2 text-[9px] text-gray-400 font-bold uppercase underline">
-                Cancelar acción
-              </button>
+        {/* 3. FOOTER FIJO (Siempre visible, botones siempre al alcance) */}
+        <div className="p-4 border-t bg-white shrink-0 space-y-3">
+          {/* Info y Herramientas */}
+          <div className="flex justify-between items-center px-1">
+            <div className="flex flex-col">
+              <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                Total
+              </span>
+              <span className="text-xl font-black italic leading-none">
+                {formatPrice(order.total)}
+              </span>
             </div>
+            <button
+              onClick={() => handlePrint()}
+              className="flex items-center gap-1.5 text-blue-600 font-black text-[9px] uppercase hover:bg-blue-50 px-2 py-1 rounded-lg"
+            >
+              <Printer size={12} /> Re-Imprimir
+            </button>
+          </div>
+
+          {/* Botón Principal */}
+          {action && (
+            <button
+              onClick={handleAdvance}
+              disabled={loading || !isTransitionAllowed}
+              className={`w-full ${action.color} text-white rounded-xl py-3.5 font-black text-sm flex justify-center items-center gap-2 transition-all ${!isTransitionAllowed ? "opacity-30 cursor-not-allowed" : ""}`}
+            >
+              {loading ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                <>
+                  {action.label} <ChevronRight size={14} />
+                </>
+              )}
+            </button>
           )}
+
+          {/* Zona de Peligro Colapsable */}
+          <div className="border-t pt-2">
+            {!showDangerZone ? (
+              <button
+                onClick={() => setShowDangerZone(true)}
+                className="w-full py-2 rounded-lg border border-red-100 bg-red-50 text-red-500 text-[9px] font-black uppercase tracking-widest hover:bg-red-100 flex items-center justify-center gap-2"
+              >
+                <AlertTriangle size={12} /> Gestión de Cancelación
+              </button>
+            ) : (
+              <div className="animate-in fade-in duration-200">
+                <OrderCancellationActions
+                  status={order.status}
+                  onCancel={handleCancelOrder}
+                  loading={loading}
+                />
+                <button
+                  onClick={() => setShowDangerZone(false)}
+                  className="w-full mt-2 text-[9px] text-gray-400 font-bold uppercase underline"
+                >
+                  Cancelar acción
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
-  </div>
-);
+  );
 }
 
 function OrderDetailsSkeleton() {

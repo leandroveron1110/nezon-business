@@ -13,24 +13,17 @@ body {
     background-color: #E8E8E8;
 }
 
-
+/* Este CSS solo se aplicará cuando se imprima el contenido del iframe */
 @media print {
-  /* Oculta todo menos el componente que tiene la clase print:block */
-  body * {
-    visibility: hidden;
-  }
-  .print\:block, .print\:block * {
-    visibility: visible;
-  }
-  .print\:block {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-  }
-  /* Ajustes para tickeadora térmica */
   @page {
     margin: 0;
     size: auto;
+  }
+  
+  /* Aseguramos que el contenedor del ticket sea visible */
+  .ticket-wrapper {
+    display: block !important;
+    visibility: visible !important;
+    width: 80mm;
   }
 }
