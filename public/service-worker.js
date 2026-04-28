@@ -1,5 +1,5 @@
 /* -----------------------------------------------------------
-   📦 SERVICE WORKER - Locus Notificaciones Push
+   📦 SERVICE WORKER - Nezon Notificaciones Push
    ----------------------------------------------------------- */
 
 console.log('✅ [Service Worker] Registrado y ejecutándose...');

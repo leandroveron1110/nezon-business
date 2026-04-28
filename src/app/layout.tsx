@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Locus",
+  title: "Nezon",
   description: "la plataforma de tu ciudad",
   icons: {
     icon: [

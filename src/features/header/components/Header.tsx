@@ -14,7 +14,7 @@ import {
 } from "lucide-react"; 
 import React, { useState } from "react";
 import Image from "next/image"; 
-import img from "../../../app/locus.svg" 
+import img from "../../../app/Nezon.svg" 
 
 interface ILinks {
   // La URL es una función que toma el businessId y devuelve la ruta
@@ -80,7 +80,7 @@ export default function Header() {
           <Link href="/" className="flex-shrink-0">
             <Image 
               src={img} 
-              alt="Locus Logo" 
+              alt="Nezon Logo" 
               width={100} 
               height={32} 
               // Se recomienda agregar el 'priority' si es un logo clave para el LCP

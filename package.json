@@ -1,5 +1,5 @@
 {
-  "name": "locus-business",
+  "name": "Nezon-business",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -14,6 +14,8 @@
     "axios": "^1.10.0",
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
+    "dexie": "^4.4.2",
+    "dexie-react-hooks": "^4.4.0",
     "esri-leaflet": "^3.0.18",
     "esri-leaflet-geocoder": "^3.1.6",
     "framer-motion": "^12.23.16",

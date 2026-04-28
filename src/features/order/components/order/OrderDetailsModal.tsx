@@ -404,7 +404,7 @@ function OrderDetailsSkeleton() {
       <div className="bg-white w-full max-w-xl rounded-3xl p-12 flex flex-col items-center">
         <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-4" />
         <p className="font-black text-gray-400 text-xs tracking-widest uppercase italic animate-pulse">
-          Sincronizando con Locus...
+          Sincronizando con Nezon...
         </p>
       </div>
     </div>
