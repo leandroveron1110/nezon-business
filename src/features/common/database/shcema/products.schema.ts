@@ -1,4 +1,4 @@
-// src/common/database/products.schema.ts
+// src/common/database/shcema/products.schema.ts
 
 export interface LocalOption {
   id: string;
@@ -24,9 +24,7 @@ export interface LocalProduct {
   imageUrl?: string | null;
   stock: number;
   available: boolean;
-  optionGroups: LocalOptionGroup[];
-  foodCategories: string[]; 
-  searchString: string;     
+  optionGroups: LocalOptionGroup[];    
 }
 
 // El string de definición para Dexie

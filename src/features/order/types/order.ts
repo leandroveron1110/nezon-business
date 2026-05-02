@@ -1,7 +1,7 @@
 import { IOrderShortDto } from "@/types/order";
 
 export interface SyncResponse {
-  orders: IOrderShortDto[];
+  orders: IOrder[];
   latestTimestamp: string;
 }
 
@@ -65,13 +65,6 @@ export interface OrderItem {
   optionGroups: OrderOptionGroup[];
 }
 
-export interface OrderDiscount {
-  id: string;
-  amount: number;
-  type: string;
-  notes?: string | null;
-  paidBy?: string | null;
-}
 
 export interface IOrder {
   id: string;
@@ -99,7 +92,7 @@ export interface IOrder {
   bussiness: Bussiness;
 
   items: OrderItem[];
-  discounts: OrderDiscount[];
+
 }
 
 export enum DeliveryType {

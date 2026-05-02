@@ -1,16 +1,18 @@
+// src/features/catalog/components/Catalog.tsx
+
 "use client";
 
-import React, { useEffect } from "react";
-import { useCatalg } from "../hooks/useCatalg";
+import React, { useEffect, useState } from "react";
 import CatalogMenu from "./views/CatalogMenu";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import NewCatalogMenu from "./news/NewCatalogMenu";
 import { IMenu, MenuCreate } from "../types/catlog";
 import { useMenuStore } from "../stores/menuStore";
-import { getDisplayErrorMessage } from "@/lib/uiErrors"; // Asumiendo que tienes esta utilidad
+import { getDisplayErrorMessage } from "@/lib/uiErrors";
 import { useAlert } from "@/features/common/ui/Alert/Alert";
 import { useCreateMenu } from "../hooks/useMenuHooks";
 import { generateTempId } from "@/features/common/utils/utilities-rollback";
+import { getCatalogSnapshot, syncCatalogIfNeeded } from "@/features/common/database/sync/sync";
 
 interface Props {
   businessId: string;
@@ -18,41 +20,40 @@ interface Props {
 
 export default function Catalog({ businessId }: Props) {
   const { addAlert } = useAlert();
-
-  const { data, isLoading, isError, error } = useCatalg(businessId);
-
   const user = useAuthStore((state) => state.user);
-
+  
   const menus = useMenuStore((state) => state.menus);
   const setMenus = useMenuStore((state) => state.setMenus);
   const replaceTempId = useMenuStore((state) => state.replaceTempId);
   const addMenu = useMenuStore((state) => state.addMenu);
   const deleteMenu = useMenuStore((state) => state.deleteMenu);
 
+  const [isHydrated, setIsHydrated] = useState(false);
   const createMenuMutation = useCreateMenu(businessId);
 
   useEffect(() => {
-    if (data) {
-      setMenus(data);
-    }
-  }, [data, setMenus]);
+    const initCatalog = async () => {
+      // 1. HIDRATACIÓN: Intentar cargar lo que ya hay en IndexedDB
+      const cachedData = await getCatalogSnapshot();
+      if (cachedData.length > 0) {
+        setMenus(cachedData);
+      }
+      setIsHydrated(true); // Ya podemos mostrar la UI aunque sea con data vieja
 
-  // 💡 useEffect para manejar errores de carga (catálogo o negocio)
-  useEffect(() => {
-    if (isError) {
-      addAlert({
-        message: `Error al cargar el catálogo: ${getDisplayErrorMessage(
-          error
-        )}`,
-        type: "error",
-        duration: 8000,
+      // 2. SINCRONIZACIÓN: Verificar si hay novedades en el back
+      await syncCatalogIfNeeded(businessId, (newData) => {
+        // Solo si hubo cambios reales, actualizamos el store y la UI
+        setMenus(newData);
       });
+    };
+
+    if (businessId) {
+      initCatalog();
     }
-  }, [isError, error, addAlert]);
+  }, [businessId, setMenus]);
 
   const handleAddMenu = async (menuCreate: MenuCreate) => {
     const tempId = generateTempId();
-
     const optimisticMenu: IMenu = {
       id: tempId,
       businessId: menuCreate.businessId,
@@ -64,35 +65,31 @@ export default function Catalog({ businessId }: Props) {
 
     try {
       const newMenu = await createMenuMutation.mutateAsync(menuCreate);
-
       if (newMenu && newMenu.id) {
         replaceTempId("menu", {}, tempId, newMenu.id);
-
-        // 6. Notificar Éxito
-        addAlert({
-          message: `Menú "${newMenu.name}" creado con éxito.`,
-          type: "success",
-        });
+        addAlert({ message: `Menú "${newMenu.name}" creado.`, type: "success" });
+        
+        // OPCIONAL: Podrías disparar un syncCatalogIfNeeded aquí para 
+        // que IndexedDB guarde este nuevo menú localmente.
       } else {
-        addAlert({
-          message: `API no devolvió el ID real del menú.`,
-          type: "error",
-        });
-        deleteMenu(tempId);
+        throw new Error("ID no devuelto");
       }
     } catch (err) {
       deleteMenu(tempId);
       addAlert({
-        message: `No se pudo crear el menú: ${getDisplayErrorMessage(err)}`,
+        message: `No se pudo crear: ${getDisplayErrorMessage(err)}`,
         type: "error",
       });
     }
   };
 
-  if (isLoading ) {
+  // Solo mostramos loader si NO estamos hidratados Y el store está vacío
+  if (!isHydrated && menus.length === 0) {
     return (
       <div className="flex justify-center items-center py-20">
-        <p className="text-gray-500 text-lg">Cargando catálogo...</p>
+        <p className="text-gray-500 text-lg font-medium animate-pulse">
+          Accediendo a Nezon...
+        </p>
       </div>
     );
   }
@@ -102,7 +99,6 @@ export default function Catalog({ businessId }: Props) {
       <div className="flex flex-col lg:flex-row gap-8">
         <div className="flex-1 space-y-16">
           {menus && menus.length > 0 ? (
-            // Muestra las secciones si hay menús disponibles
             <>
               {menus.map((menu) => (
                 <CatalogMenu
@@ -119,11 +115,8 @@ export default function Catalog({ businessId }: Props) {
               />
             </>
           ) : (
-            // Muestra solo el componente de creación si no hay menús
             <div className="text-center py-20 text-gray-600">
-              <p className="mb-4">
-                No hay catálogos o información de negocio disponible.
-              </p>
+              <p className="mb-4">No hay catálogos disponibles.</p>
               <NewCatalogMenu
                 businessId={businessId}
                 ownerId={user?.id || ""}

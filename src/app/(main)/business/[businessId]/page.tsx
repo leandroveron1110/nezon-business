@@ -1,13 +1,26 @@
 "use client";
 
 import BusinessDashboard from "@/features/BusinessDashboard/BusinessDashboard";
+import { syncCatalogIfNeeded } from "@/features/common/database/sync/product.sync";
 import BackButton from "@/features/common/ui/BackButton/BackButton";
 import Header from "@/features/header/components/Header";
 import { useParams } from "next/navigation";
+import { useEffect } from "react";
 
 export default function BusinessPage() {
   const params = useParams<{ businessId: string }>();
   const businessId = params.businessId;
+
+  /**
+   * Gestiona la sincronización inicial de la materia prima (productos)
+   * en la base de datos local (IndexedDB).
+   */
+  useEffect(() => {
+    if (businessId) {
+      // Se ejecuta de forma asíncrona en segundo plano
+      syncCatalogIfNeeded(businessId);
+    }
+  }, [businessId]);
 
   if (!businessId) {
     return (

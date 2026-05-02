@@ -1,4 +1,4 @@
-// src/common/database/orders.schema.ts
+// src/common/database/shcema/orders.schema.ts
 
 export interface LocalOrderOption {
   optionId?: string;
@@ -21,13 +21,23 @@ export interface LocalOrderItem {
   optionGroups: LocalOrderOptionGroup[];
 }
 
+// src/features/orders/types/sync.ts
+export type  SyncStatus = 
+  | 'synced'                // Todo al día
+  | 'pending_high_priority'  // Tiene userId -> ¡Enviar YA!
+  | 'pending_low_priority'   // No tiene userId -> Puede esperar (Batch)
+  | 'failed_retry'          // Falló, reintentar luego
+  | 'pending_creation'
+  | 'pending_update'
+
 export interface LocalOrder {
   // Identificadores
   idTemp: string;               // UUID v4 generado en el front
   id?: string | null;           // ID de Postgres (uuid) tras sincronizar
+  userId?: string;
   
   // Estado de Sincronización (Crucial para el batch)
-  syncStatus: 'pending_creation' | 'pending_update' | 'synced';
+  syncStatus: SyncStatus;
   
   // Datos del Cliente (Snapshot)
   customerName: string;
@@ -36,12 +46,21 @@ export interface LocalOrder {
   customerObservations?: string;
   
   // Logística y Totales
-  deliveryType: 'DELIVERY' | 'PICKUP';
   total: number;
+
+  // Nueva configuración de logística
+  deliveryType: 'DELIVERY' | 'PICKUP';
+  
+  // Especificamos quién hace la entrega
+  deliveryProvider: 'PLATFORM' | 'INTERNAL'; 
+
+  // Control de precio
+  deliveryPriceMode: 'AUTOMATIC' | 'MANUAL';
+  
   totalDeliveryCost: number;
   
   // Pagos
-  orderPaymentMethod: 'CASH' | 'TRANSFER' | 'QR'; // Basado en tus Enums
+  orderPaymentMethod: 'CASH' | 'TRANSFER' | 'QR' |"DELIVERY", // Basado en tus Enums
   paymentStatus: 'PENDING' | 'PAID';
   
   // El "Corazón": los productos comprados

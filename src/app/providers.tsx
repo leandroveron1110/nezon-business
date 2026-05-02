@@ -12,6 +12,8 @@ function PushSubscriptionManager() {
     return null; 
 }
 
+
+
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>

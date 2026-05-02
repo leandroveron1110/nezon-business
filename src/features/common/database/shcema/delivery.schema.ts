@@ -1,4 +1,6 @@
-// src/common/database/delivery.schema.ts
+// src/common/database/shcema/delivery.schema.ts
+
+import { IMenu } from "@/features/catalog/types/catlog";
 
 export interface LocalDeliveryCompany {
   id: string;
@@ -22,5 +24,11 @@ export interface LocalLogisticsConfig {
   availableZones: LocalDeliveryZone[];
   lastUpdated: Date;
 }
+
+
+export type LocalConfigRecord = 
+  | { id: 'catalog_metadata'; lastUpdated: string; businessId: string }
+  | { id: 'catalog_full_snapshot'; data: IMenu[]; businessId: string }
+  | { id: 'current_config'; businessId: string; companies: LocalDeliveryCompany[]; availableZones: LocalDeliveryZone[]; lastUpdated: Date };
 
 export const DELIVERY_STORE = 'id';

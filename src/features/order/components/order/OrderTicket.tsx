@@ -1,3 +1,4 @@
+import { OrderItem } from "@/types/order";
 import { IOrder, PaymentMethodType, DeliveryType } from "../../types/order";
 
 interface OrderTicketProps {
@@ -20,17 +21,16 @@ const formatMoney = (value: number) =>
 
 export function OrderTicket({ order, mode }: OrderTicketProps) {
   const isKitchen = mode === "KITCHEN";
-  const isWhatsapp = mode === "SHARE_WHATSAPP";
   const isDelivery = order.deliveryType === DeliveryType.DELIVERY;
 
   const date = new Date();
 
   // 🔥 TOTAL REAL POR ITEM (incluye opciones)
-  const getItemTotal = (item: any) => {
+  const getItemTotal = (item: OrderItem) => {
     const optionsTotal =
       item.optionGroups
-        ?.flatMap((g: any) => g.options)
-        .reduce((acc: number, o: any) => acc + (o.priceFinal || 0), 0) || 0;
+        ?.flatMap((g) => g.options)
+        .reduce((acc: number, o) => acc + (o.priceFinal || 0), 0) || 0;
 
     return (item.priceAtPurchase + optionsTotal) * item.quantity;
   };

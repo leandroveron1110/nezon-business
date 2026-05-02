@@ -169,6 +169,17 @@ export const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   [OrderStatus.FAILED]: [OrderStatus.PENDING] // Posibilidad de reintento
 };
 
+export const canTransition = (current: OrderStatus, next: OrderStatus): boolean => {
+  // 1. Permitir cancelación/rechazo si no está finalizado
+  if (next.startsWith('CANCELLED_') || next === OrderStatus.REJECTED_BY_BUSINESS) {
+    const finalStatuses: OrderStatus[] = [OrderStatus.DELIVERED, OrderStatus.COMPLETED];
+    return !finalStatuses.includes(current);
+  }
+
+  // 2. Verificación normal por mapa
+  return ALLOWED_TRANSITIONS[current]?.includes(next) ?? false;
+};
+
 export interface IOrderShortDto {
   id: string;
   userId: string;

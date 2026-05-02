@@ -1,10 +1,12 @@
 "use client";
 
 import Catalog from "@/features/catalog/components/Catalog";
+import { syncCatalogIfNeeded } from "@/features/common/database/sync/product.sync";
 import BackButton from "@/features/common/ui/BackButton/BackButton";
 import Loader from "@/features/common/ui/Loader/Loader";
 import Header from "@/features/header/components/Header";
 import { useParams } from "next/navigation";
+import { useEffect } from "react";
 
 export default function BusinessCatalogPage() {
   const params = useParams();
@@ -14,6 +16,17 @@ export default function BusinessCatalogPage() {
   const businessId = Array.isArray(businessIdRaw)
     ? businessIdRaw[0]
     : businessIdRaw;
+
+    /**
+     * Gestiona la sincronización inicial de la materia prima (productos)
+     * en la base de datos local (IndexedDB).
+     */
+    useEffect(() => {
+      if (businessId) {
+        // Se ejecuta de forma asíncrona en segundo plano
+        syncCatalogIfNeeded(businessId);
+      }
+    }, [businessId]);
 
   if (!businessId) {
     return (

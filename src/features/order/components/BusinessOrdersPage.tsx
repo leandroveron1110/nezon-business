@@ -11,9 +11,14 @@ import { useFetchBusinessOrders } from "../stores/useFetchBusinessOrders";
 import { useBusinessNotificationsStore } from "../../common/hooks/useBusinessNotificationsStore";
 import { useGlobalBusinessOrdersStore } from "@/lib/stores/orderStoreGlobal";
 
-import { IOrderShortDto } from "@/types/order";
+import {
+  DeliveryType,
+  IOrderShortDto,
+  OrderStatus,
+  PaymentMethodType,
+} from "@/types/order";
 import { OrderList } from "./order/OrderList";
-import { OrderDetailsModal } from "./order/OrderDetailsModal";
+import { OrderDetailsModal } from "./order/view-detail-order/OrderDetailsModal";
 import { getOrderPriority } from "@/features/order/utilities/order-logic";
 import { OrderFilterHeader } from "./order/OrderFilterHeader";
 import { IOrder } from "../types/order";
@@ -23,6 +28,11 @@ import { OrderTicket } from "./order/OrderTicket";
 import { PrintSelectorModal } from "./order/PrintSelectorModal";
 import { usePrintTicket } from "../hooks/usePrintTicket";
 import { toPng } from "html-to-image";
+import { useGetBusinessOrders } from "@/features/common/database/queries/use-get-business-orders.query";
+import { useOrdersView } from "../hooks/useOrdersView";
+import { useSyncOrders } from "../hooks/useSyncOrders";
+import { useGetOrderById } from "../hooks/useGetOrderById";
+import OrderBuilder from "./order/create-order/OrderBuilder";
 
 interface Props {
   businessId: string;
@@ -35,12 +45,25 @@ export default function BusinessOrdersPage({ businessId }: Props) {
   const { print, generateImage } = usePrintTicket();
   const printRef = useRef<HTMLDivElement>(null);
 
-  const rawOrders = useGlobalBusinessOrdersStore((s) =>
-    s.getOrders(businessId),
-  );
+  // 1. Disparás la sincronización (background)
+  useSyncOrders(businessId);
+
+  // 2. Consumís los datos (UI)
+  const { orders, isLoading } = useOrdersView(businessId);
+
+  // console.log(orders)
+
+  // const rawOrders_ = useGlobalBusinessOrdersStore((s) =>
+  //   s.getOrders(businessId),
+  // );
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState("Todos");
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [selectedPrintOrderId, setSelectedPrintOrderId] = useState<
+    string | null
+  >(null);
+  const [isNewOrder, setIsNewOrder] = useState<boolean>(false);
+
   const [daysRange, setDaysRange] = useState<number | null>(1);
   const [specificDate, setSpecificDate] = useState<string | null>(null);
 
@@ -50,16 +73,20 @@ export default function BusinessOrdersPage({ businessId }: Props) {
   const [printMode, setPrintMode] = useState<
     "KITCHEN" | "CUSTOMER" | "SHARE_WHATSAPP" | null
   >(null);
+  const { order } = useGetOrderById(selectedPrintOrderId ?? "");
+
+  useEffect(() => {
+    if (order) {
+      console.log("imprimir orden");
+      setOrderToPrint(order);
+      setShowPrintModal(true);
+    }
+  }, [order]);
 
   // 1. Inicia el proceso buscando la orden completa
   const handlePrintRequest = async (id: string) => {
-    try {
-      const fullOrder = await fetchOrderById(id);
-      setOrderToPrint(fullOrder);
-      setShowPrintModal(true);
-    } catch (error) {
-      addAlert({ message: "Error al cargar orden", type: "error" });
-    }
+    console.log("orderid", id);
+    setSelectedPrintOrderId(id);
   };
 
   const executePrint = async (
@@ -137,24 +164,24 @@ export default function BusinessOrdersPage({ businessId }: Props) {
     }
   };
 
-  useFetchBusinessOrders(businessId, daysRange, specificDate);
-  useBusinessOrdersSocket(businessId);
+  // useFetchBusinessOrders(businessId, daysRange, specificDate);
+  // useBusinessOrdersSocket(businessId);
   const resetNotificationOrder = useBusinessNotificationsStore(
     (s) => s.clearNotificationsByType,
   );
 
-  useEffect(() => {
-    if (businessId) resetNotificationOrder(businessId, "NEW_ORDER");
-  }, [businessId, resetNotificationOrder]);
+  // useEffect(() => {
+  //   if (businessId) resetNotificationOrder(businessId, "NEW_ORDER");
+  // }, [businessId, resetNotificationOrder]);
 
   const filteredAndSortedOrders = useMemo(() => {
-    const orders = (rawOrders || []) as IOrderShortDto[];
-    return orders
+    const ordersV = orders || [];
+    return ordersV
       .filter((order) => {
         const term = searchTerm.toLowerCase();
         const matchesSearch =
           !searchTerm ||
-          order.id.toLowerCase().includes(term) ||
+          (order.id || "").toLowerCase().includes(term) ||
           order.customerName.toLowerCase().includes(term);
         const currentFilter = simplifiedFilters.find(
           (f) => f.label === activeFilter,
@@ -163,19 +190,49 @@ export default function BusinessOrdersPage({ businessId }: Props) {
           !currentFilter || activeFilter === "Todos"
             ? true
             : currentFilter.condition
-              ? currentFilter.condition(order)
-              : currentFilter.statuses.includes(order.status);
+              ? currentFilter.condition({
+                  createdAt: String(order.createdAt),
+                  customerName: order.customerName,
+                  deliveryType: order.deliveryType as DeliveryType,
+                  id: order.id || order.idTemp,
+                  orderPaymentMethod:
+                    order.orderPaymentMethod as PaymentMethodType,
+                  status: order.status as OrderStatus,
+                  total: order.total,
+                  userId: "",
+                })
+              : currentFilter.statuses.includes(order.status as OrderStatus);
         return matchesSearch && matchesTab;
       })
       .sort((a, b) => {
-        const priorityA = getOrderPriority(a);
-        const priorityB = getOrderPriority(b);
+        const priorityA = getOrderPriority({
+          createdAt: String(a.createdAt),
+          customerName: a.customerName,
+          deliveryType: a.deliveryType as DeliveryType,
+          id: a.id || a.idTemp,
+          orderPaymentMethod: a.orderPaymentMethod as PaymentMethodType,
+          status: a.status as OrderStatus,
+          total: a.total,
+          userId: "",
+        });
+        const priorityB = getOrderPriority({
+          createdAt: String(b.createdAt),
+          customerName: b.customerName,
+          deliveryType: b.deliveryType as DeliveryType,
+          id: b.id || b.idTemp,
+          orderPaymentMethod: b.orderPaymentMethod as PaymentMethodType,
+          status: b.status as OrderStatus,
+          total: b.total,
+          userId: "",
+        });
         if (priorityA !== priorityB) return priorityA - priorityB;
         return (
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
       });
-  }, [rawOrders, activeFilter, searchTerm]);
+  }, [orders, activeFilter, searchTerm]);
+
+  if (isLoading) return <p>Sincronizando con Nezon...</p>;
 
   return (
     <div className="w-full h-full bg-gray-50 flex flex-col overflow-hidden">
@@ -197,6 +254,7 @@ export default function BusinessOrdersPage({ businessId }: Props) {
         </div>
       </div>
 
+      <button onClick={() => setIsNewOrder(!isNewOrder)}>Nueva orden</button>
       <PrintSelectorModal
         isOpen={showPrintModal}
         onClose={() => setShowPrintModal(false)}
@@ -238,7 +296,19 @@ export default function BusinessOrdersPage({ businessId }: Props) {
             quickFilters={simplifiedFilters}
             activeFilter={activeFilter}
             setActiveFilter={setActiveFilter}
-            orders={(rawOrders || []) as IOrderShortDto[]}
+            orders={
+              (orders.map((order) => ({
+                createdAt: String(order.createdAt),
+                customerName: order.customerName,
+                deliveryType: order.deliveryType as DeliveryType,
+                id: order.id || order.idTemp,
+                orderPaymentMethod:
+                  order.orderPaymentMethod as PaymentMethodType,
+                status: order.status as OrderStatus,
+                total: order.total,
+                userId: "",
+              })) || []) as IOrderShortDto[]
+            }
           />
         </div>
       </header>
@@ -264,8 +334,18 @@ export default function BusinessOrdersPage({ businessId }: Props) {
               filteredAndSortedOrders.map((order) => (
                 <OrderList
                   key={order.id}
-                  order={order}
-                  onClick={() => setSelectedOrderId(order.id)}
+                  order={{
+                    createdAt: String(order.createdAt),
+                    customerName: order.customerName,
+                    deliveryType: order.deliveryType as DeliveryType,
+                    id: order.id || order.idTemp,
+                    orderPaymentMethod:
+                      order.orderPaymentMethod as PaymentMethodType,
+                    status: order.status as OrderStatus,
+                    total: order.total,
+                    userId: "",
+                  }}
+                  onClick={() => setSelectedOrderId(order.id || order.idTemp)}
                   onPrintDirect={handlePrintRequest}
                 />
               ))
@@ -279,6 +359,10 @@ export default function BusinessOrdersPage({ businessId }: Props) {
           orderId={selectedOrderId}
           onClose={() => setSelectedOrderId(null)}
         />
+      )}
+
+      {isNewOrder && (
+        <OrderBuilder onClose={() => setIsNewOrder(!isNewOrder)} />
       )}
     </div>
   );

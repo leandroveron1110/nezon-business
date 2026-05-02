@@ -16,14 +16,16 @@ import { useAlert } from "@/features/common/ui/Alert/Alert";
 import {
   fetchUpdateOrdersByOrderID,
   fetchUpdateOrdersPaymentByOrderID,
-} from "../../api/catalog-api";
-import { useFetchOrderById } from "../../hooks/useFetchOrders";
-import OrderStatusBadge from "../OrderStatusBadge";
+} from "../../../api/catalog-api";
+import { useFetchOrderById } from "../../../hooks/useFetchOrders";
+import OrderStatusBadge from "../../OrderStatusBadge";
 import { queryClient } from "@/lib/queryClient";
-import { OrderCancellationActions } from "./OrderCancellationActions";
-import { usePrinterSettings } from "../../hooks/usePrinterSettings";
-import { OrderTicket } from "./OrderTicket";
-import { usePrintTicket } from "../../hooks/usePrintTicket";
+import { OrderCancellationActions } from "../OrderCancellationActions";
+import { usePrinterSettings } from "../../../hooks/usePrinterSettings";
+import { OrderTicket } from "../OrderTicket";
+import { usePrintTicket } from "../../../hooks/usePrintTicket";
+import { useGetOrderById } from "../../../hooks/useGetOrderById";
+import { updateOrderStatusInteractor } from "@/features/common/database/interactors/update-order-status.interactor";
 
 interface Props {
   orderId: string;
@@ -134,7 +136,8 @@ export function OrderDetailsModal({ orderId, onClose }: Props) {
   const { addAlert } = useAlert();
   const { print } = usePrintTicket();
   const ticketRef = useRef<HTMLDivElement>(null);
-  const { data: order, isLoading, error } = useFetchOrderById(orderId);
+  // const { data: order, isLoading, error } = useFetchOrderById(orderId);
+  const { order, isLoading } = useGetOrderById(orderId);
   const [showDangerZone, setShowDangerZone] = useState(false);
   const { autoPrint } = usePrinterSettings();
 
@@ -151,7 +154,7 @@ export function OrderDetailsModal({ orderId, onClose }: Props) {
   }, [order?.status, action]);
 
   if (isLoading) return <OrderDetailsSkeleton />;
-  if (error || !order) return null;
+  if (!order) return null;
 
   const isTransfer = order.orderPaymentMethod === PaymentMethodType.TRANSFER;
   const needsPaymentConfirmation =
@@ -164,10 +167,10 @@ export function OrderDetailsModal({ orderId, onClose }: Props) {
       setLoading(true);
 
       // Si el negocio tiene activado autoPrint y estamos aceptando el pedido
-      if (action.next === OrderStatus.CONFIRMED && autoPrint) {
-        // Un pequeño delay para asegurar que el estado se procesó
-        setTimeout(() => handlePrint(), 500);
-      }
+      // if (action.next === OrderStatus.CONFIRMED && autoPrint) {
+      //   // Un pequeño delay para asegurar que el estado se procesó
+      //   setTimeout(() => handlePrint(), 500);
+      // }
 
       // 1. Si es transferencia, primero aseguramos la confirmación del pago en el backend
       if (needsPaymentConfirmation) {
@@ -177,26 +180,23 @@ export function OrderDetailsModal({ orderId, onClose }: Props) {
         );
 
         // Actualizamos localmente el estado de pago para que la UI reaccione
-        queryClient.setQueryData(["order", orderId], (old: any) => ({
-          ...old,
-          paymentStatus: PaymentStatus.CONFIRMED,
-        }));
+        // queryClient.setQueryData(["order", orderId], (old: any) => ({
+        //   ...old,
+        //   paymentStatus: PaymentStatus.CONFIRMED,
+        // }));
       }
 
       // 2. Avanzamos al siguiente estado lógico
-      await fetchUpdateOrdersByOrderID(order.id, action.next);
-
-      queryClient.setQueryData(["order", orderId], (old: any) => ({
-        ...old,
-        status: action.next,
-      }));
-
-      addAlert({
-        message: `Orden actualizada: ${action.label}`,
-        type: "success",
-      });
+      console.log()
+      // await fetchUpdateOrdersByOrderID(order.id, action.next);
+      await updateOrderStatusInteractor(order.id, action.next);
+    addAlert({
+      message: "Orden confirmada localmente",
+      duration: 5
+    });
       onClose();
     } catch (e) {
+      console.log(e)
       addAlert({
         message: "No se pudo actualizar la orden. Intente nuevamente.",
         type: "error",
