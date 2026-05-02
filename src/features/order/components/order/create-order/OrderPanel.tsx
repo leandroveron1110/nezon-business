@@ -28,6 +28,9 @@ interface OrderPanelProps {
   setDeliveryProvider: (v: "PLATFORM" | "INTERNAL") => void;
   deliveryCost: number;
   setDeliveryCost: (v: number) => void;
+    // 🆕 pago
+  paymentMethod: "CASH" | "TRANSFER" | "QR" | "DELIVERY";
+  setPaymentMethod: (v: "CASH" | "TRANSFER" | "QR" | "DELIVERY") => void;
 }
 
 export function OrderPanel({
@@ -47,6 +50,8 @@ export function OrderPanel({
   setDeliveryProvider,
   deliveryCost,
   setDeliveryCost,
+  setPaymentMethod,
+  paymentMethod
 }: OrderPanelProps) {
   const isDelivery = deliveryType === "DELIVERY";
   const isLocus = deliveryProvider === "PLATFORM";
@@ -235,6 +240,30 @@ export function OrderPanel({
             ))}
           </div>
         )}
+      </div>
+
+            {/* 🆕 MÉTODO DE PAGO */}
+      <div className="p-2 border-t">
+        <p className="text-[10px] font-bold mb-1">Pago</p>
+        <div className="flex gap-1">
+          {[
+            { key: "CASH", label: "EFECTIVO" },
+            { key: "TRANSFER", label: "TRANSFER" },
+            { key: "QR", label: "QR" },
+          ].map((m) => (
+            <button
+              key={m.key}
+              onClick={() => setPaymentMethod(m.key as any)}
+              className={`flex-1 py-2 text-[10px] font-black rounded ${
+                paymentMethod === m.key
+                  ? "bg-green-500 text-white"
+                  : "bg-slate-100"
+              }`}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* 4. FOOTER */}

@@ -24,7 +24,7 @@ import { OrderFilterHeader } from "./order/OrderFilterHeader";
 import { IOrder } from "../types/order";
 // import { fetchOrderById } from "../api/catalog-api";
 import { useAlert } from "@/features/common/ui/Alert/Alert";
-import { OrderTicket } from "./order/OrderTicket";
+import { OrderTicket } from "./order/ticket-order/OrderTicket";
 import { PrintSelectorModal } from "./order/PrintSelectorModal";
 import { usePrintTicket } from "../hooks/usePrintTicket";
 import { toPng } from "html-to-image";
@@ -333,7 +333,7 @@ export default function BusinessOrdersPage({ businessId }: Props) {
             ) : (
               filteredAndSortedOrders.map((order) => (
                 <OrderList
-                  key={order.id}
+                  key={order.id || order.idTemp}
                   order={{
                     createdAt: String(order.createdAt),
                     customerName: order.customerName,

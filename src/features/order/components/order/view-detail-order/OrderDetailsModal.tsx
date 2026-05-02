@@ -22,7 +22,7 @@ import OrderStatusBadge from "../../OrderStatusBadge";
 import { queryClient } from "@/lib/queryClient";
 import { OrderCancellationActions } from "../OrderCancellationActions";
 import { usePrinterSettings } from "../../../hooks/usePrinterSettings";
-import { OrderTicket } from "../OrderTicket";
+import { OrderTicket } from "../ticket-order/OrderTicket";
 import { usePrintTicket } from "../../../hooks/usePrintTicket";
 import { useGetOrderById } from "../../../hooks/useGetOrderById";
 import { updateOrderStatusInteractor } from "@/features/common/database/interactors/update-order-status.interactor";

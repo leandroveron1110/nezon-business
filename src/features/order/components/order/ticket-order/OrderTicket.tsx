@@ -1,15 +1,24 @@
 import { OrderItem } from "@/types/order";
-import { IOrder, PaymentMethodType, DeliveryType } from "../../types/order";
+import { IOrder, DeliveryType } from "../../../types/order";
 
 interface OrderTicketProps {
   order: IOrder;
   mode: "KITCHEN" | "CUSTOMER" | "SHARE_WHATSAPP";
 }
 
-const PAYMENT_LABELS: Record<PaymentMethodType, string> = {
-  [PaymentMethodType.CASH]: "EFECTIVO",
-  [PaymentMethodType.TRANSFER]: "TRANSFERENCIA",
-  [PaymentMethodType.DELIVERY]: "PAGO EN ENTREGA",
+export enum PaymentMethodTypeQR  {
+  QR="QR",
+    TRANSFER = "TRANSFER",
+  CASH = "CASH",
+  DELIVERY = "DELIVERY",
+}
+
+
+const PAYMENT_LABELS: Record<PaymentMethodTypeQR , string> = {
+  [PaymentMethodTypeQR.CASH]: "EFECTIVO",
+  [PaymentMethodTypeQR.TRANSFER]: "TRANSFERENCIA",
+  [PaymentMethodTypeQR.DELIVERY]: "PAGO EN ENTREGA",
+  [PaymentMethodTypeQR.QR]:"QR"
 };
 
 const formatMoney = (value: number) =>

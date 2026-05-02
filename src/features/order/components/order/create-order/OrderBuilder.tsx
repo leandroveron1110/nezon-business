@@ -21,7 +21,9 @@ export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
   const { products } = useProducts();
 
   const [items, setItems] = useState<LocalOrderItem[]>([]);
-  const [pendingProduct, setPendingProduct] = useState<LocalProduct | null>(null);
+  const [pendingProduct, setPendingProduct] = useState<LocalProduct | null>(
+    null,
+  );
 
   const [isMobile, setIsMobile] = useState(false);
 
@@ -48,8 +50,15 @@ export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
   const [customerAddress, setCustomerAddress] = useState("");
 
   // logística
-  const [deliveryType, setDeliveryType] = useState<"DELIVERY" | "PICKUP">("PICKUP");
-  const [deliveryProvider, setDeliveryProvider] = useState<"PLATFORM" | "INTERNAL">("PLATFORM");
+  const [deliveryType, setDeliveryType] = useState<"DELIVERY" | "PICKUP">(
+    "PICKUP",
+  );
+  const [deliveryProvider, setDeliveryProvider] = useState<
+    "PLATFORM" | "INTERNAL"
+  >("PLATFORM");
+  const [paymentMethod, setPaymentMethod] = useState<
+    "CASH" | "TRANSFER" | "QR" | "DELIVERY"
+  >("CASH");
   const [deliveryCost, setDeliveryCost] = useState(0);
 
   // =========================
@@ -62,16 +71,22 @@ export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
       let needsModal = false;
 
       for (const g of product.optionGroups) {
-        if (g.minQuantity === 1 && g.maxQuantity === 1 && g.options.length === 1) {
+        if (
+          g.minQuantity === 1 &&
+          g.maxQuantity === 1 &&
+          g.options.length === 1
+        ) {
           const o = g.options[0];
           auto.push({
             groupName: g.name,
-            options: [{
-              optionId: o.id,
-              optionName: o.name,
-              priceFinal: o.priceFinal,
-              quantity: 1,
-            }],
+            options: [
+              {
+                optionId: o.id,
+                optionName: o.name,
+                priceFinal: o.priceFinal,
+                quantity: 1,
+              },
+            ],
           });
         } else {
           needsModal = true;
@@ -87,20 +102,25 @@ export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
     addProduct(product);
   };
 
-  const addProduct = (product: LocalProduct, options: LocalOrderOptionGroup[] = []) => {
-    setItems(prev => {
+  const addProduct = (
+    product: LocalProduct,
+    options: LocalOrderOptionGroup[] = [],
+  ) => {
+    setItems((prev) => {
       if (options.length === 0) {
-        const exist = prev.find(p => p.productId === product.id && p.optionGroups.length === 0);
+        const exist = prev.find(
+          (p) => p.productId === product.id && p.optionGroups.length === 0,
+        );
         if (exist) {
-          return prev.map(p =>
-            p.productId === product.id ? { ...p, quantity: p.quantity + 1 } : p
+          return prev.map((p) =>
+            p.productId === product.id ? { ...p, quantity: p.quantity + 1 } : p,
           );
         }
       }
 
       const extra = options.reduce(
         (a, g) => a + g.options.reduce((b, o) => b + o.priceFinal, 0),
-        0
+        0,
       );
 
       return [
@@ -120,12 +140,12 @@ export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
   };
 
   const updateQty = (index: number, delta: number) => {
-    setItems(prev =>
+    setItems((prev) =>
       prev
         .map((item, i) =>
-          i === index ? { ...item, quantity: item.quantity + delta } : item
+          i === index ? { ...item, quantity: item.quantity + delta } : item,
         )
-        .filter(i => i.quantity > 0)
+        .filter((i) => i.quantity > 0),
     );
   };
 
@@ -135,12 +155,11 @@ export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
 
   const totalProducts = items.reduce(
     (a, i) => a + i.priceAtPurchase * i.quantity,
-    0
+    0,
   );
 
   const total =
-    totalProducts +
-    (deliveryType === "DELIVERY" ? deliveryCost : 0);
+    totalProducts + (deliveryType === "DELIVERY" ? deliveryCost : 0);
 
   // =========================
   // GUARDAR
@@ -164,10 +183,9 @@ export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
       deliveryProvider,
       deliveryPriceMode:
         deliveryProvider === "INTERNAL" ? "MANUAL" : "AUTOMATIC",
-      totalDeliveryCost:
-        deliveryType === "DELIVERY" ? deliveryCost : 0,
+      totalDeliveryCost: deliveryType === "DELIVERY" ? deliveryCost : 0,
 
-      orderPaymentMethod: "CASH",
+      orderPaymentMethod: paymentMethod,
       paymentStatus: "PENDING",
 
       items,
@@ -217,7 +235,10 @@ export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
         {/* DESKTOP */}
         {!isMobile && (
           <div className="flex h-full">
-            <ProductPanel products={products} onProductClick={handleProductClick} />
+            <ProductPanel
+              products={products}
+              onProductClick={handleProductClick}
+            />
 
             <OrderPanel
               items={items}
@@ -236,6 +257,8 @@ export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
               setDeliveryProvider={setDeliveryProvider}
               deliveryCost={deliveryCost}
               setDeliveryCost={setDeliveryCost}
+              paymentMethod={paymentMethod}
+              setPaymentMethod={setPaymentMethod}
             />
           </div>
         )}
@@ -267,6 +290,8 @@ export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
               setDeliveryProvider={setDeliveryProvider}
               deliveryCost={deliveryCost}
               setDeliveryCost={setDeliveryCost}
+              paymentMethod={paymentMethod}
+              setPaymentMethod={setPaymentMethod}
             />
           </div>
         )}

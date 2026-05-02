@@ -21,6 +21,9 @@ interface OrderSheetProps {
   setDeliveryProvider: (v: "PLATFORM" | "INTERNAL") => void;
   deliveryCost: number;
   setDeliveryCost: (v: number) => void;
+      // 🆕 pago
+  paymentMethod: "CASH" | "TRANSFER" | "QR" | "DELIVERY";
+  setPaymentMethod: (v: "CASH" | "TRANSFER" | "QR" | "DELIVERY") => void;
 }
 export function OrderSheet(props: OrderSheetProps) {
   const [open, setOpen] = useState(false);
