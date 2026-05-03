@@ -104,7 +104,6 @@ export function OrderPanel({
           />
         </div>
 
-
         {isDelivery && (
           <div className="space-y-1 mt-1.5">
             {/* Selector de Cadetería */}
@@ -140,8 +139,8 @@ export function OrderPanel({
                   onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
                   className="w-full px-2 py-1.5 bg-white border border-blue-100 rounded text-[11px] font-bold outline-none focus:ring-1 focus:ring-blue-400"
                 />
-                      {/* NOTA/DESCRIPCIÓN: El toque final */}
-      {/* <div className="flex items-center gap-1 bg-amber-50/50 border border-amber-100 rounded px-1.5">
+                {/* NOTA/DESCRIPCIÓN: El toque final */}
+                {/* <div className="flex items-center gap-1 bg-amber-50/50 border border-amber-100 rounded px-1.5">
         <span className="text-[8px] font-black text-amber-600 uppercase italic">Nota:</span>
         <input
           placeholder="Ej: Tocar timbre fuerte, portón blanco..."
@@ -152,53 +151,65 @@ export function OrderPanel({
       </div> */}
                 {showDropdown && results.length > 0 && (
                   <div className="absolute left-0 right-0 top-full mt-0.5 bg-white border rounded shadow-2xl z-[100] max-h-40 overflow-y-auto overflow-x-hidden">
-                    {results.map((r) => (
-                      <button
-                        key={r.id}
-                        type="button"
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          setQuery(r.name);
-                          setCustomerAddress(r.name);
-                          setShowDropdown(false);
-                          // Solo los barrios tienen zoneId en tu nueva interface discriminada
-                          if (r.type === "BARRIO") {
-                            setZoneId(r.zoneId);
-                          }
-                        }}
-                        className="w-full text-left px-2 py-1.5 border-b last:border-0 hover:bg-blue-600 hover:text-white group"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex flex-col">
-                            <span className="text-[10px] font-black">
+                    {results.map((r) => {
+                      const isBarrio = r.type === "BARRIO";
+
+                      return (
+                        <button
+                          key={r.id}
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setQuery(r.name);
+                            setCustomerAddress(r.name);
+                            setShowDropdown(false);
+                            if (isBarrio) {
+                              setZoneId(r.zoneId);
+                            }
+                          }}
+                          className={`w-full text-left px-3 py-2.5 border-b last:border-0 transition-all relative overflow-hidden
+        ${
+          isBarrio
+            ? "bg-blue-50/40 hover:bg-blue-600"
+            : "bg-white hover:bg-slate-700"
+        } 
+        group`}
+                        >
+                          {/* Indicador de Tipo: Barra lateral sólida */}
+                          <div
+                            className={`absolute left-0 top-0 bottom-0 w-1.5 shadow-sm
+        ${isBarrio ? "bg-blue-500" : "bg-slate-300 group-hover:bg-white/50"}`}
+                          />
+
+                          <div className="flex flex-col min-w-0 pl-2">
+                            <span
+                              className={`text-[11px] font-black uppercase truncate transition-colors
+          ${isBarrio ? "text-blue-900 group-hover:text-white" : "text-slate-800 group-hover:text-white"}`}
+                            >
                               {r.name}
                             </span>
-                            {/* Si el resultado vino por un alias (ej: 11 del norte), mostrarlo abajo */}
+
+                            {/* Alias sutil para calles con nombres viejos/populares */}
                             {r.type === "CALLE" &&
                               r.aliases?.some((a) =>
                                 normalizeAddress(a).includes(
                                   normalizeAddress(query),
                                 ),
                               ) && (
-                                <span className="text-[8px] opacity-70 italic">
-                                  Ex: {r.aliases[0]}
+                                <span className="text-[9px] opacity-50 italic truncate group-hover:text-slate-300">
+                                  ({r.aliases[0]})
                                 </span>
                               )}
                           </div>
 
-                          {/* Badge de tipo */}
-                          <span
-                            className={`text-[1px] px-1 rounded font-bold ${
-                              r.type === "BARRIO"
-                                ? "bg-blue-100 text-blue-600 group-hover:bg-blue-500 group-hover:text-white"
-                                : "bg-slate-100 text-slate-500 group-hover:bg-slate-500 group-hover:text-white"
-                            }`}
-                          >
-                            {r.type}
-                          </span>
-                        </div>
-                      </button>
-                    ))}
+                          {/* Punto de estado visual en el extremo derecho (opcional, refuerza el color) */}
+                          <div
+                            className={`absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full opacity-20 group-hover:opacity-100
+        ${isBarrio ? "bg-blue-400 group-hover:bg-white" : "bg-slate-200 group-hover:bg-white"}`}
+                          />
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>

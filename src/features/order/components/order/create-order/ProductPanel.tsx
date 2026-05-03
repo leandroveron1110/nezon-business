@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import { LocalProduct } from "@/features/common/database/shcema/products.schema";
-import { Search, Package, PlusCircle, Command } from "lucide-react";
+import { Package, PlusCircle, CheckCircle2 } from "lucide-react";
 
 export function ProductPanel({
   products,
@@ -12,112 +12,130 @@ export function ProductPanel({
   onProductClick: (p: LocalProduct) => void;
 }) {
   const [search, setSearch] = useState("");
+  const [lastAddedId, setLastAddedId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // 1. Optimización de Búsqueda: Normalización y rapidez
+  // Limpiar el estado de "agregado" después de 1 segundo
+  useEffect(() => {
+    if (lastAddedId) {
+      const timer = setTimeout(() => setLastAddedId(null), 800);
+      return () => clearTimeout(timer);
+    }
+  }, [lastAddedId]);
+
   const filtered = useMemo(() => {
     const term = search.toLowerCase().trim();
-    if (!term) return products;
+    if (!term) return products.slice(0, 40); // Más productos si no hay búsqueda
 
     return products
       .filter((p) => {
         const name = p.name.toLowerCase();
-        // Permite buscar por partes, ej: "hamb que" para "Hamburguesa con queso"
         const keywords = term.split(" ");
         return keywords.every((key) => name.includes(key));
       })
-      .sort((a, b) => a.name.length - b.name.length) // Los más cortos primero (más relevantes)
-      .slice(0, 20); // Limitar a 20 resultados para velocidad instantánea de renderizado
+      .sort((a, b) => a.name.length - b.name.length)
+      .slice(0, 20);
   }, [products, search]);
 
-  // 2. Atajos de Teclado: Enter selecciona el primero, Esc limpia
+  const handleAction = (product: LocalProduct) => {
+    onProductClick(product);
+    setLastAddedId(product.id);
+    // En móvil a veces es mejor NO re-enfocar automáticamente 
+    // para dejar que el usuario vea la lista, pero para desktop es clave.
+    if (window.innerWidth > 768) inputRef.current?.focus();
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Escape") {
-      setSearch("");
+    if (e.key === "Escape") setSearch("");
+    if (e.key === "Enter" && filtered.length > 0) {
+      handleAction(filtered[0]);
     }
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-slate-100 h-full overflow-hidden">
-      {/* SEARCH BAR - Más compacta y agresiva */}
-      <div className="p-3 bg-white border-b shadow-sm">
-        <div className="relative max-w-3xl mx-auto">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-500" />
+    <div className="flex-1 flex flex-col bg-slate-200 h-full overflow-hidden">
+      {/* SEARCH BAR - Ultra compacta, sin lupa */}
+      <div className="p-2 bg-white border-b shadow-sm">
+        <div className="relative">
           <input
             ref={inputRef}
-            autoFocus
-            placeholder="Presiona Enter para agregar el primer resultado..."
+            placeholder="Buscar producto..."
             value={search}
             onKeyDown={handleKeyDown}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-12 pr-12 py-4 bg-slate-100 border-2 border-transparent focus:border-blue-500 rounded-xl text-lg font-semibold outline-none transition-all placeholder:text-slate-400"
+            className="w-full px-4 py-3 bg-slate-100 border-2 border-transparent focus:border-blue-500 rounded-lg text-base font-bold outline-none transition-all placeholder:text-slate-400 uppercase"
           />
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-1 opacity-40">
-            <Command className="w-3 h-3" />
-            <span className="text-xs font-bold">ENTER</span>
-          </div>
+          {search && (
+            <button 
+              onClick={() => setSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black bg-slate-300 px-2 py-1 rounded"
+            >
+              LIMPIAR
+            </button>
+          )}
         </div>
       </div>
 
-      {/* PRODUCT GRID - Optimizado para Touch y Mouse */}
-      <div className="flex-1 overflow-auto p-4 custom-scrollbar">
+      {/* FEEDBACK FLOTANTE PARA MÓVIL (Cuando el teclado tapa el grid) */}
+      {lastAddedId && (
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-[100] bg-green-600 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 animate-bounce">
+          <CheckCircle2 size={16} />
+          <span className="text-xs font-black uppercase">¡Agregado!</span>
+        </div>
+      )}
+
+      {/* PRODUCT GRID */}
+      <div className="flex-1 overflow-y-auto p-2">
         {filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-slate-400">
-            <Package className="w-12 h-12 mb-2 opacity-20" />
-            <p className="font-medium">No se encontraron productos</p>
+          <div className="flex flex-col items-center justify-center h-full text-slate-400 italic">
+            <Package className="w-8 h-8 mb-2 opacity-20" />
+            <p className="text-xs font-bold">No hay resultados</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2">
-            {filtered.map((p, index) => (
-              <button
-                key={p.id}
-                onClick={() => {
-                  onProductClick(p);
-                  inputRef.current?.focus(); // Mantener foco tras click
-                }}
-                // Resaltado especial para el primer elemento (el que se agregará con Enter)
-                className={`group relative flex flex-col justify-between p-3 rounded-xl text-left transition-all active:scale-95 border-2 ${
-                  index === 0 
-                    ? "bg-blue-50 border-blue-200 shadow-md ring-2 ring-blue-400/20" 
-                    : "bg-white border-transparent hover:border-slate-300"
-                }`}
-              >
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+            {filtered.map((p, index) => {
+              const isLastAdded = lastAddedId === p.id;
+              const isFirst = index === 0 && search.length > 0;
 
-                <div className="mt-2 mb-4">
-                  <div className="font-bold text-slate-800 text-sm leading-tight line-clamp-2 uppercase">
-                    {p.name}
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between mt-auto">
-                  <div className="px-2 py-1 bg-slate-900 rounded-lg">
-                    <span className="text-white font-black text-sm">
-                      ${p.finalPrice.toLocaleString('es-AR')}
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => handleAction(p)}
+                  className={`relative flex flex-col p-3 rounded-lg text-left transition-all border-2 
+                    ${isLastAdded ? "bg-green-100 border-green-500 scale-95" : 
+                      isFirst ? "bg-blue-50 border-blue-400 shadow-md" : "bg-white border-white active:bg-slate-50"}
+                  `}
+                >
+                  <div className="h-8">
+                    <span className="font-black text-slate-800 text-[11px] leading-tight line-clamp-2 uppercase">
+                      {p.name}
                     </span>
                   </div>
-                  <div className={`p-1.5 rounded-full ${index === 0 ? 'bg-blue-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
-                    <PlusCircle className="w-4 h-4" />
+
+                  <div className="flex items-center justify-between mt-auto ">
+                    <span className="text-blue-700 font-black text-sm">
+                      ${p.finalPrice.toLocaleString('es-AR')}
+                    </span>
+                    <div className={`${isLastAdded ? 'text-green-600' : isFirst ? 'text-blue-500' : 'text-slate-300'}`}>
+                      {isLastAdded ? <CheckCircle2 size={18} /> : <PlusCircle size={18} />}
+                    </div>
                   </div>
-                </div>
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
 
-      {/* FOOTER INFORMATIVO */}
-      <div className="px-4 py-2 bg-slate-900 text-white flex justify-between items-center">
-        <div className="flex gap-4">
-            <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">
-              F1: Buscar
-            </span>
-            <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">
-              ESC: Limpiar
-            </span>
-        </div>
-        <span className="text-[10px] font-black bg-blue-600 px-2 py-0.5 rounded">
-          {filtered.length} DISPONIBLES
+      {/* MINI FOOTER TÁCTICO */}
+      <div className="px-3 py-1.5 bg-slate-800 text-white flex justify-between items-center shrink-0">
+        <span className="text-[9px] font-black opacity-50 uppercase tracking-tighter">
+          {search ? `Resultados: ${filtered.length}` : 'Todos los productos'}
         </span>
+        <div className="flex gap-2">
+           <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+           <span className="text-[9px] font-black uppercase">Online</span>
+        </div>
       </div>
     </div>
   );
