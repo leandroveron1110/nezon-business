@@ -20,7 +20,9 @@ import { OrderSheet } from "./OrderSheet";
 export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
   const { products } = useProducts();
   const [items, setItems] = useState<LocalOrderItem[]>([]);
-  const [pendingProduct, setPendingProduct] = useState<LocalProduct | null>(null);
+  const [pendingProduct, setPendingProduct] = useState<LocalProduct | null>(
+    null,
+  );
   const [isMobile, setIsMobile] = useState(false);
 
   // Estados de cliente y logística
@@ -28,9 +30,15 @@ export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerAddress, setCustomerAddress] = useState("");
   const [zoneId, setZoneId] = useState<string | null>(null);
-  const [deliveryType, setDeliveryType] = useState<"DELIVERY" | "PICKUP">("PICKUP");
-  const [deliveryProvider, setDeliveryProvider] = useState<"PLATFORM" | "INTERNAL">("PLATFORM");
-  const [paymentMethod, setPaymentMethod] = useState<"CASH" | "TRANSFER" | "QR" | "DELIVERY">("CASH");
+  const [deliveryType, setDeliveryType] = useState<"DELIVERY" | "PICKUP">(
+    "PICKUP",
+  );
+  const [deliveryProvider, setDeliveryProvider] = useState<
+    "PLATFORM" | "INTERNAL"
+  >("PLATFORM");
+  const [paymentMethod, setPaymentMethod] = useState<
+    "CASH" | "TRANSFER" | "QR" | "DELIVERY"
+  >("CASH");
   const [deliveryCost, setDeliveryCost] = useState(0);
 
   useEffect(() => {
@@ -48,22 +56,35 @@ export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
     return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
 
-  const addProduct = (product: LocalProduct, options: LocalOrderOptionGroup[] = []) => {
+  const addProduct = (
+    product: LocalProduct,
+    options: LocalOrderOptionGroup[] = [],
+  ) => {
     setItems((prev) => {
       if (options.length === 0) {
-        const exist = prev.find(p => p.productId === product.id && p.optionGroups.length === 0);
+        const exist = prev.find(
+          (p) => p.productId === product.id && p.optionGroups.length === 0,
+        );
         if (exist) {
-          return prev.map(p => p.productId === product.id ? { ...p, quantity: p.quantity + 1 } : p);
+          return prev.map((p) =>
+            p.productId === product.id ? { ...p, quantity: p.quantity + 1 } : p,
+          );
         }
       }
-      const extra = options.reduce((a, g) => a + g.options.reduce((b, o) => b + o.priceFinal, 0), 0);
-      return [...prev, {
-        productId: product.id,
-        productName: product.name,
-        quantity: 1,
-        priceAtPurchase: product.finalPrice + extra,
-        optionGroups: options,
-      }];
+      const extra = options.reduce(
+        (a, g) => a + g.options.reduce((b, o) => b + o.priceFinal, 0),
+        0,
+      );
+      return [
+        ...prev,
+        {
+          productId: product.id,
+          productName: product.name,
+          quantity: 1,
+          priceAtPurchase: product.finalPrice + extra,
+          optionGroups: options,
+        },
+      ];
     });
     navigator.vibrate?.(10);
     setPendingProduct(null);
@@ -74,11 +95,22 @@ export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
       const auto: LocalOrderOptionGroup[] = [];
       let needsModal = false;
       for (const g of product.optionGroups) {
-        if (g.minQuantity === 1 && g.maxQuantity === 1 && g.options.length === 1) {
+        if (
+          g.minQuantity === 1 &&
+          g.maxQuantity === 1 &&
+          g.options.length === 1
+        ) {
           const o = g.options[0];
           auto.push({
             groupName: g.name,
-            options: [{ optionId: o.id, optionName: o.name, priceFinal: o.priceFinal, quantity: 1 }],
+            options: [
+              {
+                optionId: o.id,
+                optionName: o.name,
+                priceFinal: o.priceFinal,
+                quantity: 1,
+              },
+            ],
           });
         } else {
           needsModal = true;
@@ -92,23 +124,44 @@ export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
   };
 
   const updateQty = (index: number, delta: number) => {
-    setItems((prev) => prev.map((item, i) => i === index ? { ...item, quantity: item.quantity + delta } : item).filter(i => i.quantity > 0));
+    setItems((prev) =>
+      prev
+        .map((item, i) =>
+          i === index ? { ...item, quantity: item.quantity + delta } : item,
+        )
+        .filter((i) => i.quantity > 0),
+    );
   };
 
-  const totalProducts = items.reduce((a, i) => a + i.priceAtPurchase * i.quantity, 0);
-  const total = totalProducts + (deliveryType === "DELIVERY" ? deliveryCost : 0);
+  const totalProducts = items.reduce(
+    (a, i) => a + i.priceAtPurchase * i.quantity,
+    0,
+  );
+  const total =
+    totalProducts + (deliveryType === "DELIVERY" ? deliveryCost : 0);
 
   const createOrder = async () => {
     if (!items.length) return;
     await db.orders.add({
-      idTemp: uuid(), id: null, syncStatus: "pending_creation",
-      customerName, customerPhone, customerAddress, total,
-      deliveryType, deliveryProvider,
-      deliveryPriceMode: deliveryProvider === "INTERNAL" ? "MANUAL" : "AUTOMATIC",
+      idTemp: uuid(),
+      id: null,
+      syncStatus: "pending_creation",
+      customerName,
+      customerPhone,
+      customerAddress,
+      total,
+      deliveryType,
+      deliveryProvider,
+      deliveryPriceMode:
+        deliveryProvider === "INTERNAL" ? "MANUAL" : "AUTOMATIC",
       totalDeliveryCost: deliveryType === "DELIVERY" ? deliveryCost : 0,
-      orderPaymentMethod: paymentMethod, paymentStatus: "PENDING",
-      items, status: "PENDING", origin: "BUSINESS",
-      createdAt: new Date(), updatedAt: new Date(),
+      orderPaymentMethod: paymentMethod,
+      paymentStatus: "PENDING",
+      items,
+      status: "PENDING",
+      origin: "BUSINESS",
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
     setItems([]);
     onClose?.();
@@ -125,7 +178,6 @@ export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
       )}
 
       <div className="bg-white w-full h-full md:flex md:flex-col overflow-hidden relative shadow-2xl">
-        
         {/* HEADER COMPACTO PARA CIERRE */}
         <div className="absolute top-2 right-2 z-[60] md:top-4 md:right-4">
           <button
@@ -199,6 +251,7 @@ export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
                 setDeliveryCost={setDeliveryCost}
                 paymentMethod={paymentMethod}
                 setPaymentMethod={setPaymentMethod}
+                setZoneId={setZoneId}
               />
             </div>
           )}
