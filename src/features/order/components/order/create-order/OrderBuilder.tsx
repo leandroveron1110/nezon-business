@@ -17,7 +17,7 @@ import { OptionSelector } from "./OptionSelector";
 import { ProductPanel } from "./ProductPanel";
 import { OrderPanel } from "./OrderPanel";
 import { OrderSheet } from "./OrderSheet";
-import { OrderStatus } from "@/types/order";
+import { OrderStatus, PaymentStatus } from "@/types/order";
 
 export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
   const { products } = useProducts();
@@ -150,14 +150,14 @@ export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
 
     // 1. Definir estados con tipos literales para evitar el error de "string"
     let initialStatus: OrderStatus = OrderStatus.PENDING;
-    let initialPaymentStatus: "PENDING" | "PAID" | "FAILED" = "PENDING";
+    let initialPaymentStatus: PaymentStatus = PaymentStatus.PENDING;
 
     if (paymentMethod === "CASH") {
       initialStatus = OrderStatus.PENDING_CONFIRMATION;
-      initialPaymentStatus = "PENDING";
+      initialPaymentStatus = PaymentStatus.PENDING;
     } else if (paymentMethod === "TRANSFER" || paymentMethod === "QR") {
       initialStatus = OrderStatus.WAITING_FOR_PAYMENT;
-      initialPaymentStatus = "PENDING";
+      initialPaymentStatus = PaymentStatus.PENDING;
     }
 
     // 2. Construir el objeto respetando la interfaz LocalOrder
