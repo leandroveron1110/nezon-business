@@ -28,8 +28,7 @@ export class OrderPersistenceMapper {
     // 🧠 Normalización pagos
     // =========================
 
-    const paymentStatus: "PAID" | "PENDING" =
-      apiOrder.paymentStatus === "CONFIRMED" ? "PAID" : "PENDING";
+    const paymentStatus= apiOrder.paymentStatus;
 
     // =========================
     // 🧠 Items

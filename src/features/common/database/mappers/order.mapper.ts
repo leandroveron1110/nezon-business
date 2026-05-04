@@ -31,8 +31,7 @@ export class OrderMapper {
     // 🧠 Pagos
     // =========================
 
-    const paymentStatus: "PAID" | "PENDING" =
-      apiOrder.paymentStatus === "CONFIRMED" ? "PAID" : "PENDING";
+    const paymentStatus =apiOrder.paymentStatus;
 
     // =========================
     // 🧠 Items (safe mapping)

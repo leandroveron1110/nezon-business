@@ -1,4 +1,4 @@
-import { IOrderShortDto, Origin, PaymentMethodType } from "@/types/order";
+import { IOrderShortDto, Origin, PaymentMethodType, PaymentStatus } from "@/types/order";
 
 export interface SyncResponse {
   orders: IOrder[];
@@ -102,13 +102,6 @@ export enum DeliveryType {
   EXTERNAL_DELIVERY = "EXTERNAL_DELIVERY", // Se usa una cadetería externa
 }
 
-/// Estados de pago de una orden
-export enum PaymentStatus {
-  PENDING = "PENDING", /// Pago pendiente (cliente aún no inició)
-  IN_PROGRESS = "IN_PROGRESS", /// Pago en curso (por ejemplo, transferencia en proceso)
-  CONFIRMED = "CONFIRMED", /// Pago confirmado (negocio recibió el dinero)
-  REJECTED = "REJECTED", /// Pago rechazado o fallido
-}
 
 export enum OrderStatus {
   // 1. Creación y pago

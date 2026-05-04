@@ -25,7 +25,7 @@ export class OrderUiMapper {
       updatedAt: local.updatedAt.toISOString(),
       deliveryType: local.deliveryType as DeliveryType,
       orderPaymentMethod: local.orderPaymentMethod as PaymentMethodType,
-      paymentStatus: local.paymentStatus === 'PAID' ? PaymentStatus.CONFIRMED : PaymentStatus.PENDING,
+      paymentStatus: local.paymentStatus,
       
       // 3. Reconstrucción de Objetos Anidados para la UI
       user: {
