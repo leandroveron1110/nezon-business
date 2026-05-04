@@ -7,6 +7,7 @@ import { useProducts } from "../../../hooks/useProducts";
 import { X, LayoutPanelLeft } from "lucide-react";
 
 import {
+  LocalOrder,
   LocalOrderItem,
   LocalOrderOptionGroup,
 } from "@/features/common/database/shcema/orders.schema";
@@ -16,22 +17,31 @@ import { OptionSelector } from "./OptionSelector";
 import { ProductPanel } from "./ProductPanel";
 import { OrderPanel } from "./OrderPanel";
 import { OrderSheet } from "./OrderSheet";
+import { OrderStatus } from "@/types/order";
 
 export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
   const { products } = useProducts();
   const [items, setItems] = useState<LocalOrderItem[]>([]);
-  const [pendingProduct, setPendingProduct] = useState<LocalProduct | null>(null);
+  const [pendingProduct, setPendingProduct] = useState<LocalProduct | null>(
+    null,
+  );
   const [isMobile, setIsMobile] = useState(false);
 
   // Estados de cliente y logística
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerAddress, setCustomerAddress] = useState("");
-  // const [customerNote, setCustomerNote] = useState(""); 
+  // const [customerNote, setCustomerNote] = useState("");
   const [_zoneId, setZoneId] = useState<string | null>(null);
-  const [deliveryType, setDeliveryType] = useState<"DELIVERY" | "PICKUP">("PICKUP");
-  const [deliveryProvider, setDeliveryProvider] = useState<"PLATFORM" | "INTERNAL">("PLATFORM");
-  const [paymentMethod, setPaymentMethod] = useState<"CASH" | "TRANSFER" | "QR" | "DELIVERY">("CASH");
+  const [deliveryType, setDeliveryType] = useState<"DELIVERY" | "PICKUP">(
+    "PICKUP",
+  );
+  const [deliveryProvider, setDeliveryProvider] = useState<
+    "PLATFORM" | "INTERNAL"
+  >("PLATFORM");
+  const [paymentMethod, setPaymentMethod] = useState<
+    "CASH" | "TRANSFER" | "QR" | "DELIVERY"
+  >("CASH");
   const [deliveryCost, setDeliveryCost] = useState(0);
 
   // Detección de Mobile para Layout
@@ -51,17 +61,25 @@ export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
     return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
 
-  const addProduct = (product: LocalProduct, options: LocalOrderOptionGroup[] = []) => {
+  const addProduct = (
+    product: LocalProduct,
+    options: LocalOrderOptionGroup[] = [],
+  ) => {
     setItems((prev) => {
       if (options.length === 0) {
-        const exist = prev.find((p) => p.productId === product.id && p.optionGroups.length === 0);
+        const exist = prev.find(
+          (p) => p.productId === product.id && p.optionGroups.length === 0,
+        );
         if (exist) {
           return prev.map((p) =>
-            p.productId === product.id ? { ...p, quantity: p.quantity + 1 } : p
+            p.productId === product.id ? { ...p, quantity: p.quantity + 1 } : p,
           );
         }
       }
-      const extra = options.reduce((a, g) => a + g.options.reduce((b, o) => b + o.priceFinal, 0), 0);
+      const extra = options.reduce(
+        (a, g) => a + g.options.reduce((b, o) => b + o.priceFinal, 0),
+        0,
+      );
       return [
         ...prev,
         {
@@ -82,11 +100,22 @@ export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
       const auto: LocalOrderOptionGroup[] = [];
       let needsModal = false;
       for (const g of product.optionGroups) {
-        if (g.minQuantity === 1 && g.maxQuantity === 1 && g.options.length === 1) {
+        if (
+          g.minQuantity === 1 &&
+          g.maxQuantity === 1 &&
+          g.options.length === 1
+        ) {
           const o = g.options[0];
           auto.push({
             groupName: g.name,
-            options: [{ optionId: o.id, optionName: o.name, priceFinal: o.priceFinal, quantity: 1 }],
+            options: [
+              {
+                optionId: o.id,
+                optionName: o.name,
+                priceFinal: o.priceFinal,
+                quantity: 1,
+              },
+            ],
           });
         } else {
           needsModal = true;
@@ -101,38 +130,68 @@ export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
 
   const updateQty = (index: number, delta: number) => {
     setItems((prev) =>
-      prev.map((item, i) => (i === index ? { ...item, quantity: item.quantity + delta } : item)).filter((i) => i.quantity > 0)
+      prev
+        .map((item, i) =>
+          i === index ? { ...item, quantity: item.quantity + delta } : item,
+        )
+        .filter((i) => i.quantity > 0),
     );
   };
 
-  const totalProducts = items.reduce((a, i) => a + i.priceAtPurchase * i.quantity, 0);
-  const total = totalProducts + (deliveryType === "DELIVERY" ? deliveryCost : 0);
+  const totalProducts = items.reduce(
+    (a, i) => a + i.priceAtPurchase * i.quantity,
+    0,
+  );
+  const total =
+    totalProducts + (deliveryType === "DELIVERY" ? deliveryCost : 0);
 
   const createOrder = async () => {
     if (!items.length) return;
-    await db.orders.add({
+
+    // 1. Definir estados con tipos literales para evitar el error de "string"
+    let initialStatus: OrderStatus = OrderStatus.PENDING;
+    let initialPaymentStatus: "PENDING" | "PAID" | "FAILED" = "PENDING";
+
+    if (paymentMethod === "CASH") {
+      initialStatus = OrderStatus.PENDING_CONFIRMATION;
+      initialPaymentStatus = "PENDING";
+    } else if (paymentMethod === "TRANSFER" || paymentMethod === "QR") {
+      initialStatus = OrderStatus.WAITING_FOR_PAYMENT;
+      initialPaymentStatus = "PENDING";
+    }
+
+    // 2. Construir el objeto respetando la interfaz LocalOrder
+    // Usamos 'as const' o tipado explícito para que syncStatus sea "pending_creation" y no string
+    const newOrder: LocalOrder = {
       idTemp: uuid(),
       id: null,
-      syncStatus: "pending_creation",
+      syncStatus: "pending_creation", // TypeScript ahora sabe que es el literal exacto
       customerName,
       customerPhone,
       customerAddress,
-      // customerNote, // Nota incluida para el sistema SLI
       total,
       deliveryType,
       deliveryProvider,
-      deliveryPriceMode: deliveryProvider === "INTERNAL" ? "MANUAL" : "AUTOMATIC",
+      deliveryPriceMode:
+        deliveryProvider === "INTERNAL" ? "MANUAL" : "AUTOMATIC",
       totalDeliveryCost: deliveryType === "DELIVERY" ? deliveryCost : 0,
       orderPaymentMethod: paymentMethod,
-      paymentStatus: "PENDING",
-      items,
-      status: "PENDING",
+      paymentStatus: initialPaymentStatus,
+      items: [...items], // Copia superficial para evitar mutaciones
+      status: initialStatus,
       origin: "BUSINESS",
       createdAt: new Date(),
       updatedAt: new Date(),
-    });
-    setItems([]);
-    onClose?.();
+    };
+
+    try {
+      await db.orders.add(newOrder);
+
+      setItems([]);
+      onClose?.();
+    } catch (error) {
+      console.error("Error en IndexedDB:", error);
+    }
   };
 
   return (
@@ -147,7 +206,6 @@ export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
 
       {/* MODAL CONTAINER */}
       <div className="bg-white w-full h-full max-w-7xl mx-auto md:h-[95vh] md:rounded-3xl flex flex-col overflow-hidden relative shadow-2xl border border-white/20">
-        
         {/* HEADER DE CONTROL */}
         <header className="h-14 border-b flex items-center justify-between px-4 bg-white shrink-0 z-30">
           <div className="flex items-center gap-3">
@@ -158,7 +216,9 @@ export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
               <h2 className="text-xs font-black uppercase tracking-widest text-slate-800 leading-none">
                 Locus <span className="text-blue-600">POS</span>
               </h2>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Terminal de Ventas v4.0</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
+                Terminal de Ventas v4.0
+              </p>
             </div>
           </div>
 
@@ -167,7 +227,10 @@ export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
             className="group flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-red-500 hover:text-white text-slate-500 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest"
           >
             <span>Cerrar</span>
-            <X size={16} className="group-hover:rotate-90 transition-transform" />
+            <X
+              size={16}
+              className="group-hover:rotate-90 transition-transform"
+            />
           </button>
         </header>
 
@@ -177,9 +240,9 @@ export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
             <>
               {/* ProductPanel (Desktop) */}
               <main className="flex-1 h-full overflow-hidden">
-                <ProductPanel 
-                  products={products} 
-                  onProductClick={handleProductClick} 
+                <ProductPanel
+                  products={products}
+                  onProductClick={handleProductClick}
                 />
               </main>
 
@@ -214,12 +277,12 @@ export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
             <div className="relative w-full h-full flex flex-col overflow-hidden">
               {/* ProductPanel (Mobile) */}
               <div className="flex-1 overflow-hidden">
-                <ProductPanel 
-                  products={products} 
-                  onProductClick={handleProductClick} 
+                <ProductPanel
+                  products={products}
+                  onProductClick={handleProductClick}
                 />
               </div>
-              
+
               {/* OrderSheet (Mobile) */}
               <OrderSheet
                 items={items}

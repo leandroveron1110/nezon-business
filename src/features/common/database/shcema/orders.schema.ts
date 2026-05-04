@@ -1,5 +1,7 @@
 // src/common/database/shcema/orders.schema.ts
 
+import { Origin, PaymentStatus } from "@/types/order";
+
 export interface LocalOrderOption {
   optionId?: string;
   optionName: string;
@@ -61,14 +63,14 @@ export interface LocalOrder {
   
   // Pagos
   orderPaymentMethod: 'CASH' | 'TRANSFER' | 'QR' |"DELIVERY", // Basado en tus Enums
-  paymentStatus: 'PENDING' | 'PAID';
+  paymentStatus: PaymentStatus;
   
   // El "Corazón": los productos comprados
   items: LocalOrderItem[];
   
   // Metadata
   status: string;               // PENDING, PREPARING, COMPLETED, etc.
-  origin: 'APP' | 'BUSINESS';   // Para saber si la creó el negocio offline
+  origin: Origin;   // Para saber si la creó el negocio offline
   createdAt: Date;
   updatedAt: Date;
 }

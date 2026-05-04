@@ -15,10 +15,12 @@ import {
   DeliveryType,
   IOrderShortDto,
   OrderStatus,
+  Origin,
   PaymentMethodType,
+  PaymentStatus,
 } from "@/types/order";
 import { OrderList } from "./order/OrderList";
-import { OrderDetailsModal } from "./order/view-detail-order/OrderDetailsModal";
+import { OrderDetailsSidePanel } from "./order/view-detail-order/OrderDetailsSidePanel";
 import { getOrderPriority } from "@/features/order/utilities/order-logic";
 import { OrderFilterHeader } from "./order/OrderFilterHeader";
 import { IOrder } from "../types/order";
@@ -200,6 +202,8 @@ export default function BusinessOrdersPage({ businessId }: Props) {
                   status: order.status as OrderStatus,
                   total: order.total,
                   userId: "",
+                  paymentStatus: order.paymentStatus as PaymentStatus,
+                  origin: order.origin,
                 })
               : currentFilter.statuses.includes(order.status as OrderStatus);
         return matchesSearch && matchesTab;
@@ -214,6 +218,8 @@ export default function BusinessOrdersPage({ businessId }: Props) {
           status: a.status as OrderStatus,
           total: a.total,
           userId: "",
+          paymentStatus: a.paymentStatus as PaymentStatus,
+          origin: a.origin,
         });
         const priorityB = getOrderPriority({
           createdAt: String(b.createdAt),
@@ -224,6 +230,8 @@ export default function BusinessOrdersPage({ businessId }: Props) {
           status: b.status as OrderStatus,
           total: b.total,
           userId: "",
+          paymentStatus: b.paymentStatus as PaymentStatus,
+          origin: b.origin,
         });
         if (priorityA !== priorityB) return priorityA - priorityB;
         return (
@@ -318,10 +326,6 @@ export default function BusinessOrdersPage({ businessId }: Props) {
           <div className="hidden md:grid grid-cols-[100px_1fr_150px_140px_140px_120px] px-6 py-3 text-[11px] uppercase tracking-wider font-bold text-gray-400 border-b bg-white sticky top-0 z-10">
             <span>Pedido</span>
             <span>Cliente</span>
-            <span>Estado</span>
-            <span>Entrega</span>
-            <span>Pago</span>
-            <span className="text-right">Total</span>
           </div>
 
           <div className="divide-y divide-gray-100 bg-white">
@@ -335,7 +339,6 @@ export default function BusinessOrdersPage({ businessId }: Props) {
                 <OrderList
                   key={order.id || order.idTemp}
                   order={{
-                    createdAt: String(order.createdAt),
                     customerName: order.customerName,
                     deliveryType: order.deliveryType as DeliveryType,
                     id: order.id || order.idTemp,
@@ -344,6 +347,9 @@ export default function BusinessOrdersPage({ businessId }: Props) {
                     status: order.status as OrderStatus,
                     total: order.total,
                     userId: "",
+                    createdAt: String(order.createdAt),
+                    origin: order.origin,
+                    paymentStatus: order.paymentStatus,
                   }}
                   onClick={() => setSelectedOrderId(order.id || order.idTemp)}
                   onPrintDirect={handlePrintRequest}
@@ -355,7 +361,7 @@ export default function BusinessOrdersPage({ businessId }: Props) {
       </main>
 
       {selectedOrderId && (
-        <OrderDetailsModal
+        <OrderDetailsSidePanel
           orderId={selectedOrderId}
           onClose={() => setSelectedOrderId(null)}
         />

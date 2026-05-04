@@ -67,7 +67,8 @@ export enum DeliveryType {
 export enum PaymentMethodType {
   TRANSFER = "TRANSFER",
   CASH = "CASH",
-  DELIVERY = "DELIVERY",
+  QR = "QR",
+  OTHER="OTHER"
 }
 
 /// Estados de pago de una orden
@@ -76,6 +77,7 @@ export enum PaymentStatus {
   IN_PROGRESS = "IN_PROGRESS", /// Pago en curso (por ejemplo, transferencia en proceso)
   CONFIRMED = "CONFIRMED", /// Pago confirmado (negocio recibió el dinero)
   REJECTED = "REJECTED", /// Pago rechazado o fallido
+  PAID ="PAID"
 }
 
 export enum OrderStatus {
@@ -180,6 +182,16 @@ export const canTransition = (current: OrderStatus, next: OrderStatus): boolean 
   return ALLOWED_TRANSITIONS[current]?.includes(next) ?? false;
 };
 
+export const PAYMENT_TRANSITIONS: Record<PaymentStatus, PaymentStatus[]> = {
+  [PaymentStatus.PENDING]: [PaymentStatus.IN_PROGRESS, PaymentStatus.CONFIRMED, PaymentStatus.REJECTED],
+  [PaymentStatus.IN_PROGRESS]: [PaymentStatus.CONFIRMED, PaymentStatus.REJECTED],
+  [PaymentStatus.CONFIRMED]: [], // Estado final
+  [PaymentStatus.REJECTED]: [PaymentStatus.PENDING, PaymentStatus.IN_PROGRESS], // Reintento
+  [PaymentStatus.PAID]:[]
+};
+
+export type Origin = 'APP' | 'BUSINESS'
+
 export interface IOrderShortDto {
   id: string;
   userId: string;
@@ -188,7 +200,9 @@ export interface IOrderShortDto {
   deliveryType: DeliveryType;
   orderPaymentMethod: PaymentMethodType;
   status: OrderStatus;
+  paymentStatus: PaymentStatus;
   customerName: string;
+  origin: Origin
 }
 
 export type Actor = 'CUSTOMER' | 'BUSINESS' | 'DELIVERY';

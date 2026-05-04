@@ -5,6 +5,7 @@ import { LocalOrderItem } from "@/features/common/database/shcema/orders.schema"
 import { Trash2, Plus, Minus, Send, Zap, Truck, Store } from "lucide-react";
 import { useLocationAutocomplete } from "@/features/order/hooks/useLocationAutocomplete";
 import { normalizeAddress } from "@/lib/search-location";
+import { formatPrice } from "@/features/common/utils/formatPrice";
 
 interface OrderPanelProps {
   items: LocalOrderItem[];
@@ -118,7 +119,7 @@ export function OrderPanel({
                 onClick={() => setDeliveryProvider("PLATFORM")}
                 className={`flex-1 py-1 flex items-center justify-center gap-1 text-[9px] font-black rounded ${isLocus ? "bg-blue-500 text-white" : "text-slate-500"}`}
               >
-                <Zap className="w-2.5 h-2.5" /> LOCUS APP
+                <Zap className="w-2.5 h-2.5" /> Voy!
               </button>
             </div>
 
@@ -247,7 +248,7 @@ export function OrderPanel({
                   {item.productName}
                 </p>
                 <p className="text-[9px] text-blue-600 font-bold">
-                  ${item.priceAtPurchase}{" "}
+                  {formatPrice(item.priceAtPurchase)}{" "}
                   <span className="text-slate-400 font-normal">x unid.</span>
                 </p>
               </div>
@@ -289,7 +290,7 @@ export function OrderPanel({
             ].map((m) => (
               <button
                 key={m.key}
-                onClick={() => setPaymentMethod(m.key as any)}
+                onClick={() => setPaymentMethod(m.key as "CASH" | "TRANSFER" | "QR" | "DELIVERY")}
                 className={`flex-1 py-1.5 text-[9px] font-black rounded border transition-all ${
                   paymentMethod === m.key
                     ? "bg-green-600 text-white border-green-700"
@@ -307,7 +308,7 @@ export function OrderPanel({
             <span className="text-[9px] font-bold opacity-60 uppercase">
               Total Pedido
             </span>
-            <span className="text-xs font-bold">${subtotal}</span>
+            <span className="text-xs font-bold">{formatPrice(subtotal)}</span>
           </div>
 
           {isDelivery && (
@@ -320,7 +321,7 @@ export function OrderPanel({
                   ? selectedZoneId
                     ? "ZONA OK"
                     : "AUTO"
-                  : `$${deliveryCost}`}
+                  : `${formatPrice(deliveryCost)}`}
               </span>
             </div>
           )}
@@ -328,7 +329,7 @@ export function OrderPanel({
           <div className="flex justify-between items-center pt-1 border-t border-slate-700">
             <span className="text-[10px] font-black uppercase">Cobrar</span>
             <span className="text-xl font-black text-green-400 tracking-tighter">
-              ${total}
+              {formatPrice(total)}
             </span>
           </div>
 
@@ -337,7 +338,7 @@ export function OrderPanel({
             disabled={items.length === 0}
             className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-800 disabled:text-slate-600 transition-all mt-2 py-2.5 rounded flex justify-center items-center gap-2 font-black uppercase text-[11px] tracking-widest shadow-lg active:scale-95"
           >
-            CONFIRMAR (ENTER) <Send size={14} />
+            CONFIRMAR<Send size={14} />
           </button>
         </div>
       </div>

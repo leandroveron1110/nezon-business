@@ -1,4 +1,4 @@
-import { IOrderShortDto } from "@/types/order";
+import { IOrderShortDto, Origin, PaymentMethodType } from "@/types/order";
 
 export interface SyncResponse {
   orders: IOrder[];
@@ -72,7 +72,7 @@ export interface IOrder {
   userId: string;
   deliveryCompanyId?: string | null;
   status: OrderStatus; // estado general
-  origin: string;
+  origin: Origin;
   isTest: boolean;
   total: number;
   totalDeliveryCost: number;
@@ -100,12 +100,6 @@ export enum DeliveryType {
   DELIVERY = "DELIVERY",
   IN_HOUSE_DELIVERY = "IN_HOUSE_DELIVERY", // El negocio entrega por su cuenta
   EXTERNAL_DELIVERY = "EXTERNAL_DELIVERY", // Se usa una cadetería externa
-}
-
-export enum PaymentMethodType {
-  TRANSFER = "TRANSFER",
-  CASH = "CASH",
-  DELIVERY = "DELIVERY",
 }
 
 /// Estados de pago de una orden
