@@ -1,64 +1,76 @@
-import { ALLOWED_TRANSITIONS, IOrderShortDto, OrderStatus, PaymentMethodType, PaymentStatus } from "@/types/order";
+import { OrderStatus, DeliveryStatus, PaymentStatus, canChangeOrderStatus, canChangeDeliveryStatus } from "@/types/order-state-machine";
 
-export const getOrderPriority = (order: IOrderShortDto): number => {
-  // PRIORIDAD 1: ACCIÓN INMEDIATA REQUERIDA (Ojo del dueño)
-  const urgentStatuses = [
-    OrderStatus.PENDING,                // Pedido nuevo entrando
-    OrderStatus.PENDING_CONFIRMATION,   // Esperando que el negocio acepte
-    OrderStatus.DELIVERY_FAILED,        // El cadete no pudo entregar (Urgente resolver)
-    OrderStatus.FAILED                  // Error general del sistema
-  ];
-  if (urgentStatuses.includes(order.status)) return 1;
+export interface IOrderMinimal {
+  status: OrderStatus;
+  deliveryStatus: DeliveryStatus;
+  paymentStatus: PaymentStatus;
+  createdAt: Date;
+}
 
-  // PRIORIDAD 2: GESTIÓN DE PAGO (Bloqueante)
-  // Si es transferencia y no está confirmado, es prioridad alta para no cocinar al vicio
-  // if (
-  //   order.orderPaymentMethod === PaymentMethodType.TRANSFER && 
-  //   order.paymentStatus !== PaymentStatus.CONFIRMED
-  // ) {
-  //   return 2;
-  // }
+export const getOrderPriority = (order: IOrderMinimal): number => {
+  // --- PRIORIDAD 1: ACCIÓN INMEDIATA (Fuego en el local) ---
+  
+  // 1. Pedido nuevo del sistema (Aún no aceptado por el negocio)
+  if (order.status === OrderStatus.PENDING) return 1;
 
-  // PRIORIDAD 3: OPERACIÓN ACTIVA (En la cocina / Mostrador)
-  const operationalStatuses = [
-    OrderStatus.CONFIRMED,
-    OrderStatus.PREPARING,
-    OrderStatus.READY_FOR_CUSTOMER_PICKUP,
-    OrderStatus.READY_FOR_DELIVERY_PICKUP,
-    OrderStatus.DELIVERY_REASSIGNING
-  ];
-  if (operationalStatuses.includes(order.status)) return 3;
+  // 2. Problema logístico (Se pidió cadete y se canceló o falló)
+  // Es urgente porque la comida probablemente ya se está haciendo o está lista.
+  if (order.deliveryStatus === DeliveryStatus.CANCELLED && order.status !== OrderStatus.COMPLETED) {
+    return 1; 
+  }
 
-  // PRIORIDAD 4: EN TRÁNSITO (Ya salió del local)
-  const transitStatuses = [
-    OrderStatus.DELIVERY_PENDING,
-    OrderStatus.DELIVERY_ASSIGNED,
-  ];
-  if (transitStatuses.includes(order.status)) return 4;
+  // --- PRIORIDAD 2: VALIDACIÓN DE RECURSOS (Dinero / Insumos) ---
 
-  // PRIORIDAD 5: ARCHIVO / FINALIZADOS (Ya no hay nada que hacer)
-  const archivedStatuses = [
-    OrderStatus.COMPLETED,
-    OrderStatus.DELIVERED,
-    OrderStatus.CANCELLED_BY_BUSINESS,
-    OrderStatus.REJECTED_BY_BUSINESS,
-    OrderStatus.REFUNDED,
-    OrderStatus.RETURNED
-  ];
-  if (archivedStatuses.includes(order.status)) return 5;
+  // 1. Si el pago falló, hay que avisar al cliente antes de seguir gastando mercadería.
+  if (order.paymentStatus === PaymentStatus.REJECTED) return 2;
 
-  return 6; // Por las dudas
+  // 2. Si es transferencia y aún no se confirmó (Bloqueante para algunos negocios)
+  if (order.paymentStatus === PaymentStatus.PENDING && order.status === OrderStatus.CONFIRMED) {
+    return 2;
+  }
+
+  // --- PRIORIDAD 3: OPERACIÓN ACTIVA (Cocina y Despacho) ---
+
+  // Órdenes que están siendo preparadas o ya están listas en el mostrador.
+  const isOperational = [OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY].includes(order.status);
+  if (isOperational) return 3;
+
+  // --- PRIORIDAD 4: SEGUIMIENTO (En la calle) ---
+
+  // La orden ya salió (SHIPPED), pero el negocio debe monitorear que llegue a COMPLETED.
+  if (order.deliveryStatus === DeliveryStatus.SHIPPED) return 4;
+  
+  // Se solicitó cadete pero aún no salió.
+  if (order.deliveryStatus === DeliveryStatus.REQUESTED) return 4;
+
+  // --- PRIORIDAD 5: ARCHIVO (Finalizados) ---
+  
+  if (
+    order.status === OrderStatus.COMPLETED || 
+    order.status === OrderStatus.CANCELLED || 
+    order.status === OrderStatus.REJECTED
+  ) {
+    return 5;
+  }
+
+  return 6;
 };
 
-// export const filterOrdersByBusinessRules = (order: IOrderShortDto): boolean => {
-//   if (order.orderPaymentMethod === PaymentMethodType.CASH) return true;
+/**
+ * Ahora necesitamos saber qué hilo queremos mover.
+ */
+export const isTransitionAllowed = (
+  type: 'ORDER' | 'DELIVERY',
+  next: any,
+  currentOrder: IOrderMinimal
+): boolean => {
+  if (type === 'ORDER') {
+    return canChangeOrderStatus(currentOrder.status, next as OrderStatus);
+  }
+  
+  if (type === 'DELIVERY') {
+    return canChangeDeliveryStatus(next as DeliveryStatus, currentOrder);
+  }
 
-//   // Usamos un array tipado para la comparación de estados de pago
-//   const invalidTransferStatuses: PaymentStatus[] = [PaymentStatus.PENDING, PaymentStatus.REJECTED];
-//   return !invalidTransferStatuses.includes(order.paymentStatus);
-// };
-
-export const getNextValidStatus = (currentStatus: OrderStatus, targetStatus: OrderStatus): boolean => {
-  const allowed = ALLOWED_TRANSITIONS[currentStatus] || [];
-  return allowed.includes(targetStatus);
+  return false;
 };

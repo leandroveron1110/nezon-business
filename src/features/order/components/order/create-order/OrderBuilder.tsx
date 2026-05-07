@@ -17,7 +17,7 @@ import { OptionSelector } from "./OptionSelector";
 import { ProductPanel } from "./ProductPanel";
 import { OrderPanel } from "./OrderPanel";
 import { OrderSheet } from "./OrderSheet";
-import { OrderStatus, PaymentStatus } from "@/types/order";
+import { DeliveryStatus, OrderStatus, PaymentStatus } from "@/types/order-state-machine";
 
 export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
   const { products } = useProducts();
@@ -152,14 +152,6 @@ export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
     let initialStatus: OrderStatus = OrderStatus.PENDING;
     let initialPaymentStatus: PaymentStatus = PaymentStatus.PENDING;
 
-    if (paymentMethod === "CASH") {
-      initialStatus = OrderStatus.PENDING_CONFIRMATION;
-      initialPaymentStatus = PaymentStatus.PENDING;
-    } else if (paymentMethod === "TRANSFER" || paymentMethod === "QR") {
-      initialStatus = OrderStatus.WAITING_FOR_PAYMENT;
-      initialPaymentStatus = PaymentStatus.PENDING;
-    }
-
     // 2. Construir el objeto respetando la interfaz LocalOrder
     // Usamos 'as const' o tipado explícito para que syncStatus sea "pending_creation" y no string
     const newOrder: LocalOrder = {
@@ -182,6 +174,7 @@ export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
       origin: "BUSINESS",
       createdAt: new Date(),
       updatedAt: new Date(),
+      deliveryStatus: deliveryType === "DELIVERY" ? DeliveryStatus.PENDING : DeliveryStatus.NOT_APPLICABLE,
     };
 
     try {

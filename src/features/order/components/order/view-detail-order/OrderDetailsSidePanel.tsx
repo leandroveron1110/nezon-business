@@ -15,10 +15,7 @@ import {
 } from "lucide-react";
 
 import {
-  OrderStatus,
   DeliveryType,
-  PaymentStatus,
-  PaymentMethodType,
 } from "@/types/order";
 
 import { formatPrice } from "@/features/common/utils/formatPrice";
@@ -31,9 +28,10 @@ import {
 import OrderStatusBadge from "../../OrderStatusBadge";
 import { OrderCancellationActions } from "../OrderCancellationActions";
 import { useGetOrderById } from "../../../hooks/useGetOrderById";
-import { updateOrderStatusInteractor } from "@/features/common/database/interactors/update-order-status.interactor";
 import { OrderTicket } from "../ticket-order/OrderTicket";
 import { usePrintTicket } from "@/features/order/hooks/usePrintTicket";
+import { OrderStatus, PaymentStatus } from "@/types/order-state-machine";
+import { updateOrderStateInteractor } from "@/features/common/database/interactors/update-order-status.interactor";
 
 interface Props {
   orderId: string;
@@ -45,59 +43,27 @@ interface Props {
  * Permite saltar de estados de pago directamente a gestión de negocio.
  */
 const getStatusAction = (status: OrderStatus, deliveryType: DeliveryType) => {
-  const actions: Record<
-    string,
-    { label: string; next: OrderStatus; color: string }
-  > = {
-    // ESTADOS INICIALES: Forzar entrada al flujo de cocina
+  const isPickup = deliveryType === DeliveryType.PICKUP;
+
+  const actions: Partial<Record<OrderStatus, { label: string; next: OrderStatus; color: string }>> = {
     [OrderStatus.PENDING]: {
       label: "ACEPTAR PEDIDO",
       next: OrderStatus.CONFIRMED,
       color: "bg-blue-600 hover:bg-blue-700",
     },
-    [OrderStatus.WAITING_FOR_PAYMENT]: {
-      label: "ACEPTAR PEDIDO",
-      next: OrderStatus.CONFIRMED,
-      color: "bg-blue-600 hover:bg-blue-700",
-    },
-    [OrderStatus.PENDING_CONFIRMATION]: {
-      label: "ACEPTAR PEDIDO",
-      next: OrderStatus.CONFIRMED,
-      color: "bg-blue-600 hover:bg-blue-700",
-    },
-    [OrderStatus.PAYMENT_CONFIRMED]: {
-      label: "ACEPTAR PEDIDO",
-      next: OrderStatus.CONFIRMED,
-      color: "bg-blue-600 hover:bg-blue-700",
-    },
-
-    // FLUJO OPERATIVO
     [OrderStatus.CONFIRMED]: {
       label: "EMPEZAR PREPARACIÓN",
       next: OrderStatus.PREPARING,
       color: "bg-orange-500 hover:bg-orange-600",
     },
     [OrderStatus.PREPARING]: {
-      label:
-        deliveryType === DeliveryType.PICKUP
-          ? "LISTO PARA RETIRO"
-          : "PEDIR CADETE",
-      next:
-        deliveryType === DeliveryType.PICKUP
-          ? OrderStatus.READY_FOR_CUSTOMER_PICKUP
-          : OrderStatus.READY_FOR_DELIVERY_PICKUP,
+      label: isPickup ? "LISTO PARA RETIRO" : "LISTO PARA ENVÍO",
+      next: OrderStatus.READY,
       color: "bg-green-600 hover:bg-green-700",
     },
-
-    // FINALIZACIÓN
-    [OrderStatus.READY_FOR_CUSTOMER_PICKUP]: {
-      label: "ENTREGAR Y CERRAR",
-      next: OrderStatus.COMPLETED,
-      color: "bg-slate-900 hover:bg-black",
-    },
-    [OrderStatus.DELIVERED]: {
-      label: "CERRAR ORDEN",
-      next: OrderStatus.COMPLETED,
+    [OrderStatus.READY]: {
+      label: isPickup ? "ENTREGAR Y CERRAR" : "PEDIDO DESPACHADO",
+      next: OrderStatus.COMPLETED, // Si es delivery, el cierre final lo da la entrega del cadete, pero el local "cumple" al despachar.
       color: "bg-slate-900 hover:bg-black",
     },
   };
@@ -140,7 +106,10 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
       const newStatus = isPaid
         ? PaymentStatus.PENDING
         : PaymentStatus.CONFIRMED;
-      await fetchUpdateOrdersPaymentByOrderID(safeOrder.id, newStatus);
+      
+      await updateOrderStateInteractor(safeOrder.id, 'PAYMENT', newStatus);
+      //
+      // await fetchUpdateOrdersPaymentByOrderID(safeOrder.id, newStatus);
       addAlert({
         message:
           newStatus === PaymentStatus.CONFIRMED
@@ -158,7 +127,7 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
     if (!safeOrder || !action || loading) return;
     try {
       setLoading(true);
-      await updateOrderStatusInteractor(safeOrder.id, action.next);
+      await updateOrderStateInteractor(safeOrder.id, 'STATUS', action.next);
       addAlert({ message: `Orden: ${action.label}` });
       if (action.next === OrderStatus.COMPLETED) onClose();
     } catch (e) {
@@ -176,7 +145,7 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
       return;
     try {
       setLoading(true);
-      await fetchUpdateOrdersByOrderID(safeOrder.id, targetStatus);
+      // await fetchUpdateOrdersByOrderID(safeOrder.id, targetStatus);
       addAlert({ message: "Pedido cancelado", type: "info" });
       onClose();
     } catch (e) {
@@ -225,7 +194,8 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
               #{safeOrder.id.slice(-4)}
             </span>
             <OrderStatusBadge
-              orderPaymentMethod={safeOrder.orderPaymentMethod}
+              deliveryStatus={safeOrder.deliveryStatus}
+              // paymentStatus={safeOrder.paymentStatus}
               status={safeOrder.status}
             />
           </div>
@@ -390,6 +360,8 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
               <div className="space-y-2 animate-in fade-in">
                 <OrderCancellationActions
                   status={safeOrder.status}
+                  deliveryStatus={safeOrder.deliveryStatus}
+                  // paymentStatus={safeOrder.paymentStatus}
                   onCancel={handleCancelOrder}
                   loading={loading}
                 />

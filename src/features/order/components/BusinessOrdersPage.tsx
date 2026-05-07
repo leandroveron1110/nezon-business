@@ -6,35 +6,28 @@ import { Package, Search, LayoutGrid } from "lucide-react";
 import OrdersFilters from "./OrdersFilters";
 import { simplifiedFilters } from "@/features/common/utils/filtersData";
 
-// import { useBusinessOrdersSocket } from "../stores/useBusinessOrdersSocket";
-// import { useFetchBusinessOrders } from "../stores/useFetchBusinessOrders";
 import { useBusinessNotificationsStore } from "../../common/hooks/useBusinessNotificationsStore";
-import { useGlobalBusinessOrdersStore } from "@/lib/stores/orderStoreGlobal";
 
 import {
   DeliveryType,
   IOrderShortDto,
-  OrderStatus,
-  Origin,
   PaymentMethodType,
-  PaymentStatus,
 } from "@/types/order";
 import { OrderList } from "./order/OrderList";
 import { OrderDetailsSidePanel } from "./order/view-detail-order/OrderDetailsSidePanel";
 import { getOrderPriority } from "@/features/order/utilities/order-logic";
 import { OrderFilterHeader } from "./order/OrderFilterHeader";
 import { IOrder } from "../types/order";
-// import { fetchOrderById } from "../api/catalog-api";
 import { useAlert } from "@/features/common/ui/Alert/Alert";
 import { OrderTicket } from "./order/ticket-order/OrderTicket";
 import { PrintSelectorModal } from "./order/PrintSelectorModal";
 import { usePrintTicket } from "../hooks/usePrintTicket";
 import { toPng } from "html-to-image";
-// import { useGetBusinessOrders } from "@/features/common/database/queries/use-get-business-orders.query";
 import { useOrdersView } from "../hooks/useOrdersView";
 import { useSyncOrders } from "../hooks/useSyncOrders";
 import { useGetOrderById } from "../hooks/useGetOrderById";
 import OrderBuilder from "./order/create-order/OrderBuilder";
+import { DeliveryStatus, OrderStatus, PaymentStatus } from "@/types/order-state-machine";
 
 interface Props {
   businessId: string;
@@ -53,11 +46,6 @@ export default function BusinessOrdersPage({ businessId }: Props) {
   // 2. Consumís los datos (UI)
   const { orders, isLoading } = useOrdersView(businessId);
 
-  // console.log(orders)
-
-  // const rawOrders_ = useGlobalBusinessOrdersStore((s) =>
-  //   s.getOrders(businessId),
-  // );
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState("Todos");
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
@@ -166,80 +154,58 @@ export default function BusinessOrdersPage({ businessId }: Props) {
     }
   };
 
-  // useFetchBusinessOrders(businessId, daysRange, specificDate);
-  // useBusinessOrdersSocket(businessId);
-  const resetNotificationOrder = useBusinessNotificationsStore(
-    (s) => s.clearNotificationsByType,
-  );
 
-  // useEffect(() => {
-  //   if (businessId) resetNotificationOrder(businessId, "NEW_ORDER");
-  // }, [businessId, resetNotificationOrder]);
+const filteredAndSortedOrders = useMemo(() => {
+  if (!orders) return [];
 
-  const filteredAndSortedOrders = useMemo(() => {
-    const ordersV = orders || [];
-    return ordersV
-      .filter((order) => {
-        const term = searchTerm.toLowerCase();
-        const matchesSearch =
-          !searchTerm ||
-          (order.id || "").toLowerCase().includes(term) ||
-          order.customerName.toLowerCase().includes(term);
-        const currentFilter = simplifiedFilters.find(
-          (f) => f.label === activeFilter,
-        );
-        const matchesTab =
-          !currentFilter || activeFilter === "Todos"
-            ? true
-            : currentFilter.condition
-              ? currentFilter.condition({
-                  createdAt: String(order.createdAt),
-                  customerName: order.customerName,
-                  deliveryType: order.deliveryType as DeliveryType,
-                  id: order.id || order.idTemp,
-                  orderPaymentMethod:
-                    order.orderPaymentMethod as PaymentMethodType,
-                  status: order.status as OrderStatus,
-                  total: order.total,
-                  userId: "",
-                  paymentStatus: order.paymentStatus as PaymentStatus,
-                  origin: order.origin,
-                })
-              : currentFilter.statuses.includes(order.status as OrderStatus);
-        return matchesSearch && matchesTab;
-      })
-      .sort((a, b) => {
-        const priorityA = getOrderPriority({
-          createdAt: String(a.createdAt),
-          customerName: a.customerName,
-          deliveryType: a.deliveryType as DeliveryType,
-          id: a.id || a.idTemp,
-          orderPaymentMethod: a.orderPaymentMethod as PaymentMethodType,
-          status: a.status as OrderStatus,
-          total: a.total,
-          userId: "",
-          paymentStatus: a.paymentStatus as PaymentStatus,
-          origin: a.origin,
-        });
-        const priorityB = getOrderPriority({
-          createdAt: String(b.createdAt),
-          customerName: b.customerName,
-          deliveryType: b.deliveryType as DeliveryType,
-          id: b.id || b.idTemp,
-          orderPaymentMethod: b.orderPaymentMethod as PaymentMethodType,
-          status: b.status as OrderStatus,
-          total: b.total,
-          userId: "",
-          paymentStatus: b.paymentStatus as PaymentStatus,
-          origin: b.origin,
-        });
-        if (priorityA !== priorityB) return priorityA - priorityB;
-        return (
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
+  // 1. Pre-procesamos el filtro y el término de búsqueda
+  const currentFilter = simplifiedFilters.find(f => f.label === activeFilter);
+  const term = searchTerm.toLowerCase().trim();
+
+  return orders
+    .filter((order) => {
+      // --- Hilo de Búsqueda ---
+      const matchesSearch = 
+        !term || 
+        (order.id || order.idTemp || "").toLowerCase().includes(term) || 
+        (order.customerName || "").toLowerCase().includes(term);
+
+      if (!matchesSearch) return false;
+
+      // --- Hilo de Filtrado por Tab (BCA) ---
+      // Si no hay filtro o es "Todos", pasa directo
+      if (!currentFilter || activeFilter === "Todos") return true;
+
+      // Aplicamos la lógica de condición definida en simplifiedFilters
+      return currentFilter.condition({
+        id: order.id || order.idTemp,
+        customerName: order.customerName,
+        deliveryType: order.deliveryType as DeliveryType,
+        createdAt: String(order.createdAt),
+        orderPaymentMethod: order.orderPaymentMethod as PaymentMethodType,
+        status: order.status as OrderStatus,
+        deliveryStatus: order.deliveryStatus as DeliveryStatus,
+        paymentStatus: order.paymentStatus as PaymentStatus,
+        origin: order.origin,
+        total: order.total,
+        userId: "", // No lo usamos en las condiciones actuales, pero lo dejamos por si se necesita en el futuro
       });
-  }, [orders, activeFilter, searchTerm]);
+    })
+    .sort((a, b) => {
+      // --- Hilo de Prioridad (Soberanía del Negocio) ---
+      // Usamos la lógica de getOrderPriority que ya contempla fallos logísticos y pagos
+      const priorityA = getOrderPriority(a as any); 
+      const priorityB = getOrderPriority(b as any);
 
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB;
+      }
+
+      // --- Hilo Cronológico (FIFO) ---
+      // A igual prioridad, el pedido más antiguo va primero para no retrasar la cocina
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    });
+}, [orders, activeFilter, searchTerm]); // simplifiedFilters es constante, no hace falta en dependencias
   if (isLoading) return <p>Sincronizando con Nezon...</p>;
 
   return (
@@ -275,19 +241,6 @@ export default function BusinessOrdersPage({ businessId }: Props) {
             <LayoutGrid className="w-5 h-5 text-blue-600" />
             Panel de Órdenes
           </h1>
-
-          <OrderFilterHeader
-            daysRange={daysRange}
-            selectedDate={specificDate}
-            onRangeChange={(d) => {
-              setSpecificDate(null);
-              setDaysRange(d);
-            }}
-            onDateChange={(date) => {
-              setDaysRange(null);
-              setSpecificDate(date);
-            }}
-          />
 
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -350,6 +303,7 @@ export default function BusinessOrdersPage({ businessId }: Props) {
                     createdAt: String(order.createdAt),
                     origin: order.origin,
                     paymentStatus: order.paymentStatus,
+                    deliveryStatus: order.deliveryStatus,
                   }}
                   onClick={() => setSelectedOrderId(order.id || order.idTemp)}
                   onPrintDirect={handlePrintRequest}

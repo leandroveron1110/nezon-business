@@ -1,42 +1,80 @@
-import { canTransition, OrderStatus } from "@/types/order";
-import { db } from "..";
+import { 
+  OrderStatus, 
+  DeliveryStatus, 
+  PaymentStatus, 
+  canChangeOrderStatus, 
+  canChangeDeliveryStatus,
+  PAYMENT_TRANSITIONS 
+} from "@/types/order-state-machine";
 import { fetchUpdateOrdersByOrderID } from "@/features/order/api/catalog-api";
+import { db } from "..";
 
+// Definimos un tipo para saber qué hilo estamos actualizando
+type OrderThread = 'STATUS' | 'PAYMENT' | 'DELIVERY';
 
-// src/features/orders/interactors/update-order-status.interactor.ts
-
-export async function updateOrderStatusInteractor(orderId: string, newStatus: OrderStatus) {
-  // 1. Obtener la orden (Validación de existencia)
+export async function updateOrderStateInteractor(
+  orderId: string, 
+  thread: OrderThread, 
+  newValue: OrderStatus | DeliveryStatus | PaymentStatus
+) {
+  // 1. Obtener la orden de IndexedDB
   const localOrder = await db.orders.get(orderId);
-  if (!localOrder) throw new Error("Orden no encontrada.");
+  if (!localOrder) throw new Error("Orden no encontrada en la base de datos local.");
 
-  // 2. Validar transición (La máquina de estados manda)
-  if (!canTransition(localOrder.status as OrderStatus, newStatus)) {
-    throw new Error(`Acción no permitida: ${localOrder.status} -> ${newStatus}`);
+  // 2. Validar transición según el hilo (Soberanía de la Máquina de Estados)
+  let isValid = false;
+  const updatePayload: any = { updatedAt: new Date() };
+
+  switch (thread) {
+    case 'STATUS':
+      isValid = canChangeOrderStatus(localOrder.status as OrderStatus, newValue as OrderStatus);
+      updatePayload.status = newValue;
+      break;
+    
+    case 'PAYMENT':
+      // Validación simple para pagos usando el mapa de transiciones
+      isValid = PAYMENT_TRANSITIONS[localOrder.paymentStatus as PaymentStatus]?.includes(newValue as PaymentStatus);
+      updatePayload.paymentStatus = newValue;
+      break;
+
+    case 'DELIVERY':
+      isValid = canChangeDeliveryStatus(newValue as DeliveryStatus, {
+        status: localOrder.status as OrderStatus,
+        deliveryStatus: localOrder.deliveryStatus as DeliveryStatus
+      });
+      updatePayload.deliveryStatus = newValue;
+      break;
   }
 
-  // 3. Actualización Atómica en IndexedDB
-  // Esto garantiza que la UI se actualice aunque no haya internet
+  if (!isValid) {
+    throw new Error(`Transición no permitida para el hilo ${thread}: ${newValue}`);
+  }
+
+  // 3. Actualización Atómica en IndexedDB (UI Optimista)
+  // Cambiamos el syncStatus para que el worker sepa que hay cambios pendientes de envío
+  const nextSyncStatus = localOrder.syncStatus === 'pending_creation' ? 'pending_creation' : 'pending_update';
+  
   await db.orders.update(orderId, {
-    status: newStatus,
-    updatedAt: new Date(),
-    syncStatus: localOrder.syncStatus === 'pending_creation' ? 'pending_creation' : 'pending_update'
+    ...updatePayload,
+    syncStatus: nextSyncStatus
   });
 
-  // 4. Lógica de Sincronización Inteligente
-  if (localOrder.userId) {
-    // Es un pedido de la plataforma (Cliente esperando)
-    // Lo enviamos YA mismo sin bloquear el hilo principal (no usamos await aquí)
-    console.log("🚀 Prioridad Alta: Enviando actualización al servidor...");
-    const rest  = await fetchUpdateOrdersByOrderID(orderId, newStatus);
-    if(rest) {
-        await db.orders.update(orderId, { syncStatus: 'synced' });
-    }
+  // 4. Lógica de Sincronización (Solo si tiene userId / es de plataforma)
+  if (localOrder.userId || localOrder.id) {
+    try {
+      console.log(`🚀 Sincronizando hilo ${thread}...`);
+      
+      // Aquí llamamos a tu API. Podés tener un endpoint genérico o específicos.
+      // Si fetchUpdateOrdersByOrderID solo actualiza 'status', podrías necesitar otros
+      const success = await fetchUpdateOrdersByOrderID(orderId, { [thread.toLowerCase()]: newValue });
 
-  } else {
-    // Es un pedido local/manual
-    // No hacemos nada; el worker de fondo lo levantará en su próxima pasada "lenta"
-    console.log("⏳ Prioridad Baja: Guardado localmente, se sincronizará luego.");
+      if (success) {
+        await db.orders.update(orderId, { syncStatus: 'synced' });
+      }
+    } catch (error) {
+      console.error("❌ Falló la sincronización inmediata, quedará para el reintento del worker.");
+      // No lanzamos error aquí para no romper la UX, el syncStatus ya está en 'pending_update'
+    }
   }
 
   return true;

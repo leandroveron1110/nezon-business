@@ -2,6 +2,7 @@ import { apiGet, apiPatch, apiPost, ApiResult } from "@/lib/apiFetch";
 import { IOrder, SyncResponse } from "../types/order";
 import { ICompany } from "../types/company";
 import { handleApiError } from "@/lib/handleApiError";
+import { DeliveryStatus, OrderStatus, PaymentStatus } from "@/types/order-state-machine";
 
 export const fetchOrdersByBusinessId = async (
   businessId: string
@@ -57,17 +58,34 @@ export const syncOrdersByBusinessId = async (
   }
 };
 
+
+/**
+ * Representa los campos que pueden cambiar en cualquiera de los 3 hilos.
+ * Usamos Partial para que solo envíes lo que realmente cambió.
+ */
+export interface OrderUpdatePayload {
+  status?: OrderStatus;
+  deliveryStatus?: DeliveryStatus;
+  paymentStatus?: PaymentStatus;
+  // Podrías agregar otros como deliveryProvider si fuera necesario
+}
+
 export const fetchUpdateOrdersByOrderID = async (
   orderId: string,
-  status: string
+  updates: OrderUpdatePayload
 ): Promise<ApiResult<IOrder>> => {
   try {
-    const res = await apiPatch<IOrder>(`/orders/order/status/${orderId}`, {
-      status,
-    });
+    /**
+     * IMPORTANTE: Cambiamos la URL a algo más genérico.
+     * Si tu backend todavía requiere el "/status/", deberías hablar con tu "yo" 
+     * del backend para unificarlo a PATCH `/orders/${orderId}`.
+     */
+    const res = await apiPatch<IOrder>(`/orders/order/${orderId}`, updates);
+    
     return res.data;
   } catch (error) {
-    throw handleApiError(error, "Error al actualizar el status");
+    // El error ahora es genérico: "Error al actualizar el pedido"
+    throw handleApiError(error, "No se pudo sincronizar el cambio con el servidor");
   }
 };
 

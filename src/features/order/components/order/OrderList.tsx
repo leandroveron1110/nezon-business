@@ -1,23 +1,19 @@
 "use client";
 
-import {
-  Printer,
-  Loader2,
-  Package,
-  Truck,
-  AlertCircle,
-  Banknote,
-  CreditCard,
-  QrCode,
-} from "lucide-react";
-import { useState } from "react";
+import { Clock3, Loader2, Package, Printer, Truck } from "lucide-react";
+
+import { useEffect, useMemo, useState } from "react";
+
 import { formatPrice } from "@/features/common/utils/formatPrice";
+
+import { DeliveryType, IOrderShortDto } from "@/types/order";
+
 import {
-  DeliveryType,
-  IOrderShortDto,
-  PaymentMethodType,
+  DeliveryStatus,
+  OrderStatus,
   PaymentStatus,
-} from "@/types/order";
+} from "@/types/order-state-machine";
+
 import OrderStatusBadge from "../OrderStatusBadge";
 
 interface Props {
@@ -29,207 +25,476 @@ interface Props {
 export function OrderList({ order, onClick, onPrintDirect }: Props) {
   const [isPrinting, setIsPrinting] = useState(false);
 
-  const time = new Date(order.createdAt).toLocaleTimeString("es-AR", {
+  const [now, setNow] = useState(Date.now());
+
+  //
+  // LIVE TIMER
+  //
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNow(Date.now());
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  //
+  // TIME
+  //
+  const createdAt = new Date(order.createdAt);
+
+  const createdTime = createdAt.toLocaleTimeString("es-AR", {
     hour: "2-digit",
     minute: "2-digit",
   });
 
-  const isPickup = order.deliveryType === DeliveryType.PICKUP;
-  const isWebOrder = order.origin === "APP";
+  const elapsedMinutes = useMemo(() => {
+    return Math.floor((now - createdAt.getTime()) / 1000 / 60);
+  }, [now, createdAt]);
+
+  //
+  // FLAGS
+  //
   const isPaid = order.paymentStatus === PaymentStatus.CONFIRMED;
 
-  const handleQuickPrint = (e: React.MouseEvent) => {
+  const isWebOrder = order.origin === "APP";
+
+  const isPickup = order.deliveryType === DeliveryType.PICKUP;
+
+  //
+  // DELIVERY
+  //
+  const deliveryInfo = useMemo(() => {
+    if (isPickup) {
+      return {
+        label: "RETIRO",
+        Icon: Package,
+        color: "text-orange-600",
+        bar: "bg-orange-500",
+      };
+    }
+
+    return {
+      label: "DELIVERY",
+      Icon: Truck,
+      color: "text-blue-600",
+      bar: "bg-blue-600",
+    };
+  }, [isPickup]);
+
+  //
+  // TIMER
+  //
+  const timerClass = useMemo(() => {
+    if (elapsedMinutes >= 35) {
+      return `
+          bg-red-600
+          text-white
+        `;
+    }
+
+    if (elapsedMinutes >= 25) {
+      return `
+          bg-orange-500
+          text-white
+        `;
+    }
+
+    if (elapsedMinutes >= 15) {
+      return `
+          bg-yellow-300
+          text-black
+        `;
+    }
+
+    return `
+        bg-slate-100
+        text-slate-600
+      `;
+  }, [elapsedMinutes]);
+
+  //
+  // PRIORITY
+  //
+  const priorityClass = useMemo(() => {
+    //
+    // READY
+    //
+    if (order.status === OrderStatus.READY) {
+      return `
+          ring-2
+          ring-emerald-500
+          ring-inset
+        `;
+    }
+
+    //
+    // CADET
+    //
+    if (order.deliveryStatus === DeliveryStatus.REQUESTED) {
+      return `
+          ring-2
+          ring-blue-500
+          ring-inset
+        `;
+    }
+
+    return "";
+  }, [order.status, order.deliveryStatus]);
+
+  //
+  // QUICK PRINT
+  //
+  const handleQuickPrint = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsPrinting(true);
-    onPrintDirect(order.id).finally(() => setIsPrinting(false));
-  };
 
-  // 🔥 CONFIGURACIÓN ESCALABLE
-  const paymentConfig = {
-    [PaymentMethodType.CASH]: {
-      label: "EFECTIVO",
-      icon: Banknote,
-      className: "bg-emerald-50 border-emerald-200 text-emerald-700",
-    },
-    [PaymentMethodType.TRANSFER]: {
-      label: "TRANSFER",
-      icon: CreditCard,
-      className: "bg-purple-50 border-purple-200 text-purple-700",
-    },
-    [PaymentMethodType.QR]: {
-      label: "QR",
-      icon: QrCode,
-      className: "bg-blue-50 border-blue-200 text-blue-700",
-    },
-    [PaymentMethodType.OTHER]: {
-      label: "OTRO",
-      icon: CreditCard,
-      className: "bg-gray-50 border-gray-200 text-gray-700",
-    },
-  };
+    try {
+      setIsPrinting(true);
 
-  const payment = paymentConfig[order.orderPaymentMethod];
+      await onPrintDirect(order.id);
+    } finally {
+      setIsPrinting(false);
+    }
+  };
 
   return (
-    <div
-      onClick={onClick}
-      className={`
-        group relative mb-1 transition-all cursor-pointer border-b
-        ${isWebOrder ? "bg-blue-50" : "bg-white hover:bg-gray-50"}
-      `}
-    >
-      {/* 🔥 Barra lateral (estado pago) */}
-      <div
-        className={`absolute left-0 top-0 bottom-0 w-2 ${
-          isPaid ? "bg-emerald-500" : "bg-red-500"
-        }`}
-      />
-
+    <>
       {/* ================= MOBILE ================= */}
-      <div className="md:hidden p-3 flex flex-col gap-2">
-        <div className="flex justify-between items-start">
-          <div>
-            <span className="text-[10px] text-gray-400 font-bold">
-              #{order.id.slice(-6)}
-            </span>
-            <p className="font-black text-base text-slate-900">
-              {order.customerName}
-            </p>
-          </div>
 
-          <span className="text-lg font-black text-slate-900">
-            {formatPrice(order.total)}
-          </span>
-        </div>
+      <div
+        onClick={onClick}
+        className={`
+          md:hidden
+          relative border-b
+          border-slate-200
+          px-4 py-3
+          active:bg-slate-100
 
-        <div className="flex flex-wrap items-center gap-2">
-          <OrderStatusBadge
-            orderPaymentMethod={order.orderPaymentMethod}
-            status={order.status}
-          />
+          ${isWebOrder ? "bg-blue-50" : "bg-white"}
 
-          <div
-            className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-black ${payment.className}`}
-          >
-            <payment.icon size={12} />
-            {payment.label}
-          </div>
+          ${priorityClass}
+        `}
+      >
+        {/* PAYMENT BAR */}
+        <div
+          className={`
+            absolute left-0
+            top-0 bottom-0
+            w-2
 
-          <div className="flex items-center gap-1 text-[10px] text-slate-500 font-bold">
-            {isPickup ? <Package size={12} /> : <Truck size={12} />}
-            {isPickup ? "Retiro" : "Envío"}
-          </div>
-        </div>
+            ${isPaid ? "bg-emerald-600" : "bg-red-500"}
+          `}
+        />
 
-        <div className="flex justify-between items-center">
-          <span className="text-[11px] text-slate-400 font-bold">
-            {time}
-          </span>
+        {/* DELIVERY BAR */}
+        <div
+          className={`
+            absolute right-0
+            top-0 bottom-0
+            w-2
 
-          <div className="flex items-center gap-2">
-            {!isPaid && (
-              <span className="text-red-500 text-[10px] font-black flex items-center gap-1">
-                <AlertCircle size={12} /> Cobrar
-              </span>
-            )}
+            ${deliveryInfo.bar}
+          `}
+        />
 
-            <button
-              onClick={handleQuickPrint}
-              className="p-2 rounded-lg bg-white border border-slate-200"
+        {/* TOP */}
+        <div className="flex items-start justify-between gap-3">
+          {/* NAME */}
+          <div className="min-w-0 flex-1">
+            <div
+              className="
+                truncate
+                text-lg
+                leading-none
+                font-black
+                uppercase
+                text-slate-900
+              "
             >
-              {isPrinting ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                <Printer size={16} />
-              )}
-            </button>
+              {order.customerName}
+            </div>
+
+            <div
+              className="
+                mt-1 flex
+                items-center gap-2
+                text-[11px]
+                font-bold
+                uppercase
+              "
+            >
+              <span className="text-slate-400">
+                #{order.id.slice(-4).toUpperCase()}
+              </span>
+
+              <span
+                className={`
+                  rounded
+                  px-1.5 py-0.5
+
+                  ${timerClass}
+                `}
+              >
+                {elapsedMinutes}'
+              </span>
+
+              <div
+                className={`
+                  flex items-center gap-1
+
+                  ${deliveryInfo.color}
+                `}
+              >
+                <deliveryInfo.Icon size={11} strokeWidth={3} />
+
+                {deliveryInfo.label}
+              </div>
+            </div>
           </div>
+
+          {/* PRICE */}
+          <div className="text-right">
+            <div
+              className={`
+                text-2xl
+                leading-none
+                font-black
+                tracking-tight
+
+                ${isPaid ? "text-slate-900" : "text-red-600"}
+              `}
+            >
+              {formatPrice(order.total)}
+            </div>
+
+            <div
+              className="
+                mt-1 text-[10px]
+                font-bold
+                text-slate-400
+              "
+            >
+              {createdTime}
+            </div>
+          </div>
+        </div>
+
+        {/* STATUS */}
+        <div className="mt-3">
+          <OrderStatusBadge
+            status={order.status}
+            // deliveryStatus={order.deliveryStatus}
+          />
         </div>
       </div>
 
       {/* ================= DESKTOP ================= */}
-      <div className="hidden md:flex items-center gap-4 px-6 py-4">
-        {/* ORIGEN */}
-        <div className="flex flex-col items-center min-w-[80px]">
-          <span className="text-xs font-bold text-slate-400">
-            #{order.id.slice(-6).toUpperCase()}
+
+      <div
+        onClick={onClick}
+        className={`
+          hidden md:flex
+          relative items-center
+          gap-4 border-b
+          border-slate-200
+          px-6 py-4
+          cursor-pointer
+          transition-colors
+          select-none
+
+          ${isWebOrder ? "bg-blue-50" : "bg-white hover:bg-slate-50"}
+
+          ${priorityClass}
+        `}
+      >
+        {/* PAYMENT BAR */}
+        <div
+          className={`
+            absolute left-0
+            top-0 bottom-0
+            w-2
+
+            ${isPaid ? "bg-emerald-600" : "bg-red-500"}
+          `}
+        />
+
+        {/* DELIVERY BAR */}
+        <div
+          className={`
+            absolute right-0
+            top-0 bottom-0
+            w-2
+
+            ${deliveryInfo.bar}
+          `}
+        />
+
+        {/* ID */}
+        <div
+          className="
+            flex flex-col
+            items-center
+            justify-center
+            min-w-[78px]
+            border-r
+            border-slate-200
+            pr-4
+          "
+        >
+          <span
+            className="
+              text-sm
+              font-black
+              font-mono
+              text-slate-900
+            "
+          >
+            #{order.id.slice(-4).toUpperCase()}
           </span>
 
-          <div className="flex items-center gap-1 text-slate-500">
-            {isPickup ? (
-              <Package size={14} className="text-orange-500" />
-            ) : (
-              <Truck size={14} className="text-blue-600" />
-            )}
-            <span className="text-[10px] font-bold uppercase">
-              {isPickup ? "Retiro" : "Envío"}
-            </span>
-          </div>
+          <span
+            className="
+              mt-1 text-[10px]
+              font-bold
+              text-slate-400
+            "
+          >
+            {createdTime}
+          </span>
         </div>
 
-        {/* INFO */}
-        <div className="flex-1 min-w-0">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-black text-slate-900 uppercase truncate">
-              {order.customerName}
-            </h3>
-
-            <span className="text-sm font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-              {time}
-            </span>
+        {/* MAIN */}
+        <div className="min-w-0 flex-1">
+          {/* NAME */}
+          <div
+            className="
+              truncate
+              text-xl
+              leading-none
+              font-black
+              uppercase
+              text-slate-900
+            "
+          >
+            {order.customerName}
           </div>
 
-          <div className="flex items-center gap-3 mt-1">
-            <OrderStatusBadge
-              orderPaymentMethod={order.orderPaymentMethod}
-              status={order.status}
-            />
-
-            <div className="h-1 w-1 bg-slate-300 rounded-full" />
-
+          {/* META */}
+          <div
+            className="
+              mt-2 flex
+              flex-wrap
+              items-center
+              gap-2
+            "
+          >
+            {/* DELIVERY */}
             <div
-              className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-black border ${payment.className}`}
+              className={`
+                flex items-center
+                gap-1 text-[10px]
+                font-black
+                uppercase
+
+                ${deliveryInfo.color}
+              `}
             >
-              <payment.icon size={12} />
-              {payment.label}
+              <deliveryInfo.Icon size={12} strokeWidth={3} />
+
+              {deliveryInfo.label}
             </div>
+
+            {/* STATUS */}
+            <OrderStatusBadge
+              status={order.status}
+              // deliveryStatus={order.deliveryStatus}
+            />
           </div>
         </div>
 
-        {/* DINERO */}
-        <div className="flex items-center gap-6">
-          <div className="text-right">
-            {!isPaid && (
-              <div className="flex items-center justify-end gap-1 text-red-600 text-[10px] font-black uppercase mb-0.5">
-                <AlertCircle size={12} /> Cobrar
-              </div>
-            )}
+        {/* TIMER */}
+        <div
+          className={`
+            flex flex-col
+            items-center
+            justify-center
+            rounded-xl
+            px-3 py-2
+            min-w-[70px]
 
-            <div className="text-xl font-black text-slate-900">
-              {formatPrice(order.total)}
-            </div>
-          </div>
+            ${timerClass}
+          `}
+        >
+          <Clock3 size={14} strokeWidth={3} />
 
-          <button
-            onClick={handleQuickPrint}
-            disabled={isPrinting}
+          <span
+            className="
+              text-lg
+              leading-none
+              font-black
+            "
+          >
+            {elapsedMinutes}'
+          </span>
+        </div>
+
+        {/* PRICE */}
+        <div
+          className="
+            min-w-[120px]
+            text-right
+          "
+        >
+          <div
             className={`
-              flex items-center justify-center w-12 h-12 rounded-xl transition-all
-              ${
-                isPrinting
-                  ? "bg-slate-100 text-slate-400"
-                  : "bg-white border-2 border-slate-200 text-slate-600 hover:border-blue-600 hover:text-blue-600 shadow-sm"
-              }
+              text-3xl
+              leading-none
+              font-black
+              tracking-tight
+
+              ${isPaid ? "text-slate-900" : "text-red-600"}
             `}
           >
-            {isPrinting ? (
-              <Loader2 size={24} className="animate-spin" />
-            ) : (
-              <Printer size={24} />
-            )}
-          </button>
+            {formatPrice(order.total)}
+          </div>
         </div>
+
+        {/* PRINT */}
+        <button
+          onClick={handleQuickPrint}
+          disabled={isPrinting}
+          className={`
+            flex h-12 w-12
+            shrink-0
+            items-center
+            justify-center
+            rounded-xl
+            border-2
+            border-slate-200
+            bg-white
+            transition-all
+
+            ${
+              isPrinting
+                ? `
+                  text-slate-400
+                `
+                : `
+                  text-slate-700
+                  hover:border-slate-900
+                  hover:text-slate-900
+                  active:scale-90
+                `
+            }
+          `}
+        >
+          {isPrinting ? (
+            <Loader2 size={20} className="animate-spin" />
+          ) : (
+            <Printer size={20} />
+          )}
+        </button>
       </div>
-    </div>
+    </>
   );
 }

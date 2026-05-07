@@ -84,6 +84,7 @@ export class OrderMapper {
       deliveryProvider,
       deliveryPriceMode,
       totalDeliveryCost: Number(apiOrder.totalDeliveryCost ?? 0),
+      deliveryStatus: apiOrder.deliveryStatus ?? "PENDING",
 
       // Totales
       total: Number(apiOrder.total),

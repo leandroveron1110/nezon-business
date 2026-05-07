@@ -3,7 +3,7 @@ import { LocalOrder, LocalOrderItem } from "../shcema/orders.schema";
 import { db } from "..";
 
 import { z } from 'zod';
-import { PaymentStatus } from "@/types/order";
+import { DeliveryStatus, PaymentStatus } from "@/types/order-state-machine";
 
 export const CreateOrderSchema = z.object({
   customerName: z.string().min(3, "El nombre es requerido"),
@@ -54,6 +54,7 @@ export async function createLocalOrder(input: CreateOrderInput): Promise<LocalOr
     // Cálculo final de total
     total: itemsTotal + input.totalDeliveryCost,
     paymentStatus: PaymentStatus.PENDING,
+    deliveryStatus: DeliveryStatus.PENDING,
   };
 
   await db.orders.add(newOrder);

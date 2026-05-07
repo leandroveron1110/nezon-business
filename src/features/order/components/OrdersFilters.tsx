@@ -1,32 +1,26 @@
 "use client";
 
-import { IOrderShortDto, OrderStatus } from "@/types/order";
+import { IOrderShortDto } from "@/types/order";
 import { ISimplifiedFilter } from "@/features/common/utils/filtersData";
 
 interface OrdersFiltersProps {
   quickFilters: ISimplifiedFilter[];
   activeFilter: string;
   setActiveFilter: (filter: string) => void;
-  orders: IOrderShortDto[]; // Ahora usa el DTO corto
+  orders: IOrderShortDto[];
 }
 
 export default function OrdersFilters({
   quickFilters,
   activeFilter,
   setActiveFilter,
-  orders = [], // Fallback defensivo: si llega undefined, es un array vacío
+  orders = [],
 }: OrdersFiltersProps) {
   return (
     <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide lg:overflow-x-visible lg:flex-wrap">
       {quickFilters.map((filter) => {
-        // Lógica de conteo optimizada
-        const count = filter.label === "Todos"
-          ? orders.length
-          : orders.filter((o) =>
-              filter.condition 
-                ? filter.condition(o) 
-                : filter.statuses.includes(o.status as OrderStatus)
-            ).length;
+        // Ahora el conteo es 100% basado en la condición de hilos
+        const count = orders.filter((o) => filter.condition(o)).length;
 
         return (
           <FilterButton
@@ -41,6 +35,8 @@ export default function OrdersFilters({
     </div>
   );
 }
+
+// ... FilterButton se mantiene igual (su lógica visual está perfecta) ...
 
 interface FilterButtonProps {
   label: string;

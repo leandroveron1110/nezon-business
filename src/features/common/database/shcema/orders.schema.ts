@@ -1,6 +1,7 @@
 // src/common/database/shcema/orders.schema.ts
 
-import { Origin, PaymentStatus } from "@/types/order";
+import { Origin } from "@/types/order";
+import { DeliveryStatus, PaymentStatus } from "@/types/order-state-machine";
 
 export interface LocalOrderOption {
   optionId?: string;
@@ -64,6 +65,7 @@ export interface LocalOrder {
   // Pagos
   orderPaymentMethod: 'CASH' | 'TRANSFER' | 'QR' |"DELIVERY", // Basado en tus Enums
   paymentStatus: PaymentStatus;
+  deliveryStatus: DeliveryStatus
   
   // El "Corazón": los productos comprados
   items: LocalOrderItem[];

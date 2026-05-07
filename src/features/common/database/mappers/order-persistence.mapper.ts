@@ -97,6 +97,8 @@ export class OrderPersistenceMapper {
       status: apiOrder.status,
       origin: "APP",
 
+      deliveryStatus: apiOrder.deliveryStatus ?? "PENDING",
+
       createdAt: new Date(apiOrder.createdAt),
       updatedAt: new Date(apiOrder.updatedAt),
     };

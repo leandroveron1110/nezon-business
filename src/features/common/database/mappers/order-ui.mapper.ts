@@ -1,6 +1,7 @@
 import { UIOrder } from "@/features/order/types/ui-order";
 import { LocalOrder } from "../shcema/orders.schema";
-import { DeliveryType, OrderStatus, PaymentMethodType, PaymentStatus } from "@/types/order";
+import { DeliveryType, PaymentMethodType } from "@/types/order";
+import { OrderStatus } from "@/types/order-state-machine";
 
 
 export class OrderUiMapper {
@@ -26,7 +27,8 @@ export class OrderUiMapper {
       deliveryType: local.deliveryType as DeliveryType,
       orderPaymentMethod: local.orderPaymentMethod as PaymentMethodType,
       paymentStatus: local.paymentStatus,
-      
+      deliveryStatus: local.deliveryStatus,
+
       // 3. Reconstrucción de Objetos Anidados para la UI
       user: {
         id: "", 
