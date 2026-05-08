@@ -3,6 +3,7 @@
 // 💡 Importar useCallback
 import { createContext, useContext, useState, ReactNode, useCallback } from "react"; 
 import { X } from "lucide-react";
+import { UI_COLORS } from "../../utils/ui";
 
 export type AlertType = "success" | "error" | "info";
 
@@ -60,35 +61,38 @@ export const AlertProvider = ({ children }: AlertProviderProps) => {
     setTimeout(() => removeAlert(id), autoCloseDuration);
   }, [removeAlert, setAlerts]); // Depende de removeAlert y setAlerts.
 
-  return (
+return (
     <AlertContext.Provider value={{ addAlert, removeAlert }}>
       {children}
 
-      {/* Contenedor de alertas en pantalla */}
       <div className="fixed top-4 right-4 z-50 flex flex-col gap-2">
         {alerts.map((alert) => {
-          // ... (el código del mapeo de alertas sigue igual)
-          const bgColor =
-            alert.type === "success"
-              ? "bg-green-100"
-              : alert.type === "error"
-              ? "bg-red-100"
-              : "bg-blue-100";
-
-          const textColor =
-            alert.type === "success"
-              ? "text-green-800"
-              : alert.type === "error"
-              ? "text-red-800"
-              : "text-blue-800";
+          // Mapeamos el tipo de alerta a nuestro diccionario global
+          const variant = 
+            alert.type === "success" ? UI_COLORS.SUCCESS :
+            alert.type === "error"   ? UI_COLORS.ERROR : 
+            UI_COLORS.INFO;
 
           return (
             <div
               key={alert.id}
-              className={`${bgColor} ${textColor} p-4 rounded-lg shadow flex items-start justify-between min-w-[250px]`}
+              className={`
+                ${variant.bg} 
+                ${variant.text} 
+                ${variant.border}
+                border
+                p-4 
+                rounded-lg 
+                shadow-lg 
+                flex 
+                items-start 
+                justify-between 
+                min-w-[250px]
+                transition-all
+              `}
             >
-              <p className="text-sm">{alert.message}</p>
-              <button onClick={() => removeAlert(alert.id)} className="ml-2">
+              <p className="text-sm font-medium">{alert.message}</p>
+              <button onClick={() => removeAlert(alert.id)} className="ml-2 opacity-70 hover:opacity-100">
                 <X className="w-4 h-4" />
               </button>
             </div>
