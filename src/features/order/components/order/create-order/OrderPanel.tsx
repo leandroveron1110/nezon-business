@@ -11,7 +11,8 @@ interface OrderPanelProps {
   items: LocalOrderItem[];
   updateQty: (index: number, delta: number) => void;
   total: number;
-  createOrder: () => void;
+  // Actualizado: Ahora acepta el flag de preparación inmediata
+  createOrder: (instantPrepare?: boolean) => void; 
   customerName: string;
   setCustomerName: (v: string) => void;
   customerPhone: string;
@@ -66,14 +67,12 @@ export function OrderPanel({
 
   return (
     <div className="md:w-[440px] border-l flex flex-col bg-white h-full overflow-hidden relative select-none">
-      {/* 1. SELECTOR TIPO PEDIDO (Compacto) */}
+      {/* 1. SELECTOR TIPO PEDIDO */}
       <div className="flex border-b divide-x h-10">
         <button
           onClick={() => setDeliveryType("PICKUP")}
           className={`flex-1 flex items-center justify-center gap-1.5 text-[10px] font-black transition-colors ${
-            !isDelivery
-              ? "bg-slate-900 text-white"
-              : "bg-slate-50 text-slate-400"
+            !isDelivery ? "bg-slate-900 text-white" : "bg-slate-50 text-slate-400"
           }`}
         >
           <Store className="w-3.5 h-3.5" /> RETIRO
@@ -88,7 +87,7 @@ export function OrderPanel({
         </button>
       </div>
 
-      {/* 2. DATOS CLIENTE (Ultra Compacto) */}
+      {/* 2. DATOS CLIENTE */}
       <div className="p-1.5 bg-slate-50 border-b z-30">
         <div className="flex gap-1 mb-1">
           <input
@@ -107,7 +106,6 @@ export function OrderPanel({
 
         {isDelivery && (
           <div className="space-y-1 mt-1.5">
-            {/* Selector de Cadetería */}
             <div className="flex bg-slate-200/50 rounded p-0.5 gap-0.5">
               <button
                 onClick={() => setDeliveryProvider("INTERNAL")}
@@ -123,7 +121,6 @@ export function OrderPanel({
               </button>
             </div>
 
-            {/* Dirección / Autocomplete */}
             <div className="flex gap-1 relative">
               <div className="relative flex-1">
                 <input
@@ -140,21 +137,10 @@ export function OrderPanel({
                   onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
                   className="w-full px-2 py-1.5 bg-white border border-blue-100 rounded text-[11px] font-bold outline-none focus:ring-1 focus:ring-blue-400"
                 />
-                {/* NOTA/DESCRIPCIÓN: El toque final */}
-                {/* <div className="flex items-center gap-1 bg-amber-50/50 border border-amber-100 rounded px-1.5">
-        <span className="text-[8px] font-black text-amber-600 uppercase italic">Nota:</span>
-        <input
-          placeholder="Ej: Tocar timbre fuerte, portón blanco..."
-          value={''} // Asegúrate de agregar esta prop
-          // onChange={(e) => setCustomerNote(e.target.value)}
-          className="flex-1 py-1 bg-transparent text-[10px] font-medium outline-none placeholder:text-amber-400/60"
-        />
-      </div> */}
                 {showDropdown && results.length > 0 && (
                   <div className="absolute left-0 right-0 top-full mt-0.5 bg-white border rounded shadow-2xl z-[100] max-h-40 overflow-y-auto overflow-x-hidden">
                     {results.map((r) => {
                       const isBarrio = r.type === "BARRIO";
-
                       return (
                         <button
                           key={r.id}
@@ -164,50 +150,18 @@ export function OrderPanel({
                             setQuery(r.name);
                             setCustomerAddress(r.name);
                             setShowDropdown(false);
-                            if (isBarrio) {
-                              setZoneId(r.zoneId);
-                            }
+                            if (isBarrio) setZoneId(r.zoneId);
                           }}
-                          className={`w-full text-left px-3 py-2.5 border-b last:border-0 transition-all relative overflow-hidden
-        ${
-          isBarrio
-            ? "bg-blue-50/40 hover:bg-blue-600"
-            : "bg-white hover:bg-slate-700"
-        } 
-        group`}
+                          className={`w-full text-left px-3 py-2.5 border-b last:border-0 transition-all relative overflow-hidden ${
+                            isBarrio ? "bg-blue-50/40 hover:bg-blue-600" : "bg-white hover:bg-slate-700"
+                          } group`}
                         >
-                          {/* Indicador de Tipo: Barra lateral sólida */}
-                          <div
-                            className={`absolute left-0 top-0 bottom-0 w-1.5 shadow-sm
-        ${isBarrio ? "bg-blue-500" : "bg-slate-300 group-hover:bg-white/50"}`}
-                          />
-
+                          <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${isBarrio ? "bg-blue-500" : "bg-slate-300 group-hover:bg-white/50"}`} />
                           <div className="flex flex-col min-w-0 pl-2">
-                            <span
-                              className={`text-[11px] font-black uppercase truncate transition-colors
-          ${isBarrio ? "text-blue-900 group-hover:text-white" : "text-slate-800 group-hover:text-white"}`}
-                            >
+                            <span className={`text-[11px] font-black uppercase truncate transition-colors ${isBarrio ? "text-blue-900 group-hover:text-white" : "text-slate-800 group-hover:text-white"}`}>
                               {r.name}
                             </span>
-
-                            {/* Alias sutil para calles con nombres viejos/populares */}
-                            {r.type === "CALLE" &&
-                              r.aliases?.some((a) =>
-                                normalizeAddress(a).includes(
-                                  normalizeAddress(query),
-                                ),
-                              ) && (
-                                <span className="text-[9px] opacity-50 italic truncate group-hover:text-slate-300">
-                                  ({r.aliases[0]})
-                                </span>
-                              )}
                           </div>
-
-                          {/* Punto de estado visual en el extremo derecho (opcional, refuerza el color) */}
-                          <div
-                            className={`absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full opacity-20 group-hover:opacity-100
-        ${isBarrio ? "bg-blue-400 group-hover:bg-white" : "bg-slate-200 group-hover:bg-white"}`}
-                          />
                         </button>
                       );
                     })}
@@ -228,49 +182,28 @@ export function OrderPanel({
         )}
       </div>
 
-      {/* 3. LISTA DE PRODUCTOS (Densidad Máxima) */}
+      {/* 3. LISTA DE PRODUCTOS */}
       <div className="flex-1 overflow-y-auto bg-white z-10">
         {items.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-slate-300 opacity-40">
             <Store className="w-8 h-8 mb-1" />
-            <p className="text-[9px] font-black uppercase tracking-tighter">
-              Esperando pedido...
-            </p>
+            <p className="text-[9px] font-black uppercase tracking-tighter">Esperando pedido...</p>
           </div>
         ) : (
           items.map((item, i) => (
-            <div
-              key={i}
-              className="px-2 py-1.5 border-b flex items-center justify-between hover:bg-slate-50"
-            >
+            <div key={i} className="px-2 py-1.5 border-b flex items-center justify-between hover:bg-slate-50">
               <div className="flex-1 min-w-0 pr-2">
-                <p className="text-[10px] font-black uppercase truncate leading-tight">
-                  {item.productName}
-                </p>
+                <p className="text-[10px] font-black uppercase truncate leading-tight">{item.productName}</p>
                 <p className="text-[9px] text-blue-600 font-bold">
-                  {formatPrice(item.priceAtPurchase)}{" "}
-                  <span className="text-slate-400 font-normal">x unid.</span>
+                  {formatPrice(item.priceAtPurchase)} <span className="text-slate-400 font-normal">x unid.</span>
                 </p>
               </div>
-
               <div className="flex items-center bg-slate-100 rounded-md p-0.5 border">
-                <button
-                  onClick={() => updateQty(i, -1)}
-                  className="w-6 h-6 flex items-center justify-center hover:bg-white rounded transition-colors"
-                >
-                  {item.quantity === 1 ? (
-                    <Trash2 size={12} className="text-red-500" />
-                  ) : (
-                    <Minus size={12} />
-                  )}
+                <button onClick={() => updateQty(i, -1)} className="w-6 h-6 flex items-center justify-center hover:bg-white rounded transition-colors">
+                  {item.quantity === 1 ? <Trash2 size={12} className="text-red-500" /> : <Minus size={12} />}
                 </button>
-                <span className="text-[10px] font-black w-5 text-center">
-                  {item.quantity}
-                </span>
-                <button
-                  onClick={() => updateQty(i, 1)}
-                  className="w-6 h-6 flex items-center justify-center hover:bg-white rounded transition-colors"
-                >
+                <span className="text-[10px] font-black w-5 text-center">{item.quantity}</span>
+                <button onClick={() => updateQty(i, 1)} className="w-6 h-6 flex items-center justify-center hover:bg-white rounded transition-colors">
                   <Plus size={12} />
                 </button>
               </div>
@@ -279,22 +212,16 @@ export function OrderPanel({
         )}
       </div>
 
-      {/* 4. PAGO Y FOOTER (Compacto) */}
+      {/* 4. PAGO Y ACCIONES */}
       <div className="border-t shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
         <div className="p-1.5 bg-white">
           <div className="flex gap-1">
-            {[
-              { key: "CASH", label: "EFECTIVO" },
-              { key: "TRANSFER", label: "TRANSF." },
-              { key: "QR", label: "MODO/QR" },
-            ].map((m) => (
+            {[{ key: "CASH", label: "EFECTIVO" }, { key: "TRANSFER", label: "TRANSF." }, { key: "QR", label: "MODO/QR" }].map((m) => (
               <button
                 key={m.key}
-                onClick={() => setPaymentMethod(m.key as "CASH" | "TRANSFER" | "QR" | "DELIVERY")}
+                onClick={() => setPaymentMethod(m.key as any)}
                 className={`flex-1 py-1.5 text-[9px] font-black rounded border transition-all ${
-                  paymentMethod === m.key
-                    ? "bg-green-600 text-white border-green-700"
-                    : "bg-slate-50 text-slate-500 border-slate-200"
+                  paymentMethod === m.key ? "bg-green-600 text-white border-green-700" : "bg-slate-50 text-slate-500 border-slate-200"
                 }`}
               >
                 {m.label}
@@ -305,41 +232,84 @@ export function OrderPanel({
 
         <div className="bg-slate-900 text-white px-3 py-2">
           <div className="flex justify-between items-baseline mb-0.5">
-            <span className="text-[9px] font-bold opacity-60 uppercase">
-              Total Pedido
-            </span>
+            <span className="text-[9px] font-bold opacity-60 uppercase">Total Pedido</span>
             <span className="text-xs font-bold">{formatPrice(subtotal)}</span>
           </div>
 
           {isDelivery && (
             <div className="flex justify-between items-baseline mb-1">
-              <span className="text-[9px] font-bold text-blue-400 uppercase">
-                Envío
-              </span>
+              <span className="text-[9px] font-bold text-blue-400 uppercase">Envío</span>
               <span className="text-xs font-bold text-blue-400">
-                {isLocus
-                  ? selectedZoneId
-                    ? "ZONA OK"
-                    : "AUTO"
-                  : `${formatPrice(deliveryCost)}`}
+                {isLocus ? (selectedZoneId ? "ZONA OK" : "AUTO") : formatPrice(deliveryCost)}
               </span>
             </div>
           )}
 
           <div className="flex justify-between items-center pt-1 border-t border-slate-700">
             <span className="text-[10px] font-black uppercase">Cobrar</span>
-            <span className="text-xl font-black text-green-400 tracking-tighter">
-              {formatPrice(total)}
-            </span>
+            <span className="text-xl font-black text-green-400 tracking-tighter">{formatPrice(total)}</span>
           </div>
 
-          <button
-            onClick={createOrder}
-            disabled={items.length === 0}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-800 disabled:text-slate-600 transition-all mt-2 py-2.5 rounded flex justify-center items-center gap-2 font-black uppercase text-[11px] tracking-widest shadow-lg active:scale-95"
-          >
-            CONFIRMAR<Send size={14} />
-          </button>
+{/* BOTONES DE ACCIÓN */}
+<div className="mt-4 mb-6 flex gap-3 px-2">
+  {/* BOTÓN SECUNDARIO: ACCIÓN AUXILIAR (MENOS PESO VISUAL) */}
+  <button
+    onClick={() => createOrder(false)}
+    disabled={items.length === 0}
+    className="
+      flex-1
+      h-16
+      rounded-2xl
+      border-2 border-slate-300
+      
+      flex flex-col items-center justify-center
+      text-slate-500
+      transition-all
+      active:translate-y-1 active:border-b-[0px]
+      hover:bg-slate-50
+      disabled:opacity-30
+      border-b-[4px] 
+    "
+  >
+    <Send size={16} className="mb-0.5" />
+    <span className="text-[10px]  uppercase tracking-tight">Solo Guardar</span>
+  </button>
+
+  {/* BOTÓN PRINCIPAL: ACCIÓN DEFINITIVA (MÁXIMO CONTRASTE) */}
+  <button
+    onClick={() => createOrder(true)}
+    disabled={items.length === 0}
+    className="
+      flex-[2.5]
+      h-16
+      relative
+      rounded-2xl
+      bg-emerald-600
+      border-b-[6px] border-emerald-700
+      flex items-center justify-center
+      transition-all
+      active:translate-y-1 active:border-b-[2px]
+      hover:bg-emerald-400
+      disabled:opacity-40 disabled:border-b-[2px] disabled:translate-y-1
+      group
+    "
+  >
+    <div className="flex flex-col items-center">
+      <div className="flex items-center gap-2">
+        <span className="text-lg font-black uppercase tracking-tighter text-emerald-950 italic">
+          ¡MARCHAR!
+        </span>
+
+      </div>
+      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-900/60 -mt-1">
+        Confirmar + Cocina
+      </span>
+    </div>
+
+    {/* Brillo superior para dar volumen de "botón real" */}
+    <div className="absolute inset-x-2 top-1 h-[2px] bg-white/30 rounded-full" />
+  </button>
+</div>
         </div>
       </div>
     </div>

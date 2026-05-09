@@ -107,7 +107,7 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
         ? PaymentStatus.PENDING
         : PaymentStatus.CONFIRMED;
       
-      await updateOrderStateInteractor(safeOrder.id, 'PAYMENT', newStatus);
+      await updateOrderStateInteractor(safeOrder.id, 'PAYMENT', newStatus, safeOrder.origin);
       //
       // await fetchUpdateOrdersPaymentByOrderID(safeOrder.id, newStatus);
       addAlert({
@@ -127,7 +127,7 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
     if (!safeOrder || !action || loading) return;
     try {
       setLoading(true);
-      await updateOrderStateInteractor(safeOrder.id, 'STATUS', action.next);
+      await updateOrderStateInteractor(safeOrder.id, 'STATUS', action.next, safeOrder.origin);
       addAlert({ message: `Orden: ${action.label}` });
       if (action.next === OrderStatus.COMPLETED) onClose();
     } catch (e) {

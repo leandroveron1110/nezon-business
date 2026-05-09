@@ -65,7 +65,9 @@ export interface LocalOrder {
   // Pagos
   orderPaymentMethod: 'CASH' | 'TRANSFER' | 'QR' |"DELIVERY", // Basado en tus Enums
   paymentStatus: PaymentStatus;
-  deliveryStatus: DeliveryStatus
+  deliveryStatus: DeliveryStatus;
+  shortCode?: string | null;
+  dailyNumber?: number | null;
   
   // El "Corazón": los productos comprados
   items: LocalOrderItem[];

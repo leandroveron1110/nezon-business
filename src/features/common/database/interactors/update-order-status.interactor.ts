@@ -8,6 +8,7 @@ import {
 } from "@/types/order-state-machine";
 import { fetchUpdateOrdersByOrderID } from "@/features/order/api/catalog-api";
 import { db } from "..";
+import { Origin } from "@/types/order";
 
 // Definimos un tipo para saber qué hilo estamos actualizando
 type OrderThread = 'STATUS' | 'PAYMENT' | 'DELIVERY';
@@ -15,7 +16,8 @@ type OrderThread = 'STATUS' | 'PAYMENT' | 'DELIVERY';
 export async function updateOrderStateInteractor(
   orderId: string, 
   thread: OrderThread, 
-  newValue: OrderStatus | DeliveryStatus | PaymentStatus
+  newValue: OrderStatus | DeliveryStatus | PaymentStatus,
+  origin: Origin
 ) {
   // 1. Obtener la orden de IndexedDB
   const localOrder = await db.orders.get(orderId);
@@ -23,12 +25,23 @@ export async function updateOrderStateInteractor(
 
   // 2. Validar transición según el hilo (Soberanía de la Máquina de Estados)
   let isValid = false;
+  let finalValueToUpdate = newValue;
   const updatePayload: any = { updatedAt: new Date() };
 
   switch (thread) {
     case 'STATUS':
-      isValid = canChangeOrderStatus(localOrder.status as OrderStatus, newValue as OrderStatus);
-      updatePayload.status = newValue;
+const nextStatus = newValue as OrderStatus;
+    if (
+        localOrder.origin === "BUSINESS" && 
+        nextStatus === OrderStatus.CONFIRMED
+      ) {
+        finalValueToUpdate = OrderStatus.PREPARING;
+        localOrder.status = OrderStatus.CONFIRMED
+      }
+      isValid = canChangeOrderStatus(localOrder.status as OrderStatus, finalValueToUpdate as OrderStatus);
+      if (!isValid) console.error(`Transición no permitida: ${finalValueToUpdate}`);
+      
+      updatePayload.status = finalValueToUpdate;
       break;
     
     case 'PAYMENT':

@@ -8,11 +8,7 @@ import { simplifiedFilters } from "@/features/common/utils/filtersData";
 
 import { useBusinessNotificationsStore } from "../../common/hooks/useBusinessNotificationsStore";
 
-import {
-  DeliveryType,
-  IOrderShortDto,
-  PaymentMethodType,
-} from "@/types/order";
+import { DeliveryType, IOrderShortDto, PaymentMethodType } from "@/types/order";
 import { OrderList } from "./order/OrderList";
 import { OrderDetailsSidePanel } from "./order/view-detail-order/OrderDetailsSidePanel";
 import { getOrderPriority } from "@/features/order/utilities/order-logic";
@@ -27,7 +23,11 @@ import { useOrdersView } from "../hooks/useOrdersView";
 import { useSyncOrders } from "../hooks/useSyncOrders";
 import { useGetOrderById } from "../hooks/useGetOrderById";
 import OrderBuilder from "./order/create-order/OrderBuilder";
-import { DeliveryStatus, OrderStatus, PaymentStatus } from "@/types/order-state-machine";
+import {
+  DeliveryStatus,
+  OrderStatus,
+  PaymentStatus,
+} from "@/types/order-state-machine";
 
 interface Props {
   businessId: string;
@@ -154,58 +154,62 @@ export default function BusinessOrdersPage({ businessId }: Props) {
     }
   };
 
+  const filteredAndSortedOrders = useMemo(() => {
+    if (!orders) return [];
 
-const filteredAndSortedOrders = useMemo(() => {
-  if (!orders) return [];
+    // 1. Pre-procesamos el filtro y el término de búsqueda
+    const currentFilter = simplifiedFilters.find(
+      (f) => f.label === activeFilter,
+    );
+    const term = searchTerm.toLowerCase().trim();
 
-  // 1. Pre-procesamos el filtro y el término de búsqueda
-  const currentFilter = simplifiedFilters.find(f => f.label === activeFilter);
-  const term = searchTerm.toLowerCase().trim();
+    return orders
+      .filter((order) => {
+        // --- Hilo de Búsqueda ---
+        const matchesSearch =
+          !term ||
+          (order.id || order.idTemp || "").toLowerCase().includes(term) ||
+          (order.customerName || "").toLowerCase().includes(term);
 
-  return orders
-    .filter((order) => {
-      // --- Hilo de Búsqueda ---
-      const matchesSearch = 
-        !term || 
-        (order.id || order.idTemp || "").toLowerCase().includes(term) || 
-        (order.customerName || "").toLowerCase().includes(term);
+        if (!matchesSearch) return false;
 
-      if (!matchesSearch) return false;
+        // --- Hilo de Filtrado por Tab (BCA) ---
+        // Si no hay filtro o es "Todos", pasa directo
+        if (!currentFilter || activeFilter === "Todos") return true;
 
-      // --- Hilo de Filtrado por Tab (BCA) ---
-      // Si no hay filtro o es "Todos", pasa directo
-      if (!currentFilter || activeFilter === "Todos") return true;
+        // Aplicamos la lógica de condición definida en simplifiedFilters
+        return currentFilter.condition({
+          id: order.id || order.idTemp,
+          customerName: order.customerName,
+          deliveryType: order.deliveryType as DeliveryType,
+          createdAt: String(order.createdAt),
+          orderPaymentMethod: order.orderPaymentMethod as PaymentMethodType,
+          status: order.status as OrderStatus,
+          deliveryStatus: order.deliveryStatus as DeliveryStatus,
+          paymentStatus: order.paymentStatus as PaymentStatus,
+          origin: order.origin,
+          total: order.total,
+          shortCode: order.shortCode || "",
+          userId: "", // No lo usamos en las condiciones actuales, pero lo dejamos por si se necesita en el futuro
+        });
+      })
+      .sort((a, b) => {
+        // --- Hilo de Prioridad (Soberanía del Negocio) ---
+        // Usamos la lógica de getOrderPriority que ya contempla fallos logísticos y pagos
+        const priorityA = getOrderPriority(a as any);
+        const priorityB = getOrderPriority(b as any);
 
-      // Aplicamos la lógica de condición definida en simplifiedFilters
-      return currentFilter.condition({
-        id: order.id || order.idTemp,
-        customerName: order.customerName,
-        deliveryType: order.deliveryType as DeliveryType,
-        createdAt: String(order.createdAt),
-        orderPaymentMethod: order.orderPaymentMethod as PaymentMethodType,
-        status: order.status as OrderStatus,
-        deliveryStatus: order.deliveryStatus as DeliveryStatus,
-        paymentStatus: order.paymentStatus as PaymentStatus,
-        origin: order.origin,
-        total: order.total,
-        userId: "", // No lo usamos en las condiciones actuales, pero lo dejamos por si se necesita en el futuro
+        if (priorityA !== priorityB) {
+          return priorityA - priorityB;
+        }
+
+        // --- Hilo Cronológico (FIFO) ---
+        // A igual prioridad, el pedido más antiguo va primero para no retrasar la cocina
+        return (
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
       });
-    })
-    .sort((a, b) => {
-      // --- Hilo de Prioridad (Soberanía del Negocio) ---
-      // Usamos la lógica de getOrderPriority que ya contempla fallos logísticos y pagos
-      const priorityA = getOrderPriority(a as any); 
-      const priorityB = getOrderPriority(b as any);
-
-      if (priorityA !== priorityB) {
-        return priorityA - priorityB;
-      }
-
-      // --- Hilo Cronológico (FIFO) ---
-      // A igual prioridad, el pedido más antiguo va primero para no retrasar la cocina
-      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-    });
-}, [orders, activeFilter, searchTerm]); // simplifiedFilters es constante, no hace falta en dependencias
+  }, [orders, activeFilter, searchTerm]); // simplifiedFilters es constante, no hace falta en dependencias
   if (isLoading) return <p>Sincronizando con Nezon...</p>;
 
   return (
@@ -304,6 +308,7 @@ const filteredAndSortedOrders = useMemo(() => {
                     origin: order.origin,
                     paymentStatus: order.paymentStatus,
                     deliveryStatus: order.deliveryStatus,
+                    shortCode: order.shortCode || "",
                   }}
                   onClick={() => setSelectedOrderId(order.id || order.idTemp)}
                   onPrintDirect={handlePrintRequest}

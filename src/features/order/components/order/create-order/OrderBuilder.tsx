@@ -17,7 +17,12 @@ import { OptionSelector } from "./OptionSelector";
 import { ProductPanel } from "./ProductPanel";
 import { OrderPanel } from "./OrderPanel";
 import { OrderSheet } from "./OrderSheet";
-import { DeliveryStatus, OrderStatus, PaymentStatus } from "@/types/order-state-machine";
+import {
+  DeliveryStatus,
+  OrderStatus,
+  PaymentStatus,
+} from "@/types/order-state-machine";
+import { createOrderInteractor } from "@/features/common/database/commands/create-manual-order.command";
 
 export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
   const { products } = useProducts();
@@ -145,19 +150,22 @@ export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
   const total =
     totalProducts + (deliveryType === "DELIVERY" ? deliveryCost : 0);
 
-  const createOrder = async () => {
+const createOrder = async (instantPrepare?: boolean) => {
     if (!items.length) return;
 
-    // 1. Definir estados con tipos literales para evitar el error de "string"
-    let initialStatus: OrderStatus = OrderStatus.PENDING;
+    // 1. Definir estados iniciales
+    // Si instantPrepare es true, saltamos PENDING y vamos directo a PREPARING
+    let initialStatus: OrderStatus = instantPrepare 
+      ? OrderStatus.PREPARING 
+      : OrderStatus.PENDING;
+      
     let initialPaymentStatus: PaymentStatus = PaymentStatus.PENDING;
 
     // 2. Construir el objeto respetando la interfaz LocalOrder
-    // Usamos 'as const' o tipado explícito para que syncStatus sea "pending_creation" y no string
     const newOrder: LocalOrder = {
       idTemp: uuid(),
       id: null,
-      syncStatus: "pending_creation", // TypeScript ahora sabe que es el literal exacto
+      syncStatus: "pending_creation", 
       customerName,
       customerPhone,
       customerAddress,
@@ -169,24 +177,38 @@ export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
       totalDeliveryCost: deliveryType === "DELIVERY" ? deliveryCost : 0,
       orderPaymentMethod: paymentMethod,
       paymentStatus: initialPaymentStatus,
-      items: [...items], // Copia superficial para evitar mutaciones
+      items: [...items], // Copia para evitar mutaciones
       status: initialStatus,
       origin: "BUSINESS",
       createdAt: new Date(),
       updatedAt: new Date(),
-      deliveryStatus: deliveryType === "DELIVERY" ? DeliveryStatus.PENDING : DeliveryStatus.NOT_APPLICABLE,
+      deliveryStatus:
+        deliveryType === "DELIVERY"
+          ? DeliveryStatus.PENDING
+          : DeliveryStatus.NOT_APPLICABLE,
     };
 
+    // 3. Persistencia y Limpieza
     try {
-      await db.orders.add(newOrder);
-
+      // Delegamos al interactor que maneja la inserción en IndexedDB/Postgres
+      await createOrderInteractor(newOrder); 
+      
+      
+      // Limpiamos el panel para el siguiente pedido
       setItems([]);
+      setCustomerName("");
+      setCustomerPhone("");
+      setCustomerAddress("");
+      setDeliveryCost(0);
+      
+      // Feedback visual o cierre si es necesario
       onClose?.();
+      
     } catch (error) {
-      console.error("Error en IndexedDB:", error);
+      console.error("Error al crear el pedido:", error);
+      // Aquí podrías agregar un toast de error
     }
   };
-
   return (
     <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-0 md:p-4 lg:p-8 overflow-hidden backdrop-blur-sm">
       {pendingProduct && (

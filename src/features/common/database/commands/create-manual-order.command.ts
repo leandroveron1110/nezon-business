@@ -1,62 +1,52 @@
-import { v4 as uuidv4 } from "uuid";
-import { LocalOrder, LocalOrderItem } from "../shcema/orders.schema";
+import { v4 as uuid } from "uuid";
+import { LocalOrder } from "../shcema/orders.schema";
 import { db } from "..";
+import {
+  DeliveryStatus,
+  OrderStatus,
+  PaymentStatus,
+} from "@/types/order-state-machine";
+import { OrderIdentityService } from "../../utils/order-identity.service";
 
-import { z } from 'zod';
-import { DeliveryStatus, PaymentStatus } from "@/types/order-state-machine";
+export const createOrderInteractor = async (orderData: LocalOrder) => {
+  if (orderData) {
+    // 1. LÓGICA DE NEGOCIO: Generación de Turno Diario (P-1, A-52, etc.)
+    // 1. Obtener Identidad Operativa
+    const origin = "BUSINESS";
+    const nextNumber = await OrderIdentityService.getNextDailyNumber(origin);
+    const shortCode = OrderIdentityService.formatShortCode(nextNumber, origin);
 
-export const CreateOrderSchema = z.object({
-  customerName: z.string().min(3, "El nombre es requerido"),
-  customerPhone: z.string().min(8, "Teléfono inválido"),
-  customerAddress: z.string().optional(),
-  deliveryType: z.enum(['DELIVERY', 'PICKUP']),
-  // Lo que hablamos del cliente:
-  deliveryProvider: z.enum(['PLATFORM', 'INTERNAL']),
-  deliveryPriceMode: z.enum(['AUTOMATIC', 'MANUAL']),
-  totalDeliveryCost: z.number().min(0),
-  orderPaymentMethod: z.enum(['CASH', 'TRANSFER', 'QR', 'DELIVERY']),
-  items: z.array(z.custom<LocalOrderItem>()).min(1, "Debe agregar al menos un producto"),
-});
+    const newOrder: LocalOrder = {
+      idTemp: uuid(),
+      id: null,
+      syncStatus: "pending_creation", // TypeScript ahora sabe que es el literal exacto
+      customerName: orderData.customerName?.trim() || shortCode, // Si no hay nombre, usamos el turno diario
+      customerPhone: orderData.customerPhone || "",
+      customerAddress: orderData.customerAddress || "",
+      total: orderData.total || 0,
+      deliveryType: orderData.deliveryType || "PICKUP",
+      deliveryProvider: orderData.deliveryProvider || "PLATFORM",
+      deliveryPriceMode:
+        orderData.deliveryProvider === "INTERNAL" ? "MANUAL" : "AUTOMATIC",
+      totalDeliveryCost:
+        orderData.deliveryType === "DELIVERY" ? orderData.totalDeliveryCost : 0,
+      orderPaymentMethod: orderData.orderPaymentMethod || "CASH",
+      paymentStatus: orderData.paymentStatus || PaymentStatus.PENDING,
+      items: [...orderData.items], // Copia superficial para evitar mutaciones
+      status: orderData.status,
+      origin: "BUSINESS",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      shortCode: shortCode,
+      dailyNumber: nextNumber,
+      deliveryStatus:
+        orderData.deliveryType === "DELIVERY"
+          ? DeliveryStatus.PENDING
+          : DeliveryStatus.NOT_APPLICABLE,
+    };
 
-export type CreateOrderInput = z.infer<typeof CreateOrderSchema>;
-export async function createManualOrderCommand(
-  orderData: Omit<LocalOrder, 'idTemp' | 'syncStatus' | 'createdAt' | 'updatedAt'>
-): Promise<string> {
-  const newOrder: LocalOrder = {
-    ...orderData,
-    idTemp: uuidv4(),
-    syncStatus: 'pending_creation',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-
-  await db.orders.add(newOrder);
-  return newOrder.idTemp;
-}
-
-
-export async function createLocalOrder(input: CreateOrderInput): Promise<LocalOrder> {
-  const itemsTotal = input.items.reduce((acc, item) => 
-    acc + (item.priceAtPurchase * item.quantity), 0
-  );
-
-  const newOrder: LocalOrder = {
-    idTemp: crypto.randomUUID(),
-    syncStatus: 'pending_creation',
-    origin: 'BUSINESS',
-    status: 'PENDING',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    
-    // Spread del input validado
-    ...input,
-    
-    // Cálculo final de total
-    total: itemsTotal + input.totalDeliveryCost,
-    paymentStatus: PaymentStatus.PENDING,
-    deliveryStatus: DeliveryStatus.PENDING,
-  };
-
-  await db.orders.add(newOrder);
-  return newOrder;
-}
+    // 3. PERSISTENCIA
+    // Si mañana cambiamos Dexie por una API, solo tocamos esta línea
+    return await db.orders.add(newOrder);
+  }
+};

@@ -87,4 +87,5 @@ export interface IOrderShortDto {
   paymentStatus: PaymentStatus;
   customerName: string;
   origin: Origin
+  shortCode: string;
 }

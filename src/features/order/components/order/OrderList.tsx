@@ -111,7 +111,7 @@ export function OrderList({ order, onClick, onPrintDirect }: Props) {
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="truncate text-lg leading-none font-black uppercase text-slate-900">
-              {order.customerName}
+              {order.customerName === order.shortCode ? order.shortCode : `${order.customerName} - ${order.shortCode}`}
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase">
               <span className="text-slate-400">#{order.id.slice(-4).toUpperCase()}</span>
@@ -164,7 +164,7 @@ export function OrderList({ order, onClick, onPrintDirect }: Props) {
 
         <div className="min-w-0 flex-1">
           <div className="truncate text-xl leading-none font-black uppercase text-slate-900">
-            {order.customerName}
+            {order.customerName === order.shortCode ? order.shortCode : `${order.customerName} - ${order.shortCode}`}
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <div className={`flex items-center gap-1 text-[10px] font-black uppercase ${deliveryInfo.color}`}>
