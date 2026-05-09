@@ -26,11 +26,6 @@ export const simplifiedFilters: ISimplifiedFilter[] = [
       o.deliveryStatus !== DeliveryStatus.COMPLETED
   },
   {
-    label: "En la calle",
-    // Hilo de logística activo
-    condition: (o) => o.deliveryStatus === DeliveryStatus.SHIPPED
-  },
-  {
     label: "Completados",
     // El hilo principal llegó al final
     condition: (o) => o.status === OrderStatus.COMPLETED

@@ -73,11 +73,7 @@ export function OrderList({ order, onClick, onPrintDirect }: Props) {
     return "bg-slate-100 text-slate-600";
   }, [elapsedMinutes]);
 
-  const priorityClass = useMemo(() => {
-    if (order.status === OrderStatus.READY) return `ring-2 ${UI_COLORS.SUCCESS.main} ring-inset`;
-    if (order.deliveryStatus === DeliveryStatus.REQUESTED) return `ring-2 ${UI_COLORS.INFO.main} ring-inset`;
-    return "";
-  }, [order.status, order.deliveryStatus]);
+
 
   const handleQuickPrint = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -100,7 +96,7 @@ export function OrderList({ order, onClick, onPrintDirect }: Props) {
         onClick={onClick}
         className={`md:hidden relative border-b border-slate-200 px-4 py-3 active:bg-slate-100 ${
           isWebOrder ? UI_COLORS.INFO.bg : "bg-white"
-        } ${priorityClass}`}
+        }`}
       >
         {/* BARRA DE PAGO (Izquierda) */}
         <div className={`absolute left-0 top-0 bottom-0 w-2 ${paymentBarColor}`} />
@@ -150,7 +146,7 @@ export function OrderList({ order, onClick, onPrintDirect }: Props) {
         onClick={onClick}
         className={`hidden md:flex relative items-center gap-4 border-b border-slate-200 px-6 py-4 cursor-pointer select-none transition-colors ${
           isWebOrder ? UI_COLORS.INFO.bg : "bg-white hover:bg-slate-50"
-        } ${priorityClass}`}
+        }`}
       >
         <div className={`absolute left-0 top-0 bottom-0 w-2 ${paymentBarColor}`} />
         <div className={`absolute right-0 top-0 bottom-0 w-2 ${deliveryInfo.bar}`} />
