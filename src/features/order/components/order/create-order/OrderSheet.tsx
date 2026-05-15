@@ -5,6 +5,7 @@ import { OrderPanel } from "./OrderPanel";
 import { LocalOrderItem } from "@/features/common/database/shcema/orders.schema";
 
 interface OrderSheetProps {
+  businessId: string;
   items: LocalOrderItem[];
   updateQty: (index: number, delta: number) => void;
   total: number;

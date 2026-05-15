@@ -32,6 +32,7 @@ import { OrderTicket } from "../ticket-order/OrderTicket";
 import { usePrintTicket } from "@/features/order/hooks/usePrintTicket";
 import { OrderStatus, PaymentStatus } from "@/types/order-state-machine";
 import { updateOrderStateInteractor } from "@/features/common/database/interactors/update-order-status.interactor";
+import { updateOrderStatusOrchestrator } from "@/mini-back/orchestrator/order.orchestrator";
 
 interface Props {
   orderId: string;
@@ -106,16 +107,19 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
       const newStatus = isPaid
         ? PaymentStatus.PENDING
         : PaymentStatus.CONFIRMED;
-      
-      await updateOrderStateInteractor(safeOrder.id, 'PAYMENT', newStatus, safeOrder.origin);
-      //
-      // await fetchUpdateOrdersPaymentByOrderID(safeOrder.id, newStatus);
-      addAlert({
-        message:
-          newStatus === PaymentStatus.CONFIRMED
-            ? "Pago confirmado"
-            : "Pago pendiente",
-      });
+
+    const result = await updateOrderStatusOrchestrator({
+      idTemp: safeOrder.idTemp,
+      thread: 'PAYMENT',
+      nextValue: newStatus
+    });
+
+    if (result.success) {
+      addAlert({ message: `Orden: ${result.data?.shortCode} actualizada` });
+      onClose();
+    } else {
+      addAlert({ message: result.error?.message || "Error", type: "error" });
+    }
     } catch (e) {
       addAlert({ message: "Error al actualizar pago", type: "error" });
     } finally {
@@ -127,8 +131,21 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
     if (!safeOrder || !action || loading) return;
     try {
       setLoading(true);
-      await updateOrderStateInteractor(safeOrder.id, 'STATUS', action.next, safeOrder.origin);
+      // Llamamos al orquestador con un objeto plano (Input)
+    const result = await updateOrderStatusOrchestrator({
+      idTemp: safeOrder.idTemp,
+      thread: 'STATUS',
+      nextValue: action.next
+    });
+
+    if (result.success) {
       addAlert({ message: `Orden: ${action.label}` });
+      if (action.next === OrderStatus.COMPLETED) onClose();
+    } else {
+      addAlert({ message: result.error?.message || "Error", type: "error" });
+    }
+      // await updateOrderStateInteractor(safeOrder.id, 'STATUS', action.next, safeOrder.origin);
+      // addAlert({ message: `Orden: ${action.label}` });
       if (action.next === OrderStatus.COMPLETED) onClose();
     } catch (e) {
       addAlert({ message: "Error al actualizar estado", type: "error" });

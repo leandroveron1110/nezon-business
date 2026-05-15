@@ -41,7 +41,7 @@ export default function BusinessOrdersPage({ businessId }: Props) {
   const printRef = useRef<HTMLDivElement>(null);
 
   // 1. Disparás la sincronización (background)
-  useSyncOrders(businessId);
+  // useSyncOrders(businessId);
 
   // 2. Consumís los datos (UI)
   const { orders, isLoading } = useOrdersView(businessId);
@@ -327,7 +327,7 @@ export default function BusinessOrdersPage({ businessId }: Props) {
       )}
 
       {isNewOrder && (
-        <OrderBuilder onClose={() => setIsNewOrder(!isNewOrder)} />
+        <OrderBuilder onClose={() => setIsNewOrder(!isNewOrder)} businessid={businessId} />
       )}
     </div>
   );

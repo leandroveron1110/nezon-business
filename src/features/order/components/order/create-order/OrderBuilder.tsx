@@ -17,14 +17,16 @@ import { OptionSelector } from "./OptionSelector";
 import { ProductPanel } from "./ProductPanel";
 import { OrderPanel } from "./OrderPanel";
 import { OrderSheet } from "./OrderSheet";
-import {
-  DeliveryStatus,
-  OrderStatus,
-  PaymentStatus,
-} from "@/types/order-state-machine";
-import { createOrderInteractor } from "@/features/common/database/commands/create-manual-order.command";
+import { DeliveryStatus, PaymentStatus } from "@/types/order-state-machine";
+import { createOrderOrchestrator } from "@/mini-back/orchestrator/order.orchestrator";
 
-export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
+export default function OrderBuilder({
+  onClose,
+  businessid,
+}: {
+  onClose?: () => void;
+  businessid: string;
+}) {
   const { products } = useProducts();
   const [items, setItems] = useState<LocalOrderItem[]>([]);
   const [pendingProduct, setPendingProduct] = useState<LocalProduct | null>(
@@ -150,36 +152,26 @@ export default function OrderBuilder({ onClose }: { onClose?: () => void }) {
   const total =
     totalProducts + (deliveryType === "DELIVERY" ? deliveryCost : 0);
 
-const createOrder = async (instantPrepare?: boolean) => {
+  const createOrder = async (instantPrepare?: boolean) => {
     if (!items.length) return;
 
-    // 1. Definir estados iniciales
-    // Si instantPrepare es true, saltamos PENDING y vamos directo a PREPARING
-    let initialStatus: OrderStatus = instantPrepare 
-      ? OrderStatus.PREPARING 
-      : OrderStatus.PENDING;
-      
     let initialPaymentStatus: PaymentStatus = PaymentStatus.PENDING;
 
     // 2. Construir el objeto respetando la interfaz LocalOrder
-    const newOrder: LocalOrder = {
+    const newOrder = {
       idTemp: uuid(),
       id: null,
-      syncStatus: "pending_creation", 
       customerName,
       customerPhone,
       customerAddress,
       total,
       deliveryType,
       deliveryProvider,
-      deliveryPriceMode:
-        deliveryProvider === "INTERNAL" ? "MANUAL" : "AUTOMATIC",
       totalDeliveryCost: deliveryType === "DELIVERY" ? deliveryCost : 0,
       orderPaymentMethod: paymentMethod,
       paymentStatus: initialPaymentStatus,
       items: [...items], // Copia para evitar mutaciones
-      status: initialStatus,
-      origin: "BUSINESS",
+      origin: "BUSINESS" as const,
       createdAt: new Date(),
       updatedAt: new Date(),
       deliveryStatus:
@@ -191,19 +183,22 @@ const createOrder = async (instantPrepare?: boolean) => {
     // 3. Persistencia y Limpieza
     try {
       // Delegamos al interactor que maneja la inserción en IndexedDB/Postgres
-      await createOrderInteractor(newOrder); 
-      
-      
+      // await createOrderInteractor(newOrder);
+      await createOrderOrchestrator({
+        ...newOrder,
+        instantPrepare: instantPrepare ? true : false,
+        businessId: businessid,
+      }); // Esto es opcional, dependiendo de si quieres usar el Orchestrator para manejar efectos secundarios
+
       // Limpiamos el panel para el siguiente pedido
       setItems([]);
       setCustomerName("");
       setCustomerPhone("");
       setCustomerAddress("");
       setDeliveryCost(0);
-      
+
       // Feedback visual o cierre si es necesario
       onClose?.();
-      
     } catch (error) {
       console.error("Error al crear el pedido:", error);
       // Aquí podrías agregar un toast de error
@@ -264,6 +259,7 @@ const createOrder = async (instantPrepare?: boolean) => {
               {/* OrderPanel (Desktop) */}
               <aside className="w-[400px] h-full bg-white border-l shadow-[-10px_0_30px_rgba(0,0,0,0.02)] z-20">
                 <OrderPanel
+                businessId={businessid}
                   items={items}
                   updateQty={updateQty}
                   total={total}
@@ -300,6 +296,7 @@ const createOrder = async (instantPrepare?: boolean) => {
 
               {/* OrderSheet (Mobile) */}
               <OrderSheet
+              businessId={businessid}
                 items={items}
                 updateQty={updateQty}
                 total={total}
