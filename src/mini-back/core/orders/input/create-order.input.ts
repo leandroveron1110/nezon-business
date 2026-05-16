@@ -5,6 +5,8 @@ export interface CreateOrderInput {
   idTemp: string; // El front genera un UUID v4 y lo envía para mantener la trazabilidad local
   customerName?: string;
 
+  businessId: string;
+
   customerPhone?: string;
 
   customerAddress?: string;

@@ -28,6 +28,7 @@ import {
   OrderStatus,
   PaymentStatus,
 } from "@/types/order-state-machine";
+import { SyncIndicator } from "./order/SyncIndicator";
 
 interface Props {
   businessId: string;
@@ -41,7 +42,7 @@ export default function BusinessOrdersPage({ businessId }: Props) {
   const printRef = useRef<HTMLDivElement>(null);
 
   // 1. Disparás la sincronización (background)
-  // useSyncOrders(businessId);
+  useSyncOrders(businessId);
 
   // 2. Consumís los datos (UI)
   const { orders, isLoading } = useOrdersView(businessId);
@@ -277,6 +278,10 @@ export default function BusinessOrdersPage({ businessId }: Props) {
           />
         </div>
       </header>
+
+      <div>
+        <SyncIndicator />
+      </div>
 
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-7xl mx-auto w-full pb-20">

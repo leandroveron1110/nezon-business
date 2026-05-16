@@ -33,13 +33,12 @@ export class OrderService implements IOrderPublicService {
       deliveryStatus: input.deliveryStatus
     });
 
-    console.log(`Sync Policy evaluada. isHighPriority: ${isHighPriority}`);
-    console.log(`Sync Policy evaluada. origin: ${input.origin}, deliveryProvider: ${input.deliveryProvider}, deliveryStatus: ${input.deliveryStatus}`);
-
     const order: Order = {
       idTemp: input.idTemp,
 
       id: null,
+
+      businessId: input.businessId,
 
       syncStatus: isHighPriority ? "SYNC_PENDING" : "LOCAL_ONLY",
 

@@ -36,6 +36,7 @@ export interface LocalOrder {
   idTemp: string;               // UUID v4 generado en el front
   id?: string | null;           // ID de Postgres (uuid) tras sincronizar
   userId?: string;
+  businessId: string;
   
   // Estado de Sincronización (Crucial para el batch)
   syncStatus: SyncStatus;

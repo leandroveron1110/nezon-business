@@ -1,12 +1,17 @@
 // src/infra/adapters/dexie-order-identity.adapter.ts
 
-import { OrderIdentityPort, OrderRepositoryPort } from "@/mini-back/core/orders/public";
-
+import {
+  OrderIdentityPort,
+} from "@/mini-back/core/orders/public";
+import { db } from "../db";
 
 export class DexieOrderIdentityAdapter implements OrderIdentityPort {
-  constructor(private readonly repo: OrderRepositoryPort) {}
-
   async getNextDailyNumber(): Promise<number> {
-    return await this.repo.getNextDailyNumber();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const count = await db.orders.where("createdAt").above(today).count();
+
+    return count + 1;
   }
 }
