@@ -69,7 +69,7 @@ const ProductCard = memo(function ProductCard({
       className={`relative flex min-h-[110px] flex-col justify-between rounded-2xl border p-3 text-left transition-all duration-150 active:scale-[0.98] group cursor-pointer select-none ${cardStyles}`}
     >
       {/* Contenedor del nombre con padding dinámico si está destacado */}
-      <div className={`flex-1 w-full ${isHighlighted ? "pr-12" : ""}`}>
+      <div className={`w-full ${isHighlighted ? "pr-12" : ""}`}>
         <p className="line-clamp-3 text-[11px] font-black uppercase leading-tight tracking-tight text-slate-800 transition-colors group-hover:text-slate-950">
           {product.name}
         </p>
