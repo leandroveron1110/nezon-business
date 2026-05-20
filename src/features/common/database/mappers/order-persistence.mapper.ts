@@ -68,6 +68,10 @@ export class OrderPersistenceMapper {
       // Sync
       syncStatus: "SYNCED",
 
+      syncedDelivery: true,
+      syncedPayment: true,
+      syncedStatus: true,
+
       // Cliente
       customerName: apiOrder.user.fullName,
       customerPhone: apiOrder.user.phone,
