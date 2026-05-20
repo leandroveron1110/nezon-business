@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { OrderPanel } from "./OrderPanel";
-import { LocalOrderItem } from "@/features/common/database/shcema/orders.schema";
+import { LocalOrderItem } from "@/mini-back/infrastructure/dexie/shcema/orders.schema";
 
 interface OrderSheetProps {
   businessId: string;

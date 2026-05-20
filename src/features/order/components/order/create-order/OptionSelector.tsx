@@ -1,7 +1,7 @@
 "use client";
 
-import { LocalOrderOptionGroup } from "@/features/common/database/shcema/orders.schema";
-import { LocalOption, LocalProduct } from "@/features/common/database/shcema/products.schema";
+import { LocalOrderOptionGroup } from "@/mini-back/infrastructure/dexie/shcema/orders.schema";
+import { LocalOption, LocalProduct } from "@/mini-back/infrastructure/dexie/shcema/products.schema";
 import { useState } from "react";
 
 interface Props {
