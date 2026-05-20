@@ -1,6 +1,6 @@
 // useProducts.ts
+import { db } from "@/mini-back/infrastructure/dexie/db";
 import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "@/features/common/database";
 
 export function useProducts() {
   const products = useLiveQuery(() => db.products.toArray(), []);

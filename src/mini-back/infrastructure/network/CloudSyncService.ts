@@ -1,5 +1,5 @@
 // infrastructure/network/CloudSyncService.ts
-import { apiPost } from "@/lib/apiFetch";
+import { apiPatch, apiPost } from "@/lib/apiFetch";
 import {
   Order,
   OrderItem,
@@ -113,14 +113,18 @@ export const cloudSyncService = {
       })),
     };
 
-    console.log(`CloudSyncService: Enviando bloque de ${orders.length} órdenes para sincronización masiva. businessId: ${businessId} `);
+    console.log(
+      `CloudSyncService: Enviando bloque de ${orders.length} órdenes para sincronización masiva. businessId: ${businessId} `,
+    );
 
-    const res = await apiPost<{
-      idTemp: string;
-      cloudId?: string;
-      status: 'SUCCESS' | 'ERROR';
-      error?: string;
-    }[]>("/orders/sync-batch", batchDto);
+    const res = await apiPost<
+      {
+        idTemp: string;
+        cloudId?: string;
+        status: "SUCCESS" | "ERROR";
+        error?: string;
+      }[]
+    >("/orders/sync-batch", batchDto);
 
     if (!res.success || !res.data) {
       throw new Error(
@@ -132,12 +136,51 @@ export const cloudSyncService = {
     return res.data;
   },
 
+  syncOrderStateEvents: async (events: any[]) => {
+    try {
+      // Mapeamos al formato exacto esperado por el DTO del backend
+      const payload = {
+        events: events.map((e) => ({
+          orderId: e.orderId,
+          stateType: e.stateType, // Ej: "ORDER", "PAYMENT", "DELIVERY"
+          value: e.value,
+          author: e.author || "SYSTEM",
+          createdAt: new Date(e.createdAt).toISOString(),
+        })),
+      };
+
+      const res = await apiPost<{
+        success: boolean;
+        processed: number;
+        message: string;
+      }>("/orders/events/sync", payload);
+
+      if (!res.success || !res.data) {
+        throw new Error(
+          res.error?.contextMessage || "Error en sincronización masiva",
+        );
+      }
+
+      // Retorna el array con [{ idTemp, cloudId }, ...]
+      return res.data;
+    } catch (error) {
+      console.error("Error de red enviando eventos al servidor:", error);
+      return false;
+    }
+  },
+
   updateOrder: async (
     orderId: string,
     updates: { thread: OrderThread; nextValue: string },
   ): Promise<boolean> => {
     try {
-      await apiPost(`/orders/${orderId}/update-status`, updates);
+      if(updates.thread === "STATUS") {
+        await apiPatch(`/orders/order/status/${orderId}`, { status: updates.nextValue });
+      }else if(updates.thread === "PAYMENT") {
+        await apiPatch(`/orders/order/payment-status/status/${orderId}`, { status: updates.nextValue });
+      }else if(updates.thread === "DELIVERY") {
+        // await apiPatch(`/order/delivery-status/${orderId}`, { deliveryStatus: updates.nextValue });
+      }
       return true;
     } catch (error) {
       console.error("Error al actualizar estado en la nube:", error);

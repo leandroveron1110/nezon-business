@@ -14,9 +14,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
-import {
-  DeliveryType,
-} from "@/types/order";
+import { DeliveryType } from "@/types/order";
 
 import { formatPrice } from "@/features/common/utils/formatPrice";
 import { useAlert } from "@/features/common/ui/Alert/Alert";
@@ -31,7 +29,6 @@ import { useGetOrderById } from "../../../hooks/useGetOrderById";
 import { OrderTicket } from "../ticket-order/OrderTicket";
 import { usePrintTicket } from "@/features/order/hooks/usePrintTicket";
 import { OrderStatus, PaymentStatus } from "@/types/order-state-machine";
-import { updateOrderStateInteractor } from "@/features/common/database/interactors/update-order-status.interactor";
 import { updateOrderStatusOrchestrator } from "@/mini-back/orchestrator/order.orchestrator";
 
 interface Props {
@@ -46,7 +43,9 @@ interface Props {
 const getStatusAction = (status: OrderStatus, deliveryType: DeliveryType) => {
   const isPickup = deliveryType === DeliveryType.PICKUP;
 
-  const actions: Partial<Record<OrderStatus, { label: string; next: OrderStatus; color: string }>> = {
+  const actions: Partial<
+    Record<OrderStatus, { label: string; next: OrderStatus; color: string }>
+  > = {
     [OrderStatus.PENDING]: {
       label: "ACEPTAR PEDIDO",
       next: OrderStatus.CONFIRMED,
@@ -80,7 +79,6 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
   const ticketRef = useRef<HTMLDivElement>(null);
   const { print } = usePrintTicket();
 
-
   const safeOrder = order ?? null;
 
   const minutes = useMemo(() => {
@@ -108,18 +106,18 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
         ? PaymentStatus.PENDING
         : PaymentStatus.CONFIRMED;
 
-    const result = await updateOrderStatusOrchestrator({
-      idTemp: safeOrder.idTemp,
-      thread: 'PAYMENT',
-      nextValue: newStatus
-    });
+      const result = await updateOrderStatusOrchestrator({
+        idTemp: safeOrder.idTemp,
+        thread: "PAYMENT",
+        nextValue: newStatus,
+      });
 
-    if (result.success) {
-      addAlert({ message: `Orden: ${result.data?.shortCode} actualizada` });
-      onClose();
-    } else {
-      addAlert({ message: result.error?.message || "Error", type: "error" });
-    }
+      if (result.success) {
+        addAlert({ message: `Orden: ${result.data?.shortCode} actualizada` });
+        onClose();
+      } else {
+        addAlert({ message: result.error?.message || "Error", type: "error" });
+      }
     } catch (e) {
       addAlert({ message: "Error al actualizar pago", type: "error" });
     } finally {
@@ -132,18 +130,18 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
     try {
       setLoading(true);
       // Llamamos al orquestador con un objeto plano (Input)
-    const result = await updateOrderStatusOrchestrator({
-      idTemp: safeOrder.idTemp,
-      thread: 'STATUS',
-      nextValue: action.next
-    });
+      const result = await updateOrderStatusOrchestrator({
+        idTemp: safeOrder.idTemp,
+        thread: "STATUS",
+        nextValue: action.next,
+      });
 
-    if (result.success) {
-      addAlert({ message: `Orden: ${action.label}` });
-      if (action.next === OrderStatus.COMPLETED) onClose();
-    } else {
-      addAlert({ message: result.error?.message || "Error", type: "error" });
-    }
+      if (result.success) {
+        addAlert({ message: `Orden: ${action.label}` });
+        if (action.next === OrderStatus.COMPLETED) onClose();
+      } else {
+        addAlert({ message: result.error?.message || "Error", type: "error" });
+      }
       // await updateOrderStateInteractor(safeOrder.id, 'STATUS', action.next, safeOrder.origin);
       // addAlert({ message: `Orden: ${action.label}` });
       if (action.next === OrderStatus.COMPLETED) onClose();

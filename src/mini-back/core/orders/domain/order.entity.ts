@@ -51,7 +51,9 @@ export interface Order {
   customerPhone: string;
   customerAddress?: string;
   customerObservations?: string;
-  
+  syncedStatus: boolean;    // true si el status actual de la orden ya impactó en la nube
+  syncedPayment: boolean;   // true si el paymentStatus actual ya impactó en la nube
+  syncedDelivery: boolean;  // true si el deliveryStatus actual ya impactó en la nube
   // Logística y Totales
   total: number;
 

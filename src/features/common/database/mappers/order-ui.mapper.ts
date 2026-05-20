@@ -1,5 +1,5 @@
 import { UIOrder } from "@/features/order/types/ui-order";
-import { LocalOrder } from "../shcema/orders.schema";
+import { LocalOrder } from "@/mini-back/infrastructure/dexie/shcema/orders.schema";
 import { DeliveryType, PaymentMethodType } from "@/types/order";
 import { OrderStatus } from "@/types/order-state-machine";
 
@@ -10,7 +10,7 @@ export class OrderUiMapper {
       // 1. Identificadores y Sync (UIOrder)
       id: local.id || local.idTemp, // El modal usa 'id' para todo, pero Nezon sabe cuál es cuál
       idTemp: local.idTemp,
-      syncStatus: local.syncStatus === 'synced' ? 'synced' : 'pending',
+      syncStatus: local.syncStatus === 'SYNCED' ? 'synced' : 'pending',
 
       // 2. Mapeo a IOrder (La interfaz base que espera el modal)
       businessId: "", // Si no lo guardamos en LocalOrder, lo inicializamos o lo sacamos de otro lado

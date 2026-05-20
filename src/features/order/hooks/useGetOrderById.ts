@@ -2,7 +2,7 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { UIOrder } from "../types/ui-order";
 import { OrderUiMapper } from "@/features/common/database/mappers/order-ui.mapper";
-import { db } from "@/features/common/database";
+import { db } from "@/mini-back/infrastructure/dexie/db";
 
 export function useGetOrderById(orderId: string) {
   const order = useLiveQuery(

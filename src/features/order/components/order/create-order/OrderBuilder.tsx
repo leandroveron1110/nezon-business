@@ -1,17 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { db } from "@/features/common/database";
 import { v4 as uuid } from "uuid";
 import { useProducts } from "../../../hooks/useProducts";
 import { X, LayoutPanelLeft } from "lucide-react";
 
-import {
-  LocalOrder,
-  LocalOrderItem,
-  LocalOrderOptionGroup,
-} from "@/features/common/database/shcema/orders.schema";
-import { LocalProduct } from "@/features/common/database/shcema/products.schema";
 
 import { OptionSelector } from "./OptionSelector";
 import { ProductPanel } from "./ProductPanel";
@@ -19,6 +12,8 @@ import { OrderPanel } from "./OrderPanel";
 import { OrderSheet } from "./OrderSheet";
 import { DeliveryStatus, PaymentStatus } from "@/types/order-state-machine";
 import { createOrderOrchestrator } from "@/mini-back/orchestrator/order.orchestrator";
+import { LocalOrderItem, LocalOrderOptionGroup } from "@/mini-back/infrastructure/dexie/shcema/orders.schema";
+import { LocalProduct } from "@/mini-back/infrastructure/dexie/shcema/products.schema";
 
 export default function OrderBuilder({
   onClose,
@@ -182,8 +177,6 @@ export default function OrderBuilder({
 
     // 3. Persistencia y Limpieza
     try {
-      // Delegamos al interactor que maneja la inserción en IndexedDB/Postgres
-      // await createOrderInteractor(newOrder);
       await createOrderOrchestrator({
         ...newOrder,
         instantPrepare: instantPrepare ? true : false,

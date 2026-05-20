@@ -1,4 +1,4 @@
-import { db } from "../database";
+import { db } from "@/mini-back/infrastructure/dexie/db";
 
 export class OrderIdentityService {
   /**

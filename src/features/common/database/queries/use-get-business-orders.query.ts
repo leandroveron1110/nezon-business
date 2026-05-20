@@ -1,5 +1,5 @@
+import { db } from "@/mini-back/infrastructure/dexie/db";
 import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "..";
 
 /**
  * Query reactiva para listar órdenes.

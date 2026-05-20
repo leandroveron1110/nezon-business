@@ -1,10 +1,6 @@
 import { IOrder } from "@/features/order/types/order";
-import {
-  LocalOrder,
-  LocalOrderItem,
-  LocalOrderOption,
-  LocalOrderOptionGroup,
-} from "../shcema/orders.schema";
+import { LocalOrder, LocalOrderItem, LocalOrderOption, LocalOrderOptionGroup } from "@/mini-back/infrastructure/dexie/shcema/orders.schema";
+
 
 // 👇 Extensión tipada (sin any)
 type ApiOrderExtended = IOrder & {
@@ -70,8 +66,13 @@ export class OrderMapper {
       id: apiOrder.id,
       userId: apiOrder.userId ?? apiOrder.user?.id,
 
+      businessId: apiOrder.businessId,
+      syncPriority: "HIGH", // Todo: Podríamos tener una lógica más compleja para esto
+      dailyNumber: 0, // Se asignará en el comando de sincronización
+      shortCode: "", // Se asignará en el comando de sincronización
+
       // Sync
-      syncStatus: "synced",
+      syncStatus: "SYNCED",
 
       // Cliente
       customerName: apiOrder.user.fullName,

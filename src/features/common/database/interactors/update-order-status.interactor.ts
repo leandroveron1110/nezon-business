@@ -7,8 +7,8 @@ import {
   PAYMENT_TRANSITIONS 
 } from "@/types/order-state-machine";
 import { fetchUpdateOrdersByOrderID } from "@/features/order/api/catalog-api";
-import { db } from "..";
 import { Origin } from "@/types/order";
+import { db } from "@/mini-back/infrastructure/dexie/db";
 
 // Definimos un tipo para saber qué hilo estamos actualizando
 type OrderThread = 'STATUS' | 'PAYMENT' | 'DELIVERY';
@@ -65,7 +65,7 @@ const nextStatus = newValue as OrderStatus;
 
   // 3. Actualización Atómica en IndexedDB (UI Optimista)
   // Cambiamos el syncStatus para que el worker sepa que hay cambios pendientes de envío
-  const nextSyncStatus = localOrder.syncStatus === 'pending_creation' ? 'pending_creation' : 'pending_update';
+  const nextSyncStatus = localOrder.syncStatus === 'SYNC_PENDING' ? 'pending_creation' : 'pending_update';
   
   await db.orders.update(orderId, {
     ...updatePayload,
@@ -82,11 +82,11 @@ const nextStatus = newValue as OrderStatus;
       const success = await fetchUpdateOrdersByOrderID(orderId, { [thread.toLowerCase()]: newValue });
 
       if (success) {
-        await db.orders.update(orderId, { syncStatus: 'synced' });
+        await db.orders.update(orderId, { syncStatus: 'SYNCED' });
       }
     } catch (error) {
       console.error("❌ Falló la sincronización inmediata, quedará para el reintento del worker.");
-      // No lanzamos error aquí para no romper la UX, el syncStatus ya está en 'pending_update'
+      // No lanzamos error aquí para no romper la UX, el syncStatus ya está en 'SYNC_PENDING'
     }
   }
 

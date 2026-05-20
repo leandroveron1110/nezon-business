@@ -1,8 +1,8 @@
 // src/common/database/repositories/order.repository.ts
 import { IOrder } from '@/features/order/types/order';
 import { OrderMapper } from '../mappers/order.mapper';
-import { LocalOrder } from '../shcema/orders.schema';
-import { db } from '..';
+import { db } from '@/mini-back/infrastructure/dexie/db';
+import { LocalOrder } from '@/mini-back/infrastructure/dexie/shcema/orders.schema';
 
 export const OrderRepository = {
   async saveSyncOrders(apiOrders: IOrder[], latestTimestamp: string): Promise<void> {

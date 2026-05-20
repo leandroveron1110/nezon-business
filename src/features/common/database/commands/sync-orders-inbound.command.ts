@@ -1,9 +1,9 @@
 
 import { IOrder } from "@/features/order/types/order";
 import { OrderPersistenceMapper } from "../mappers/order-persistence.mapper";
-import { db } from "..";
 import { OrderIdentityService } from "../../utils/order-identity.service";
-import { LocalOrder } from "../shcema/orders.schema";
+import { LocalOrder } from "@/mini-back/infrastructure/dexie/shcema/orders.schema";
+import { db } from "@/mini-back/infrastructure/dexie/db";
 
 export async function syncOrdersInboundCommand(
   apiOrders: IOrder[], 

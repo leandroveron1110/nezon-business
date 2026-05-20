@@ -2,6 +2,7 @@
 
 import { Order } from "../domain/order.entity";
 import { CreateOrderInput } from "../input/create-order.input";
+import { MutateOrderStateInput } from "../input/mutate-order.input";
 import { UpdateOrderStatusInput } from "../input/update-order-status.input";
 
 
@@ -14,13 +15,15 @@ export interface IOrderPublicService {
 
   updateStatus(input: UpdateOrderStatusInput): Promise<OrderServiceResponse>; // Nuevo
 
+  mutateState(input: MutateOrderStateInput): Promise<OrderServiceResponse>;
+
   /** 
    * Permite al orquestador marcar una orden como sincronizada 
    * una vez que el proceso de red tuvo éxito.
    */
   confirmCloudSync(idTemp: string, remoteId: string): Promise<void>;
 
-  notifySyncError(idTemp: string, error: Error): Promise<void>;
+  notifySyncError(idTemp: string, error?: Error): Promise<void>;
 
   
 }
@@ -30,7 +33,7 @@ export interface OrderServiceResponse {
   success: boolean;
   data?: Order;
   error?: {
-    code: 'VALIDATION_ERROR' | 'REPOSITORY_ERROR' | 'LOGISTICS_ERROR';
+    code: 'VALIDATION_ERROR' | 'REPOSITORY_ERROR' | 'LOGISTICS_ERROR'| 'INVALID_THREAD';
     message: string;
   };
 }

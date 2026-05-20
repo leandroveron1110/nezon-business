@@ -6,13 +6,10 @@ import { Package, Search, LayoutGrid } from "lucide-react";
 import OrdersFilters from "./OrdersFilters";
 import { simplifiedFilters } from "@/features/common/utils/filtersData";
 
-import { useBusinessNotificationsStore } from "../../common/hooks/useBusinessNotificationsStore";
-
 import { DeliveryType, IOrderShortDto, PaymentMethodType } from "@/types/order";
 import { OrderList } from "./order/OrderList";
 import { OrderDetailsSidePanel } from "./order/view-detail-order/OrderDetailsSidePanel";
 import { getOrderPriority } from "@/features/order/utilities/order-logic";
-import { OrderFilterHeader } from "./order/OrderFilterHeader";
 import { IOrder } from "../types/order";
 import { useAlert } from "@/features/common/ui/Alert/Alert";
 import { OrderTicket } from "./order/ticket-order/OrderTicket";
@@ -55,8 +52,6 @@ export default function BusinessOrdersPage({ businessId }: Props) {
   >(null);
   const [isNewOrder, setIsNewOrder] = useState<boolean>(false);
 
-  const [daysRange, setDaysRange] = useState<number | null>(1);
-  const [specificDate, setSpecificDate] = useState<string | null>(null);
 
   // --- ESTADOS DE IMPRESIÓN ---
   const [showPrintModal, setShowPrintModal] = useState(false);

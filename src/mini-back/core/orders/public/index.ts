@@ -1,5 +1,6 @@
 import { OrderIdentityPort } from "../ports/order-identity.port";
 import { OrderRepositoryPort } from "../ports/order-repository.port";
+import { IOrderPublicService } from "../public/order-service.interface";
 import { OrderService } from "../service/order.service";
 
 export interface OrderCoreDependencies {
@@ -8,10 +9,9 @@ export interface OrderCoreDependencies {
   // Si mañana agregás un port de notificaciones, lo sumás acá
 }
 
-export const OrderServicePublic = (dependencies: OrderCoreDependencies)=> {
-    return new OrderService(dependencies.repository, dependencies.identity);
-}
-
+export const OrderServicePublic = (dependencies: OrderCoreDependencies): IOrderPublicService => {
+  return new OrderService(dependencies.repository, dependencies.identity);
+};
 
 // --- EXPORTACIONES DE DOMINIO ---
 export * from "../domain/order.entity";

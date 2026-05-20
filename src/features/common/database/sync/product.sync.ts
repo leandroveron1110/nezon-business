@@ -1,10 +1,11 @@
 // src/common/database/product.sync.ts
 
 import { IMenu, IOption, IOptionGroup } from "@/features/catalog/types/catlog";
-import { LocalOptionGroup, LocalProduct } from "../shcema/products.schema";
-import { db } from "..";
+
 import { apiGet, ApiResult } from "@/lib/apiFetch";
 import { fetchCatalogByBusinessID } from "@/features/catalog/api/catalog-api";
+import { LocalOptionGroup, LocalProduct } from "@/mini-back/infrastructure/dexie/shcema/products.schema";
+import { db } from "@/mini-back/infrastructure/dexie/db";
 
 /**
  * Transforma el catálogo de la API de Nezon al formato de IndexedDB

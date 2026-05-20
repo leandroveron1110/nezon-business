@@ -32,52 +32,39 @@ export type SyncStatus =
 
 
 export interface LocalOrder {
-  // Identificadores
-  idTemp: string;               // UUID v4 generado en el front
-  id?: string | null;           // ID de Postgres (uuid) tras sincronizar
+  idTemp: string;               
+  id?: string | null;           
   userId?: string;
   businessId: string;
   
-  // Estado de Sincronización (Crucial para el batch)
   syncStatus: SyncStatus;
-  
-  // Datos del Cliente (Snapshot)
+
+  // 🔥 FLAGS DE CONTROL POR HILO (Evitan ráfagas duplicadas al servidor)
+  syncedStatus: boolean;    // true si el status actual de la orden ya impactó en la nube
+  syncedPayment: boolean;   // true si el paymentStatus actual ya impactó en la nube
+  syncedDelivery: boolean;  // true si el deliveryStatus actual ya impactó en la nube
+
   customerName: string;
   customerPhone: string;
   customerAddress?: string;
   customerObservations?: string;
-  
-  // Logística y Totales
   total: number;
-
-  // Nueva configuración de logística
   deliveryType: 'DELIVERY' | 'PICKUP';
-  
-  // Especificamos quién hace la entrega
   deliveryProvider: 'PLATFORM' | 'INTERNAL'; 
-
-  // Control de precio
   deliveryPriceMode: 'AUTOMATIC' | 'MANUAL';
-  
   totalDeliveryCost: number;
   syncPriority: 'HIGH' | 'LOW';
-  
-  // Pagos
-  orderPaymentMethod: 'CASH' | 'TRANSFER' | 'QR' |"DELIVERY", // Basado en tus Enums
+  orderPaymentMethod: 'CASH' | 'TRANSFER' | 'QR' | "DELIVERY";
   paymentStatus: PaymentStatus;
   deliveryStatus: DeliveryStatus;
   shortCode?: string | null;
   dailyNumber?: number | null;
-  
-  // El "Corazón": los productos comprados
   items: LocalOrderItem[];
-  
-  // Metadata
-  status: string;               // PENDING, PREPARING, COMPLETED, etc.
-  origin: Origin;   // Para saber si la creó el negocio offline
+  status: string;               
+  origin: Origin;   
   createdAt: Date;
   updatedAt: Date;
 }
 
-// Definición para Dexie: Indexamos por idTemp, id, status y syncStatus para filtros rápidos
-export const ORDERS_STORE = 'idTemp, id, status, syncStatus, createdAt';
+// Indexamos también por los estados de los hilos para búsquedas quirúrgicas si hiciese falta
+export const ORDERS_STORE = 'idTemp, id, status, syncStatus, syncedStatus, syncedPayment, syncedDelivery, createdAt';

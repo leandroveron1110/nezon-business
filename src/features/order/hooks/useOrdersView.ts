@@ -1,8 +1,6 @@
 // src/features/orders/hooks/useOrdersView.ts
-import { db } from "@/features/common/database";
-import { syncOrdersInteractor } from "@/features/common/database/interactors/sync-orders.interactor";
+import { db } from "@/mini-back/infrastructure/dexie/db";
 import { useLiveQuery } from "dexie-react-hooks";
-import { useEffect, useState } from "react";
 
 export function useOrdersView(businessId: string) {
   // Dexie detectará automáticamente cuando el Hook de Sync 

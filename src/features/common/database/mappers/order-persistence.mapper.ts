@@ -1,8 +1,7 @@
 // src/features/orders/mappers/order-persistence.mapper.ts
 
 import { IOrder } from "@/features/order/types/order";
-import { LocalOrder } from "../shcema/orders.schema";
-
+import { LocalOrder } from "@/mini-back/infrastructure/dexie/shcema/orders.schema";
 // 👇 Extendemos el tipo SIN usar any
 type ApiOrderExtended = IOrder & {
   deliveryProvider?: "PLATFORM" | "INTERNAL";
@@ -62,9 +61,12 @@ export class OrderPersistenceMapper {
       idTemp: apiOrder.id,
       id: apiOrder.id,
       userId: apiOrder.user?.id,
-
+      businessId: apiOrder.businessId,
+      syncPriority: "HIGH", // Todo: Podríamos tener una lógica más compleja para esto
+      dailyNumber: 0, // Se asignará en el comando de sincronización
+      shortCode: "", // Se asignará en el comando de sincronización
       // Sync
-      syncStatus: "synced",
+      syncStatus: "SYNCED",
 
       // Cliente
       customerName: apiOrder.user.fullName,

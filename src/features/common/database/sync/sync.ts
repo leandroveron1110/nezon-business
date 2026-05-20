@@ -1,10 +1,10 @@
 // src/common/database/sync.ts
 
 import { IMenu } from "@/features/catalog/types/catlog";
-import { db } from "..";
 import { apiGet, ApiResult } from "@/lib/apiFetch";
 import { fetchCatalogByBusinessID } from "@/features/catalog/api/catalog-api";
 import { syncCatalog } from "./product.sync"; // Tu función que mapea a LocalProduct
+import { db } from "@/mini-back/infrastructure/dexie/db";
 
 /**
  * Obtiene el catálogo desde IndexedDB para una carga instantánea
