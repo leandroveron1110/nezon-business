@@ -71,6 +71,10 @@ export class OrderMapper {
       dailyNumber: 0, // Se asignará en el comando de sincronización
       shortCode: "", // Se asignará en el comando de sincronización
 
+      syncedDelivery: true,
+      syncedPayment: true,
+      syncedStatus: true,
+
       // Sync
       syncStatus: "SYNCED",
 
