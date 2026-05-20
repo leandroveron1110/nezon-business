@@ -209,6 +209,7 @@ export default function BusinessOrdersPage({ businessId }: Props) {
   if (isLoading) return <p>Sincronizando con Nezon...</p>;
 
   return (
+    <>
     <div className="w-full h-full bg-gray-50 flex flex-col overflow-hidden">
       {/* CAPTURA OCULTA */}
       <div
@@ -326,9 +327,11 @@ export default function BusinessOrdersPage({ businessId }: Props) {
         />
       )}
 
+    </div>
       {isNewOrder && (
         <OrderBuilder onClose={() => setIsNewOrder(!isNewOrder)} businessid={businessId} />
       )}
-    </div>
+    
+    </>
   );
 }

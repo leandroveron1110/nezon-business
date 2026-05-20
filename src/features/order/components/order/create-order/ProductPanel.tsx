@@ -39,119 +39,59 @@ const ProductCard = memo(function ProductCard({
   isLastAdded: boolean;
   onClick: (p: LocalProduct) => void;
 }) {
-  return (
-    <button
-      onClick={() => onClick(product)}
-      className={`
-        relative
-        flex
-        min-h-[110px]
-        flex-col
-        justify-between
-        rounded-2xl
-        border
-        p-3
-        text-left
-        transition-all
-        duration-150
-        active:scale-[0.98]
-        group
+  // Manejo limpio y seguro de clases condicionales para producción
+  const cardStyles = isLastAdded
+    ? "border-emerald-500 bg-emerald-50 shadow-inner"
+    : isHighlighted
+      ? "border-blue-500 bg-blue-50 ring-2 ring-blue-500/10 shadow-md"
+      : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-md";
 
-        ${
-          isLastAdded
-            ? "border-emerald-500 bg-emerald-50 shadow-inner"
-            : isHighlighted
-              ? "border-blue-500 bg-blue-50 ring-2 ring-blue-500/10 shadow-md"
-              : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-md"
-        }
-      `}
+  const textPriceStyles = isLastAdded
+    ? "text-emerald-700"
+    : isHighlighted
+      ? "text-blue-700"
+      : "text-slate-900";
+
+  const iconStyles = isLastAdded
+    ? "text-emerald-600"
+    : isHighlighted
+      ? "text-blue-600"
+      : "text-slate-300";
+
+  return (
+    <div
+      onClick={() => onClick(product)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") onClick(product);
+      }}
+      className={`relative flex min-h-[110px] flex-col justify-between rounded-2xl border p-3 text-left transition-all duration-150 active:scale-[0.98] group cursor-pointer select-none ${cardStyles}`}
     >
-      {/* Contenedor del nombre con padding dinámico si está destacado para que NADA se solape */}
+      {/* Contenedor del nombre con padding dinámico si está destacado */}
       <div className={`flex-1 w-full ${isHighlighted ? "pr-12" : ""}`}>
-        <p
-          className="
-            line-clamp-3
-            text-[11px]
-            font-black
-            uppercase
-            leading-tight
-            tracking-tight
-            text-slate-800
-            transition-colors
-            group-hover:text-slate-950
-          "
-        >
+        <p className="line-clamp-3 text-[11px] font-black uppercase leading-tight tracking-tight text-slate-800 transition-colors group-hover:text-slate-950">
           {product.name}
         </p>
       </div>
 
-      {/* Badge de ENTER posicionado de forma fija en la esquina superior derecha sin pisar el flujo del texto */}
+      {/* Badge de ENTER posicionado de forma fija en la esquina superior derecha */}
       {isHighlighted && (
-        <div
-          className="
-            absolute
-            right-2
-            top-2
-            z-10
-            flex
-            items-center
-            gap-1
-            rounded-md
-            bg-blue-600
-            px-1.5
-            py-0.5
-            text-[8px]
-            font-black
-            uppercase
-            tracking-wider
-            text-white
-            shadow-md
-          "
-        >
+        <div className="absolute right-2 top-2 z-10 flex items-center gap-1 rounded-md bg-blue-600 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-white shadow-md">
           ENTER
           <CornerDownLeft size={8} className="stroke-[3]" />
         </div>
       )}
 
+      {/* Contenedor inferior de Precio e Icono */}
       <div className="mt-3 flex items-end justify-between gap-2 w-full">
         <div className="min-w-0 flex-1">
-          <span
-            className={`
-              block
-              truncate
-              text-base
-              font-black
-              tracking-tight
-
-              ${
-                isLastAdded
-                  ? "text-emerald-700"
-                  : isHighlighted
-                    ? "text-blue-700"
-                    : "text-slate-900"
-              }
-            `}
-          >
+          <span className={`block truncate text-base font-black tracking-tight ${textPriceStyles}`}>
             {formatPrice(product.finalPrice)}
           </span>
         </div>
 
-        <div
-          className={`
-            shrink-0
-            transition-all
-            duration-150
-            group-hover:scale-110
-
-            ${
-              isLastAdded
-                ? "text-emerald-600"
-                : isHighlighted
-                  ? "text-blue-600"
-                  : "text-slate-300"
-            }
-          `}
-        >
+        <div className={`shrink-0 transition-all duration-150 group-hover:scale-110 ${iconStyles}`}>
           {isLastAdded ? (
             <CheckCircle2 size={20} className="stroke-[2.5]" />
           ) : (
@@ -159,7 +99,7 @@ const ProductCard = memo(function ProductCard({
           )}
         </div>
       </div>
-    </button>
+    </div>
   );
 });
 
