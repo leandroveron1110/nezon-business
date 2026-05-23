@@ -19,7 +19,7 @@ export async function baseApiRequest<T>(
   } catch (error) {
     if (axios.isAxiosError(error)) {
       if (error.code === "ECONNABORTED" || error.code === "ERR_NETWORK" || error.response?.status === 502) {
-        connectivityManager.setState("OFFLINE");
+        connectivityManager.reportHeartbeat(true); // Reportamos la falla al manager
       }
     }
     throw error;

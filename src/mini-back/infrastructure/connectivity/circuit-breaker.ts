@@ -17,20 +17,20 @@ class CircuitBreaker {
     return this.state;
   }
 
-  private open() {
-    this.state = "OPEN";
-    this.nextAttempt = Date.now() + this.retryTimeout;
+private open() {
+  this.state = "OPEN";
+  this.nextAttempt = Date.now() + this.retryTimeout;
 
-    connectivityManager.setState("OFFLINE");
-
-    console.log("[CircuitBreaker] OPEN");
-  }
+  // En lugar de setState("OFFLINE"), reportamos la falla transaccional
+  connectivityManager.reportHeartbeat(false); 
+  console.log("[CircuitBreaker] OPEN");
+}
 
   private close() {
     this.failures = 0;
     this.state = "CLOSED";
 
-    connectivityManager.setState("ONLINE");
+    connectivityManager.reportHeartbeat(true);
 
     console.log("[CircuitBreaker] CLOSED");
   }

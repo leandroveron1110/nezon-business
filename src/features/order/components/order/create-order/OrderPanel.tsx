@@ -10,6 +10,7 @@ import { STREET_SUGGESTIONS } from "@/data/street-suggestions";
 import { LOCATION_DATA } from "@/data/location-search-data";
 import { BarrioSuggestion } from "@/data/location-search";
 import { LocalOrderItem } from "@/mini-back/infrastructure/dexie/shcema/orders.schema";
+import { useConnectivity } from "@/lib/hooks/useConnectivity";
 
 interface OrderPanelProps {
   businessId: string;
@@ -70,6 +71,15 @@ export function OrderPanel({
   const [selectedZoneId, setSelectedZoneIdLocal] = useState<string | null>(
     null,
   );
+  const { isOnline } = useConnectivity();
+
+  
+  useState(() => {
+    console.log("Connectivity Status:", isOnline ? "ONLINE" : "OFFLINE");
+    if (!isOnline) {
+      setDeliveryProvider("INTERNAL");
+    }
+  });
 
   const handleManualSearch = async () => {
     if (!query) return;
@@ -170,7 +180,6 @@ export function OrderPanel({
     // Si no hay barrioEncontrado, queryParaEsri sigue siendo null, así que usa el query original (Calle Pura)
     const direccionFinalABuscar = queryParaEsri || query;
 
-    console.log(`Iniciando búsqueda en ESRI para: "${direccionFinalABuscar}"`);
     let result = await resolve(direccionFinalABuscar);
 
     // Fallback tradicional de alias por si ESRI no encuentra la altura de la calle
@@ -280,12 +289,14 @@ export function OrderPanel({
               >
                 CADETE PROPIO
               </button>
-              <button
-                onClick={() => setDeliveryProvider("PLATFORM")}
-                className={`flex-1 py-1 flex items-center justify-center gap-1 text-[9px] font-black rounded ${isLocus ? "bg-blue-500 text-white" : "text-slate-500"}`}
-              >
-                <Zap className="w-2.5 h-2.5" /> Voy!
-              </button>
+              {isOnline && (
+                <button
+                  onClick={() => setDeliveryProvider("PLATFORM")}
+                  className={`flex-1 py-1 flex items-center justify-center gap-1 text-[9px] font-black rounded ${isLocus ? "bg-blue-500 text-white" : "text-slate-500"}`}
+                >
+                  <Zap className="w-2.5 h-2.5" /> Voy!
+                </button>
+              )}
             </div>
 
             <div className="flex gap-1 relative">

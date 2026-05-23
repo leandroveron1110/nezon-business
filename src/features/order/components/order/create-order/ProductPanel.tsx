@@ -22,6 +22,7 @@ import {
 
 import { LocalProduct } from "@/mini-back/infrastructure/dexie/shcema/products.schema";
 import { formatPrice } from "@/features/common/utils/formatPrice";
+import { useConnectivity } from "@/lib/hooks/useConnectivity";
 
 interface ProductPanelProps {
   products: LocalProduct[];
@@ -39,6 +40,8 @@ const ProductCard = memo(function ProductCard({
   isLastAdded: boolean;
   onClick: (p: LocalProduct) => void;
 }) {
+  
+  
   // Colores de alta visibilidad para escaneo veloz en caja
   const cardStyles = isLastAdded
     ? "border-emerald-500 bg-emerald-50 shadow-inner"
@@ -110,6 +113,7 @@ const ProductCard = memo(function ProductCard({
 
 export function ProductPanel({ products, onProductClick }: ProductPanelProps) {
   const [search, setSearch] = useState("");
+  const { isOnline } = useConnectivity();
   const [lastAddedId, setLastAddedId] = useState<string | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -346,7 +350,7 @@ export function ProductPanel({ products, onProductClick }: ProductPanelProps) {
         <div className="flex items-center gap-1.5 rounded-lg border border-slate-100 bg-slate-50 px-2 py-1">
           <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
           <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
-            Catálogo Sincronizado
+            {isOnline ? "Catálogo Sincronizado" : "Catálogo Offline"}
           </span>
         </div>
       </div>

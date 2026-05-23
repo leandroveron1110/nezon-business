@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import { formatPrice } from "@/features/common/utils/formatPrice";
 import { DeliveryType, IOrderShortDto } from "@/types/order";
 import {
-  DeliveryStatus,
   OrderStatus,
   PaymentStatus,
 } from "@/types/order-state-machine";
@@ -102,7 +101,10 @@ export function OrderList({ order, onClick, onPrintDirect }: Props) {
         <div className={`absolute left-0 top-0 bottom-0 w-2 ${paymentBarColor}`} />
         
         {/* BARRA DE LOGÍSTICA (Derecha) */}
-        <div className={`absolute right-0 top-0 bottom-0 w-2 ${deliveryInfo.bar}`} />
+        {
+          !isPickup && (<div className={`absolute right-0 top-0 bottom-0 w-2 ${UI_COLORS.INFO.main}`} />)
+        }
+        
 
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
