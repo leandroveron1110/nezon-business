@@ -1,3 +1,4 @@
+"use client";
 // src/features/orders/hooks/useGetOrderById.ts
 import { useLiveQuery } from "dexie-react-hooks";
 import { UIOrder } from "../types/ui-order";

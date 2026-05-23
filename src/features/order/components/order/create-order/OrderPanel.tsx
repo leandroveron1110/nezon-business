@@ -517,57 +517,51 @@ export function OrderPanel({
 
           {/* BOTONES DE ACCIÓN: Corregidos mecánicamente para el fondo oscuro */}
           <div className="mt-4 mb-2 flex gap-3 px-1 select-none">
-            {/* BOTÓN SECUNDARIO: SOLO GUARDAR */}
+            {/* BOTÓN SECUNDARIO: SOLO GUARDAR (Estilo Plano Minimalista) */}
             <button
               type="button"
               onClick={() => createOrder(false)}
               disabled={items.length === 0}
               className="
-          flex-1
-          h-16
-          rounded-2xl
-          border-2 border-slate-700 border-b-[5px] active:border-b-2
-          flex flex-col items-center justify-center
-          bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white
-          font-black transition-all duration-75
-          active:translate-y-[3px]
-          disabled:opacity-20 disabled:pointer-events-none
-        "
+                flex-1
+                h-14
+                rounded-xl
+                border-2 border-slate-200
+                flex flex-col items-center justify-center
+                bg-white hover:bg-slate-50 active:bg-slate-100
+                text-slate-700 font-bold
+                transition-all duration-150 ease-in-out
+                disabled:opacity-40 disabled:bg-slate-50 disabled:border-slate-100 disabled:text-slate-400 disabled:pointer-events-none
+              "
             >
-              <Send size={16} className="mb-0.5 stroke-[2.5]" />
-              <span className="text-[10px] font-black uppercase tracking-wider">
+              <Send size={16} className="mb-1 stroke-[2.2]" />
+              <span className="text-[10px] font-bold uppercase tracking-wider">
                 Solo Guardar
               </span>
             </button>
 
-            {/* BOTÓN PRINCIPAL: ¡MARCHAR! */}
+            {/* BOTÓN PRINCIPAL: ¡MARCHAR! (Estilo Sólido de Alta Conversión) */}
             <button
               type="button"
               onClick={() => createOrder(true)}
               disabled={items.length === 0}
               className="
-          flex-[2.5]
-          h-16
-          relative
-          rounded-2xl
-          bg-emerald-600 border-b-[5px] border-emerald-800 active:border-b-2
-          flex flex-col items-center justify-center
-          font-black transition-all duration-75
-          active:translate-y-[3px]
-          hover:bg-emerald-500 text-white
-          disabled:opacity-20 disabled:pointer-events-none
-          group
-          overflow-hidden
-        "
+                flex-[2] /* Le da más ancho al botón de acción principal */
+                h-14
+                rounded-xl
+                bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700
+                flex flex-col items-center justify-center
+                text-white font-bold
+                transition-all duration-150 ease-in-out
+                shadow-sm active:shadow-none
+                disabled:opacity-40 disabled:bg-emerald-700/50 disabled:pointer-events-none
+              "
             >
-              {/* Reflejo superior físico */}
-              <div className="absolute inset-x-3 top-1 h-[3px] bg-white/20 rounded-full" />
-
-              <div className="flex flex-col items-center justify-center leading-none">
-                <span className="text-xl font-black uppercase tracking-tight italic drop-shadow-[0_2px_2px_rgba(0,0,0,0.3)]">
-                  ¡MARCHAR!
+              <div className="flex flex-col items-center justify-center leading-tight">
+                <span className="text-sm font-black uppercase tracking-wider">
+                  ¡Marchar Pedido!
                 </span>
-                <span className="text-[9px] font-black uppercase tracking-[0.15em] text-emerald-100/70 mt-1">
+                <span className="text-[9px] font-medium uppercase tracking-wider text-emerald-100/80 mt-0.5">
                   Confirmar + Cocina
                 </span>
               </div>

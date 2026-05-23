@@ -3,8 +3,9 @@ import { DexieOrderRepositoryAdapter } from "../dexie/repositories/dexie-order.r
 import { OrderServicePublic } from "../../core/orders/public";
 import { DexieOrderIdentityAdapter } from "../dexie/repositories/dexie-order-identity.adapter";
 import { cloudSyncService } from "./CloudSyncService";
-import { db } from "../dexie/db"; 
-import { checkRealServerHealth } from "@/features/order/api/catalog-api";
+import { db } from "../dexie/db";
+import { checkServerHealth } from "../connectivity/health-monitor";
+import { connectivityManager } from "../connectivity/connectivity-manager";
 
 class SyncQueueWorker {
   private isProcessing = false;
@@ -17,7 +18,9 @@ class SyncQueueWorker {
 
   private initListeners() {
     if (typeof window !== "undefined") {
-      window.addEventListener("online", () => this.processQueue({ forceAll: false }));
+      window.addEventListener("online", () =>
+        this.processQueue({ forceAll: false }),
+      );
       setInterval(() => this.processQueue({ forceAll: false }), 30000);
     }
   }
@@ -33,6 +36,12 @@ class SyncQueueWorker {
   async processQueue(options: { forceAll: boolean } = { forceAll: false }) {
     if (this.isProcessing) return;
 
+    if (connectivityManager.isOffline()) {
+      console.log("[Sync] Offline mode");
+
+      return;
+    }
+
     try {
       // 🛑 PRE-CHEQUEO VELOZ: Validamos índices directo en Dexie
       const pendingOrdersCount = await this.repository.getPendingCount();
@@ -45,7 +54,7 @@ class SyncQueueWorker {
       if (pendingOrdersCount === 0 && pendingEventsCount === 0) return;
 
       // Si hay trabajo, verificamos la salud de la API
-      const isServerAlive = await checkRealServerHealth();
+      const isServerAlive = await checkServerHealth();
       if (!isServerAlive) return;
 
       this.isProcessing = true;
@@ -55,7 +64,9 @@ class SyncQueueWorker {
         identity: this.identity,
       });
 
-      const pendingOrders = await this.repository.getPendingQueue({ forceAll: options.forceAll });
+      const pendingOrders = await this.repository.getPendingQueue({
+        forceAll: options.forceAll,
+      });
       const ordersToCreate = pendingOrders.filter((o) => !o.id);
       const ordersToUpdateStatus = pendingOrders.filter((o) => !!o.id);
 
@@ -69,7 +80,10 @@ class SyncQueueWorker {
         for (const chunk of chunks) {
           try {
             const businessId = chunk[0].businessId;
-            const syncResults = await cloudSyncService.triggerBatchSync(businessId, chunk);
+            const syncResults = await cloudSyncService.triggerBatchSync(
+              businessId,
+              chunk,
+            );
 
             for (const result of syncResults) {
               if (result.cloudId) {
@@ -78,12 +92,15 @@ class SyncQueueWorker {
                 await db.orders.update(result.idTemp, {
                   syncedStatus: true,
                   syncedPayment: true,
-                  syncedDelivery: true
+                  syncedDelivery: true,
                 });
               }
             }
           } catch (err) {
-            console.error("SyncWorker: Falló un chunk de creación masiva.", err);
+            console.error(
+              "SyncWorker: Falló un chunk de creación masiva.",
+              err,
+            );
             throw err; // Detiene la cola para preservar el orden FIFO
           }
         }
@@ -101,24 +118,48 @@ class SyncQueueWorker {
             // 🔍 Hilo 1: Estado General
             if (order.syncedStatus === false) {
               promises.push(
-                cloudSyncService.updateOrder(order.id!, { thread: "STATUS", nextValue: order.status })
-                  .then(res => { if (res) localUpdates.syncedStatus = true; return res; })
+                cloudSyncService
+                  .updateOrder(order.id!, {
+                    thread: "STATUS",
+                    nextValue: order.status,
+                  })
+                  .then((res) => {
+                    if (res) localUpdates.syncedStatus = true;
+                    return res;
+                  }),
               );
             }
 
             // 🔍 Hilo 2: Estado de Pago
             if (order.syncedPayment === false) {
               promises.push(
-                cloudSyncService.updateOrder(order.id!, { thread: "PAYMENT", nextValue: order.paymentStatus })
-                  .then(res => { if (res) localUpdates.syncedPayment = true; return res; })
+                cloudSyncService
+                  .updateOrder(order.id!, {
+                    thread: "PAYMENT",
+                    nextValue: order.paymentStatus,
+                  })
+                  .then((res) => {
+                    if (res) localUpdates.syncedPayment = true;
+                    return res;
+                  }),
               );
             }
 
             // 🔍 Hilo 3: Logística / Despacho
-            if (order.deliveryStatus !== "NOT_APPLICABLE" && order.syncedDelivery === false) {
+            if (
+              order.deliveryStatus !== "NOT_APPLICABLE" &&
+              order.syncedDelivery === false
+            ) {
               promises.push(
-                cloudSyncService.updateOrder(order.id!, { thread: "DELIVERY", nextValue: order.deliveryStatus })
-                  .then(res => { if (res) localUpdates.syncedDelivery = true; return res; })
+                cloudSyncService
+                  .updateOrder(order.id!, {
+                    thread: "DELIVERY",
+                    nextValue: order.deliveryStatus,
+                  })
+                  .then((res) => {
+                    if (res) localUpdates.syncedDelivery = true;
+                    return res;
+                  }),
               );
             }
 
@@ -130,15 +171,17 @@ class SyncQueueWorker {
 
             // Se ejecutan únicamente los endpoints cuyos hilos cambiaron localmente
             const results = await Promise.all(promises);
-            
-            if (results.every(res => res === true)) {
+
+            if (results.every((res) => res === true)) {
               // Traemos la orden fresca para ver si con estos cambios completamos todos los hilos
               const freshOrder = await db.orders.get(order.idTemp);
-              
-              const allThreadsSynced = 
+
+              const allThreadsSynced =
                 (localUpdates.syncedStatus || freshOrder?.syncedStatus) &&
                 (localUpdates.syncedPayment || freshOrder?.syncedPayment) &&
-                (order.deliveryStatus === "NOT_APPLICABLE" || localUpdates.syncedDelivery || freshOrder?.syncedDelivery);
+                (order.deliveryStatus === "NOT_APPLICABLE" ||
+                  localUpdates.syncedDelivery ||
+                  freshOrder?.syncedDelivery);
 
               if (allThreadsSynced) {
                 localUpdates.syncStatus = "SYNCED"; // Pasa a limpia de forma inmutable
@@ -150,9 +193,12 @@ class SyncQueueWorker {
               throw new Error("Fallo parcial en la ráfaga de estados remotos");
             }
           } catch (err) {
-            console.error(`SyncWorker: Error en estados de orden ${order.shortCode}. Deteniendo ciclo.`, err);
+            console.error(
+              `SyncWorker: Error en estados de orden ${order.shortCode}. Deteniendo ciclo.`,
+              err,
+            );
             await db.orders.update(order.idTemp, { syncStatus: "SYNC_ERROR" });
-            break; 
+            break;
           }
         }
       }
@@ -161,9 +207,11 @@ class SyncQueueWorker {
       // 3. SINCRONIZACIÓN DE HISTORIAL DE EVENTOS (CON LÍMITE DE RAM)
       // =================================================================
       await this.syncPendingHistoryEvents();
-
     } catch (error) {
-      console.error("SyncWorker: Error deteniendo cola por fallo de bloque.", error);
+      console.error(
+        "SyncWorker: Error deteniendo cola por fallo de bloque.",
+        error,
+      );
     } finally {
       this.isProcessing = false;
     }
@@ -189,7 +237,7 @@ class SyncQueueWorker {
           // Si es un evento creado offline, cruzamos rápido contra la orden local a ver si ya tiene ID remoto
           const localOrder = await db.orders.get(event.idTemp);
           if (localOrder && localOrder.id) {
-            event.orderId = localOrder.id; 
+            event.orderId = localOrder.id;
             validEventsToSend.push(event);
           }
         }
@@ -197,7 +245,8 @@ class SyncQueueWorker {
 
       if (validEventsToSend.length === 0) return;
 
-      const success = await cloudSyncService.syncOrderStateEvents(validEventsToSend);
+      const success =
+        await cloudSyncService.syncOrderStateEvents(validEventsToSend);
 
       if (success) {
         // En lugar de hacer toArray() o bulkDelete destructivos, mutamos el syncStatus del evento a 'SYNCED'
@@ -207,10 +256,15 @@ class SyncQueueWorker {
           .anyOf(eventIds)
           .modify({ syncStatus: "SYNCED" });
 
-        console.log(`SyncWorker: ${validEventsToSend.length} eventos de historial subidos con éxito.`);
+        console.log(
+          `SyncWorker: ${validEventsToSend.length} eventos de historial subidos con éxito.`,
+        );
       }
     } catch (error) {
-      console.error("SyncWorker: No se pudo completar la sincronización del historial.", error);
+      console.error(
+        "SyncWorker: No se pudo completar la sincronización del historial.",
+        error,
+      );
     }
   }
 
@@ -219,4 +273,12 @@ class SyncQueueWorker {
   }
 }
 
-export const syncQueueWorker = new SyncQueueWorker();
+let syncQueueWorker: SyncQueueWorker | null = null;
+
+export function getSyncQueueWorker() {
+  if (!syncQueueWorker) {
+    syncQueueWorker = new SyncQueueWorker();
+  }
+
+  return syncQueueWorker;
+}

@@ -1,17 +1,16 @@
 // src/features/auth/store/authStore.ts
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware"; // Para persistir el estado
+import { persist, createJSONStorage } from "zustand/middleware";
 import {
   LoginResponse,
   AuthState,
   AuthStore,
 } from "../types/auth";
+
 import {
   getMe as apiGetMe,
 } from "../api/authApi";
 
-// Define el estado inicial de autenticación
-// NOTA: initialState ahora solo contiene las propiedades de AuthState
 const initialState: AuthState = {
   user: null,
   token: null,
@@ -20,7 +19,6 @@ const initialState: AuthState = {
   error: null,
 };
 
-
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (typeof error === "string") return error;
@@ -28,20 +26,19 @@ function getErrorMessage(error: unknown): string {
 }
 
 export const useAuthStore = create<AuthStore>()(
-  // <-- CAMBIO CLAVE AQUÍ: create<AuthStore>()
   persist(
     (set) => ({
-      ...initialState, // Carga el estado inicial
+      ...initialState,
 
-      /**
-       * Inicia sesión de un usuario.
-       * @param payload Credenciales del usuario.
-       */
       login: async (response: LoginResponse) => {
-        set({ isLoading: true, error: null }); // Inicia carga, limpia errores previos
+        set({ isLoading: true, error: null });
+
         try {
-          // Almacena el token en localStorage (o en cookies si se usa un enfoque diferente)
-          localStorage.setItem("authToken", response.accessToken);
+          // ⚠️ PROTEGER SSR
+          if (typeof window !== "undefined") {
+            localStorage.setItem("authToken", response.accessToken);
+          }
+
           set({
             user: response.user,
             token: response.accessToken,
@@ -49,49 +46,67 @@ export const useAuthStore = create<AuthStore>()(
             isLoading: false,
             error: null,
           });
-          return response.user; // Devuelve el usuario para uso en el componente
+
+          return response.user;
         } catch (error: unknown) {
           set({
             ...initialState,
             isLoading: false,
-            error: getErrorMessage(error) || "Error al iniciar sesión.",
+            error: getErrorMessage(error),
           });
-          throw error; // 👈 dejamos que el componente decida qué hacer
+
+          throw error;
         }
       },
 
-      /**
-       * Cierra la sesión del usuario.
-       */
       logout: () => {
-        localStorage.removeItem("authToken"); // Elimina el token del almacenamiento
-        set({ ...initialState, isLoading: false }); // Resetea el store a su estado inicial no cargando
+        // ⚠️ PROTEGER SSR
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("authToken");
+        }
+
+        set({
+          ...initialState,
+          isLoading: false,
+        });
       },
 
-      /**
-       * Verifica la sesión del usuario al cargar la aplicación.
-       * Intenta obtener los datos del usuario usando el token existente.
-       */
       checkAuth: async () => {
         set({ isLoading: true, error: null });
-        const token = localStorage.getItem("authToken");
-        if (!token) {
-          set({ ...initialState, isLoading: false }); // No hay token, no autenticado
+
+        // ⚠️ PROTEGER SSR
+        if (typeof window === "undefined") {
+          set({
+            ...initialState,
+            isLoading: false,
+          });
           return;
         }
 
-        // Si hay un token, intenta obtener los datos del usuario
-        try {
-          const user = await apiGetMe(); // Usa la función de la API para obtener el perfil
+        const token = localStorage.getItem("authToken");
+
+        if (!token) {
           set({
-            user: user,
-            token: token, // Mantiene el token que ya teníamos
+            ...initialState,
+            isLoading: false,
+          });
+
+          return;
+        }
+
+        try {
+          const user = await apiGetMe();
+
+          set({
+            user,
+            token,
             isAuthenticated: true,
             isLoading: false,
             error: null,
           });
         } catch {
-          localStorage.removeItem("authToken"); // Token inválido o expirado, lo eliminamos
+          localStorage.removeItem("authToken");
+
           set({
             ...initialState,
             isLoading: false,
@@ -101,8 +116,14 @@ export const useAuthStore = create<AuthStore>()(
       },
     }),
     {
-      name: "auth-storage", // Nombre para el item en localStorage
-      storage: createJSONStorage(() => localStorage), 
+      name: "auth-storage",
+
+      // ⚠️ LA PARTE IMPORTANTE
+      storage:
+        typeof window !== "undefined"
+          ? createJSONStorage(() => localStorage)
+          : undefined,
+
       partialize: (state) => ({
         user: state.user,
         isAuthenticated: state.isAuthenticated,

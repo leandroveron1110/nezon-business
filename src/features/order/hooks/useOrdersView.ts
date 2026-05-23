@@ -1,3 +1,4 @@
+"use client";
 // src/features/orders/hooks/useOrdersView.ts
 import { db } from "@/mini-back/infrastructure/dexie/db";
 import { useLiveQuery } from "dexie-react-hooks";

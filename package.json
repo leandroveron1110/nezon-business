@@ -2,13 +2,14 @@
   "name": "Nezon-business",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
-    "dev": "next dev --turbopack -p 3003",
-    "build": "next build",
-    "start": "next start",
+"scripts": {
+    "dev": "next dev --webpack -p 3003", 
+    "build": "next build --webpack",
+    "start": "next start -p 3003",
     "lint": "next lint"
   },
   "dependencies": {
+    "@ducanh2912/next-pwa": "^10.2.9",
     "@hookform/resolvers": "^5.1.1",
     "@tanstack/react-query": "^5.90.12",
     "axios": "^1.10.0",

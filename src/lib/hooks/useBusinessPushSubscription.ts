@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/features/auth/store/authStore";
-import { subscribeBusinessToPush } from "../pushSubscription";
 
 /**
  * Custom Hook para gestionar la suscripción a notificaciones Push de Negocios.
@@ -40,7 +39,7 @@ export function useBusinessPushSubscription() {
     const handleHydration = () => {
       setIsHydrated(true);
       console.log(
-        "✅ Zustand Store hidratado. Listo para la suscripción de Negocios."
+        "✅ Zustand Store hidratado. Listo para la suscripción de Negocios.",
       );
     };
 
@@ -51,26 +50,19 @@ export function useBusinessPushSubscription() {
   useEffect(() => {
     const hasBusiness = businessIds && businessIds.length > 0;
 
-    // 🚀 Condición de Suscripción: Debe ser cliente, hidratado, autenticado y tener IDs.
-    if (isClient && isHydrated && isAuthenticated && hasBusiness) {
-      console.log(
-        `🚀 useBusinessPushSubscription: Intentando suscribir a ${businessIds.length} negocios.`
-      );
+    async function handlePush() {
+      const { subscribeBusinessToPush } = await import("../pushSubscription");
 
-      // Llama a la función optimizada con la lista de IDs
-      subscribeBusinessToPush(businessIds);
+      await subscribeBusinessToPush(businessIds);
     }
 
-    // 🔒 Manejo de limpieza al hacer logout o si se pierde el acceso a los negocios
+    if (isClient && isHydrated && isAuthenticated && hasBusiness) {
+      handlePush();
+    }
+
     if (isClient && isHydrated && (!isAuthenticated || !hasBusiness)) {
-      // Solo limpiamos la caché si ya estábamos autenticados/hidratados
-      console.log(
-        "🔒 Usuario desconectado o sin negocios. Limpiando bandera de suscripción local."
-      );
       localStorage.removeItem("push_business_sub_ids");
     }
-
-    // ⚠️ Dependencia crucial: 'businessIds' es un array. La re-evaluación es vital si la lista cambia.
   }, [isClient, isHydrated, isAuthenticated, businessIds]);
 
   return null;

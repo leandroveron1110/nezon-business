@@ -1,15 +1,20 @@
 // src/features/orders/interactors/sync-orders.interactor.ts
-import {
-  checkRealServerHealth,
-  syncOrdersByBusinessId,
-} from "@/features/order/api/catalog-api";
+import { syncOrdersByBusinessId } from "@/features/order/api/catalog-api";
 import { syncOrdersInboundCommand } from "../commands/sync-orders-inbound.command";
 import { db } from "@/mini-back/infrastructure/dexie/db";
+import { checkServerHealth } from "@/mini-back/infrastructure/connectivity/health-monitor";
+import { connectivityManager } from "@/mini-back/infrastructure/connectivity/connectivity-manager";
 
 export async function syncOrdersInteractor(
   businessId: string,
   options: { force?: boolean; daysBack?: number; specificDate?: string } = {},
 ): Promise<void> {
+  if (connectivityManager.isOffline()) {
+    console.log("[Sync] Offline mode");
+
+    return;
+  }
+
   const { force = false, daysBack, specificDate } = options;
 
   // 1. Buscamos el post-it en metadata
@@ -27,7 +32,7 @@ export async function syncOrdersInteractor(
   );
 
   try {
-    const isServerAlive = await checkRealServerHealth();
+    const isServerAlive = await checkServerHealth();
     if (!isServerAlive) return;
     const res = await syncOrdersByBusinessId(
       businessId,

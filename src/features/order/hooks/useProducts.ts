@@ -1,4 +1,5 @@
 // useProducts.ts
+"use client";
 import { db } from "@/mini-back/infrastructure/dexie/db";
 import { useLiveQuery } from "dexie-react-hooks";
 

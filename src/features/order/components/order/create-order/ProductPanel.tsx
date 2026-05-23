@@ -39,24 +39,20 @@ const ProductCard = memo(function ProductCard({
   isLastAdded: boolean;
   onClick: (p: LocalProduct) => void;
 }) {
-  // Manejo limpio y seguro de clases condicionales para producción
+  // Colores de alta visibilidad para escaneo veloz en caja
   const cardStyles = isLastAdded
     ? "border-emerald-500 bg-emerald-50 shadow-inner"
     : isHighlighted
-      ? "border-blue-500 bg-blue-50 ring-2 ring-blue-500/10 shadow-md"
+      ? "border-emerald-600 bg-emerald-50 ring-2 ring-emerald-600/20 shadow-md"
       : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-md";
 
-  const textPriceStyles = isLastAdded
+  const textPriceStyles = isLastAdded || isHighlighted
     ? "text-emerald-700"
-    : isHighlighted
-      ? "text-blue-700"
-      : "text-slate-900";
+    : "text-slate-900";
 
-  const iconStyles = isLastAdded
+  const iconStyles = isLastAdded || isHighlighted
     ? "text-emerald-600"
-    : isHighlighted
-      ? "text-blue-600"
-      : "text-slate-300";
+    : "text-slate-300 group-hover:text-slate-500";
 
   return (
     <div
@@ -66,39 +62,48 @@ const ProductCard = memo(function ProductCard({
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") onClick(product);
       }}
-      className={`relative flex min-h-[110px] flex-col justify-between rounded-2xl border p-3 text-left transition-all duration-150 active:scale-[0.98] group cursor-pointer select-none ${cardStyles}`}
+      className={`
+        relative flex flex-col p-3 text-left 
+        rounded-2xl border transition-all duration-100
+        active:scale-[0.97] active:bg-slate-50 cursor-pointer select-none 
+        ${cardStyles}
+      `}
     >
-      {/* Contenedor del nombre con padding dinámico si está destacado */}
+      {/* Información del producto compactada de arriba hacia abajo sin huecos */}
       <div className={`w-full ${isHighlighted ? "pr-12" : ""}`}>
-        <p className="line-clamp-3 text-[11px] font-black uppercase leading-tight tracking-tight text-slate-800 transition-colors group-hover:text-slate-950">
+        <p className="line-clamp-2 text-[11px] font-black uppercase leading-tight tracking-tight text-slate-800 transition-colors group-hover:text-slate-950">
           {product.name}
         </p>
       </div>
 
-      {/* Badge de ENTER posicionado de forma fija en la esquina superior derecha */}
-      {isHighlighted && (
-        <div className="absolute right-2 top-2 z-10 flex items-center gap-1 rounded-md bg-blue-600 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-white shadow-md">
-          ENTER
-          <CornerDownLeft size={8} className="stroke-[3]" />
-        </div>
-      )}
-
-      {/* Contenedor inferior de Precio e Icono */}
-      <div className="mt-3 flex items-end justify-between gap-2 w-full">
+      {/* Precio e Icono pegados inmediatamente abajo del texto */}
+      <div className="mt-1.5 flex items-center justify-between gap-2 w-full">
         <div className="min-w-0 flex-1">
-          <span className={`block truncate text-base font-black tracking-tight ${textPriceStyles}`}>
+          <span
+            className={`block truncate text-base font-black tracking-tight ${textPriceStyles}`}
+          >
             {formatPrice(product.finalPrice)}
           </span>
         </div>
 
-        <div className={`shrink-0 transition-all duration-150 group-hover:scale-110 ${iconStyles}`}>
+        <div
+          className={`shrink-0 transition-transform duration-100 group-hover:scale-105 ${iconStyles}`}
+        >
           {isLastAdded ? (
-            <CheckCircle2 size={20} className="stroke-[2.5]" />
+            <CheckCircle2 size={18} className="stroke-[2.5]" />
           ) : (
-            <PlusCircle size={20} className="stroke-[2.5]" />
+            <PlusCircle size={18} className="stroke-[2.5]" />
           )}
         </div>
       </div>
+
+      {/* Badge de ENTER fijo arriba a la derecha */}
+      {isHighlighted && (
+        <div className="absolute right-2 top-2 z-10 flex items-center gap-1 rounded bg-emerald-600 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-white shadow-md">
+          <span>ENTER</span>
+          <CornerDownLeft size={8} className="stroke-[3]" />
+        </div>
+      )}
     </div>
   );
 });
@@ -161,14 +166,17 @@ export function ProductPanel({ products, onProductClick }: ProductPanelProps) {
   }, [products, deferredSearch]);
 
   // Usamos useCallback para que la referencia no cambie y ProductCard no se re-renderee al tipear
-  const handleProductAction = useCallback((product: LocalProduct) => {
-    onProductClick(product);
-    setLastAddedId(product.id);
+  const handleProductAction = useCallback(
+    (product: LocalProduct) => {
+      onProductClick(product);
+      setLastAddedId(product.id);
 
-    if (window.innerWidth > 768) {
-      inputRef.current?.focus();
-    }
-  }, [onProductClick]);
+      if (window.innerWidth > 768) {
+        inputRef.current?.focus();
+      }
+    },
+    [onProductClick],
+  );
 
   const clearSearch = () => {
     startTransition(() => {
@@ -190,13 +198,13 @@ export function ProductPanel({ products, onProductClick }: ProductPanelProps) {
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-slate-100">
-      {/* SEARCH */}
-      <div className="shrink-0 border-b bg-white p-2 shadow-sm">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-slate-50">
+      {/* SEARCH CONTAINER - Más estilizado y plano */}
+      <div className="shrink-0 border-b border-slate-200 bg-white p-3">
         <div className="relative">
           <Search
             size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 stroke-[2.2]"
           />
 
           <input
@@ -204,27 +212,27 @@ export function ProductPanel({ products, onProductClick }: ProductPanelProps) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Buscar producto..."
+            placeholder="Buscar por código o nombre de producto..."
             autoComplete="off"
             spellCheck={false}
             className="
               w-full
-              rounded-2xl
+              rounded-xl
               border-2
               border-slate-200
               bg-slate-50
-              py-3
+              py-2.5
               pl-10
               pr-24
-              text-sm
-              font-black
+              text-xs
+              font-bold
               uppercase
               tracking-wide
               text-slate-800
               outline-none
               transition-all
-              placeholder:text-slate-400
-              focus:border-blue-600
+              placeholder:text-slate-400 placeholder:normal-case placeholder:font-medium
+              focus:border-emerald-600
               focus:bg-white
             "
           />
@@ -240,27 +248,27 @@ export function ProductPanel({ products, onProductClick }: ProductPanelProps) {
                 -translate-y-1/2
                 items-center
                 gap-1
-                rounded-xl
-                bg-slate-200
+                rounded-lg
+                bg-slate-100
                 px-2
-                py-1.5
-                text-[10px]
-                font-black
+                py-1
+                text-[9px]
+                font-bold
                 uppercase
                 tracking-wide
-                text-slate-600
+                text-slate-500
                 transition-colors
-                hover:bg-slate-300
+                hover:bg-slate-200
               "
             >
-              <X size={12} />
+              <X size={12} className="stroke-[2.5]" />
               Limpiar
             </button>
           )}
         </div>
       </div>
 
-      {/* FEEDBACK FLOATING */}
+      {/* FEEDBACK FLOATING - Corregido y adaptado a Nezon */}
       {lastAddedId && (
         <div
           className="
@@ -273,31 +281,32 @@ export function ProductPanel({ products, onProductClick }: ProductPanelProps) {
             -translate-x-1/2
             items-center
             gap-2
-            rounded-full
+            rounded-xl
             bg-emerald-600
-            px-5
-            py-2.5
+            px-4
+            py-2
             text-white
-            shadow-2xl
+            shadow-xl shadow-emerald-900/10
             animate-in
             fade-in
             slide-in-from-top-2
+            duration-200
           "
         >
-          <CheckCircle2 size={16} />
-          <span className="text-xs font-black uppercase tracking-wider">
-            Producto agregado
+          <CheckCircle2 size={14} className="stroke-[2.5]" />
+          <span className="text-[10px] font-bold uppercase tracking-wider">
+            Agregado a la comanda
           </span>
         </div>
       )}
 
-      {/* GRID */}
-      <div className="min-h-0 flex-1 overflow-y-auto p-2">
+      {/* GRID - Con fondo suave para resaltar las tarjetas del catálogo */}
+      <div className="min-h-0 flex-1 overflow-y-auto p-3">
         {filteredProducts.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center py-12 text-slate-400">
-            <Package size={48} className="mb-3 opacity-30" />
-            <p className="text-sm font-black uppercase tracking-wider">
-              Sin resultados
+          <div className="flex h-full flex-col items-center justify-center py-20 text-slate-400">
+            <Package size={40} className="mb-3 opacity-25 stroke-[1.5]" />
+            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              Sin resultados para la búsqueda
             </p>
           </div>
         ) : (
@@ -305,10 +314,12 @@ export function ProductPanel({ products, onProductClick }: ProductPanelProps) {
             className="
               grid
               grid-cols-2
-              gap-2
+              gap-2.5
               sm:grid-cols-3
-              lg:grid-cols-4
-              xl:grid-cols-5
+              md:grid-cols-2
+              lg:grid-cols-3
+              xl:grid-cols-4
+              2xl:grid-cols-5
             "
           >
             {filteredProducts.map((product, index) => (
@@ -324,18 +335,18 @@ export function ProductPanel({ products, onProductClick }: ProductPanelProps) {
         )}
       </div>
 
-      {/* FOOTER */}
-      <div className="flex shrink-0 items-center justify-between border-t border-slate-800 bg-slate-900 px-3 py-2 text-white">
-        <span className="truncate text-[10px] font-black uppercase tracking-wider text-slate-400">
+      {/* FOOTER MINIMALISTA - Integrado visualmente, sin bloques negros duros */}
+      <div className="flex shrink-0 items-center justify-between border-t border-slate-200 bg-white px-4 py-2">
+        <span className="truncate text-[10px] font-medium uppercase tracking-wider text-slate-400">
           {search.trim().length > 0
-            ? `${filteredProducts.length} resultados`
-            : `${products.length} productos cargados`}
+            ? `${filteredProducts.length} coincidencias`
+            : `${products.length} productos disponibles`}
         </span>
 
-        <div className="flex items-center gap-1.5 rounded-md border border-slate-700 bg-slate-800 px-2 py-1">
-          <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)]" />
-          <span className="text-[9px] font-black uppercase tracking-wide text-emerald-400">
-            Activo
+        <div className="flex items-center gap-1.5 rounded-lg border border-slate-100 bg-slate-50 px-2 py-1">
+          <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
+          <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
+            Catálogo Sincronizado
           </span>
         </div>
       </div>

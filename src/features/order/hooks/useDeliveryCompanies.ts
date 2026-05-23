@@ -1,4 +1,5 @@
 // src/features/business/hooks/useDeliveryCompanies.ts
+"use client";
 import { useQuery } from "@tanstack/react-query";
 import { fetchDeliveryCompany, fetchOrderById } from "../api/catalog-api";
 import { ApiResult } from "@/lib/apiFetch";

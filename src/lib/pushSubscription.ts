@@ -1,4 +1,5 @@
 // utils/pushSubscription.ts
+"use client";
 
 import { apiGet, apiPost } from "./apiFetch";
 

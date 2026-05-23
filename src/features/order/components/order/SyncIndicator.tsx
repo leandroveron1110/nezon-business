@@ -1,5 +1,6 @@
+"use client";
+import { getSyncQueueWorker } from "@/mini-back/infrastructure/network/SyncQueueWorker";
 // src/components/SyncIndicator.tsx
-import { syncQueueWorker } from "@/mini-back/infrastructure/network/SyncQueueWorker";
 import { Loader2, CloudUpload, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 
@@ -13,7 +14,7 @@ export function SyncIndicator() {
 
     try {
         console.log("SyncIndicator: Iniciando sincronización manual de todas las órdenes pendientes...");
-      await syncQueueWorker.forceManualSyncAll();
+      await getSyncQueueWorker().forceManualSyncAll();
 
       setSuccess(true);
 

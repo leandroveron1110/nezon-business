@@ -1,3 +1,5 @@
+"use client";
+
 import { Utensils, Receipt, X, MessageCircle } from "lucide-react";
 
 interface Props {

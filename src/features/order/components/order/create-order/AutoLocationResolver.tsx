@@ -1,4 +1,5 @@
 // features/locationSelector/hooks/useAutoResolveLocation.ts
+"use client";
 import { useState } from "react";
 import { EsriProvider } from "leaflet-geosearch";
 import { useAlert } from "@/features/common/ui/Alert/Alert";

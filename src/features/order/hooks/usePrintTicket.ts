@@ -1,3 +1,4 @@
+"use client";
 import { toPng } from 'html-to-image';
 
 export function usePrintTicket() {

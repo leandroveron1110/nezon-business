@@ -25,4 +25,13 @@ export class NezonDB extends Dexie {
   }
 }
 
-export const db = new NezonDB();
+let dbInstance: NezonDB | null = null;
+
+export function getDb() {
+  if (!dbInstance) {
+    dbInstance = new NezonDB();
+  }
+
+  return dbInstance;
+}
+export const db = getDb();

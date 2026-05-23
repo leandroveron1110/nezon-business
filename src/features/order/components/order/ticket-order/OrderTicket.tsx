@@ -1,3 +1,5 @@
+"use client";
+
 import { OrderItem, PaymentMethodType } from "@/types/order";
 import { IOrder, DeliveryType } from "../../../types/order";
 

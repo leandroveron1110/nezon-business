@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 
 // src/features/business/hooks/usePrinterSettings.ts

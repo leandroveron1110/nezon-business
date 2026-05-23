@@ -1,3 +1,4 @@
+"use client";
 // src/features/orders/hooks/useSyncOrders.ts
 import { syncOrdersInteractor } from "@/features/common/database/interactors/sync-orders.interactor";
 import { useEffect, useRef } from "react";

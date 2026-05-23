@@ -15,7 +15,7 @@ import { useAlert } from "@/features/common/ui/Alert/Alert";
 import { OrderTicket } from "./order/ticket-order/OrderTicket";
 import { PrintSelectorModal } from "./order/PrintSelectorModal";
 import { usePrintTicket } from "../hooks/usePrintTicket";
-import { toPng } from "html-to-image";
+// import { toPng } from "html-to-image";
 import { useOrdersView } from "../hooks/useOrdersView";
 import { useSyncOrders } from "../hooks/useSyncOrders";
 import { useGetOrderById } from "../hooks/useGetOrderById";
@@ -82,6 +82,8 @@ export default function BusinessOrdersPage({ businessId }: Props) {
 
     if (mode === "SHARE_WHATSAPP") {
       setShowPrintModal(false);
+      const { toPng } = await import("html-to-image");
+
       // 1. Forzamos el renderizado del ticket en modo Cliente
       setPrintMode("CUSTOMER");
 
@@ -138,6 +140,7 @@ export default function BusinessOrdersPage({ businessId }: Props) {
           setPrintMode(null); // Limpiamos el estado
         }
       }, 800); // Subimos a 800ms para darle tiempo al celu
+
     } else {
       setPrintMode(mode);
       setShowPrintModal(false);
@@ -279,8 +282,12 @@ export default function BusinessOrdersPage({ businessId }: Props) {
         <SyncIndicator />
       </div>
 
-      <main className="flex-1 overflow-y-auto">
-        <div className="max-w-7xl mx-auto w-full pb-20">
+{/* El contenedor padre de este main tiene que ser un flex con altura controlada */}
+      <main className="flex-1 h-[calc(100vh-70px)] overflow-y-auto scrollbar-thin">
+        {/* Eliminé el pb-20 porque al tener scroll interno ya controla los límites */}
+        <div className="max-w-7xl mx-auto w-full">
+          
+          {/* El header de la tabla ahora se va a quedar verdaderamente pegado arriba */}
           <div className="hidden md:grid grid-cols-[100px_1fr_150px_140px_140px_120px] px-6 py-3 text-[11px] uppercase tracking-wider font-bold text-gray-400 border-b bg-white sticky top-0 z-10">
             <span>Pedido</span>
             <span>Cliente</span>

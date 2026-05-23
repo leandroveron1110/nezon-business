@@ -1,3 +1,4 @@
+"use client";
 import { ApiResult } from "@/lib/apiFetch";
 import { useQuery } from "@tanstack/react-query";
 import { IOrder } from "../types/order";

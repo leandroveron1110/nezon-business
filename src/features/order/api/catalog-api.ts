@@ -62,31 +62,6 @@ export const syncOrdersByBusinessId = async (
   }
 };
 
-export const checkRealServerHealth = async (): Promise<boolean> => {
-  if (typeof navigator !== "undefined" && !navigator.onLine) return false;
-
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000); // 4 segundos de timeout máximo
-
-    const response = await apiGet<{ status: string; timestamp: string }>(
-      `/health/ping`,
-    );
-
-    clearTimeout(timeoutId);
-
-    if (!response.success || !response.data) {
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.warn(
-      "⚠️ SyncQueueWorker: El cliente tiene internet, pero el servidor está caído o inaccesible.",
-    );
-    return false;
-  }
-};
 
 /**
  * Representa los campos que pueden cambiar en cualquiera de los 3 hilos.

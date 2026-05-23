@@ -1,26 +1,29 @@
-@import "tailwindcss";
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-  
+@import "tailwindcss"; /* Suficiente para Tailwind v4 */
+
+/* Quitamos el overflow hidden global para evitar bloqueos fantasmas */
+html, body {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  background-color: #E8E8E8;
+}
+
+* {
+  box-sizing: border-box;
+}
 
 .leaflet-container {
   z-index: 0 !important;
 }
 
-
-body {
-    background-color: #E8E8E8;
-}
-
-/* Este CSS solo se aplicará cuando se imprima el contenido del iframe */
+/* Configuración de impresión se mantiene impecable */
 @media print {
   @page {
     margin: 0;
     size: auto;
   }
   
-  /* Aseguramos que el contenedor del ticket sea visible */
   .ticket-wrapper {
     display: block !important;
     visibility: visible !important;

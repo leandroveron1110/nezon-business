@@ -5,14 +5,16 @@ import { v4 as uuid } from "uuid";
 import { useProducts } from "../../../hooks/useProducts";
 import { X, LayoutPanelLeft } from "lucide-react";
 
-
 import { OptionSelector } from "./OptionSelector";
 import { ProductPanel } from "./ProductPanel";
 import { OrderPanel } from "./OrderPanel";
 import { OrderSheet } from "./OrderSheet";
 import { DeliveryStatus, PaymentStatus } from "@/types/order-state-machine";
 import { createOrderOrchestrator } from "@/mini-back/orchestrator/order.orchestrator";
-import { LocalOrderItem, LocalOrderOptionGroup } from "@/mini-back/infrastructure/dexie/shcema/orders.schema";
+import {
+  LocalOrderItem,
+  LocalOrderOptionGroup,
+} from "@/mini-back/infrastructure/dexie/shcema/orders.schema";
 import { LocalProduct } from "@/mini-back/infrastructure/dexie/shcema/products.schema";
 
 export default function OrderBuilder({
@@ -198,7 +200,7 @@ export default function OrderBuilder({
     }
   };
   return (
-    <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-0 md:p-4 lg:p-8 overflow-hidden backdrop-blur-sm">
+    <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-0 md:p-4 lg:p-6 overflow-hidden backdrop-blur-sm animate-in fade-in duration-200">
       {pendingProduct && (
         <OptionSelector
           product={pendingProduct}
@@ -207,19 +209,19 @@ export default function OrderBuilder({
         />
       )}
 
-      {/* MODAL CONTAINER */}
-      <div className="bg-white w-full h-full max-w-7xl mx-auto md:h-[95vh] md:rounded-3xl flex flex-col overflow-hidden relative shadow-2xl border border-white/20">
-        {/* HEADER DE CONTROL */}
-        <header className="h-14 border-b flex items-center justify-between px-4 bg-white shrink-0 z-30">
+      {/* MODAL CONTAINER CONTAINER */}
+      <div className="bg-slate-50 w-full h-full max-w-7xl mx-auto md:h-[92vh] md:rounded-2xl flex flex-col overflow-hidden relative shadow-2xl border border-slate-200/50">
+        {/* HEADER DE CONTROL INSTITUCIONAL */}
+        <header className="h-14 border-b border-slate-200 flex items-center justify-between px-5 bg-white shrink-0 z-30">
           <div className="flex items-center gap-3">
-            <div className="p-1.5 bg-blue-600 rounded-lg text-white">
+            <div className="p-1.5 bg-emerald-600 rounded-xl text-white shadow-sm">
               <LayoutPanelLeft size={18} />
             </div>
             <div>
-              <h2 className="text-xs font-black uppercase tracking-widest text-slate-800 leading-none">
-                Locus <span className="text-blue-600">POS</span>
+              <h2 className="text-xs font-black uppercase tracking-wider text-slate-800 leading-none">
+                Hunay <span className="text-emerald-600">POS</span>
               </h2>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
+              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
                 Terminal de Ventas v4.0
               </p>
             </div>
@@ -227,32 +229,70 @@ export default function OrderBuilder({
 
           <button
             onClick={onClose}
-            className="group flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-red-500 hover:text-white text-slate-500 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest"
+            className="group flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-red-50 hover:text-red-600 text-slate-500 rounded-xl transition-all font-bold text-[10px] uppercase tracking-wider border border-transparent hover:border-red-100"
           >
             <span>Cerrar</span>
             <X
-              size={16}
-              className="group-hover:rotate-90 transition-transform"
+              size={14}
+              className="group-hover:rotate-90 transition-transform stroke-[2.5]"
             />
           </button>
         </header>
 
         {/* MAIN LAYOUT */}
-        <div className="flex-1 flex overflow-hidden bg-slate-100">
+        <div className="flex-1 flex overflow-hidden w-full relative">
           {!isMobile ? (
             <>
-              {/* ProductPanel (Desktop) */}
-              <main className="flex-1 h-full overflow-hidden">
+              {/* ProductPanel (Desktop) - Se estira naturalmente ocupando el resto */}
+              <main className="flex-1 h-full overflow-y-auto bg-slate-50">
                 <ProductPanel
                   products={products}
                   onProductClick={handleProductClick}
                 />
               </main>
 
-              {/* OrderPanel (Desktop) */}
-              <aside className="w-[400px] h-full bg-white border-l shadow-[-10px_0_30px_rgba(0,0,0,0.02)] z-20">
-                <OrderPanel
-                businessId={businessid}
+              {/* OrderPanel (Desktop) - Ancho optimizado para evitar scroll horizontal de inputs */}
+              <aside className="w-[450px] lg:w-[480px] xl:w-[520px] h-full bg-white border-l border-slate-200 shadow-[-4px_0_20px_rgba(0,0,0,0.01)] z-20 flex flex-col overflow-hidden">
+                {/* Forzamos scroll vertical estricto, matando cualquier deformación hacia los costados */}
+                <div className="flex-1 h-full overflow-y-auto overflow-x-hidden p-1">
+                  <OrderPanel
+                    businessId={businessid}
+                    items={items}
+                    updateQty={updateQty}
+                    total={total}
+                    createOrder={createOrder}
+                    customerName={customerName}
+                    setCustomerName={setCustomerName}
+                    customerPhone={customerPhone}
+                    setCustomerPhone={setCustomerPhone}
+                    customerAddress={customerAddress}
+                    setCustomerAddress={setCustomerAddress}
+                    deliveryType={deliveryType}
+                    setDeliveryType={setDeliveryType}
+                    deliveryProvider={deliveryProvider}
+                    setDeliveryProvider={setDeliveryProvider}
+                    deliveryCost={deliveryCost}
+                    setDeliveryCost={setDeliveryCost}
+                    paymentMethod={paymentMethod}
+                    setPaymentMethod={setPaymentMethod}
+                    setZoneId={setZoneId}
+                  />
+                </div>
+              </aside>
+            </>
+          ) : (
+            /* MOBILE LAYOUT */
+            <div className="relative w-full h-full flex flex-col overflow-hidden bg-slate-50">
+              <div className="flex-1 overflow-y-auto">
+                <ProductPanel
+                  products={products}
+                  onProductClick={handleProductClick}
+                />
+              </div>
+
+              <div className="shrink-0 bg-white border-t border-slate-200 z-20 max-h-[60vh] overflow-y-auto overflow-x-hidden">
+                <OrderSheet
+                  businessId={businessid}
                   items={items}
                   updateQty={updateQty}
                   total={total}
@@ -263,8 +303,6 @@ export default function OrderBuilder({
                   setCustomerPhone={setCustomerPhone}
                   customerAddress={customerAddress}
                   setCustomerAddress={setCustomerAddress}
-                  // customerNote={customerNote}
-                  // setCustomerNote={setCustomerNote}
                   deliveryType={deliveryType}
                   setDeliveryType={setDeliveryType}
                   deliveryProvider={deliveryProvider}
@@ -275,43 +313,7 @@ export default function OrderBuilder({
                   setPaymentMethod={setPaymentMethod}
                   setZoneId={setZoneId}
                 />
-              </aside>
-            </>
-          ) : (
-            <div className="relative w-full h-full flex flex-col overflow-hidden">
-              {/* ProductPanel (Mobile) */}
-              <div className="flex-1 overflow-hidden">
-                <ProductPanel
-                  products={products}
-                  onProductClick={handleProductClick}
-                />
               </div>
-
-              {/* OrderSheet (Mobile) */}
-              <OrderSheet
-              businessId={businessid}
-                items={items}
-                updateQty={updateQty}
-                total={total}
-                createOrder={createOrder}
-                customerName={customerName}
-                setCustomerName={setCustomerName}
-                customerPhone={customerPhone}
-                setCustomerPhone={setCustomerPhone}
-                customerAddress={customerAddress}
-                setCustomerAddress={setCustomerAddress}
-                // customerNote={customerNote}
-                // setCustomerNote={setCustomerNote}
-                deliveryType={deliveryType}
-                setDeliveryType={setDeliveryType}
-                deliveryProvider={deliveryProvider}
-                setDeliveryProvider={setDeliveryProvider}
-                deliveryCost={deliveryCost}
-                setDeliveryCost={setDeliveryCost}
-                paymentMethod={paymentMethod}
-                setPaymentMethod={setPaymentMethod}
-                setZoneId={setZoneId}
-              />
             </div>
           )}
         </div>
