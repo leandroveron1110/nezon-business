@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Trash2, Plus, Minus, Send, Zap, Truck, Store } from "lucide-react";
 import { useLocationAutocomplete } from "@/features/order/hooks/useLocationAutocomplete";
 import { formatPrice } from "@/features/common/utils/formatPrice";
@@ -74,12 +74,12 @@ export function OrderPanel({
   const { isOnline } = useConnectivity();
 
   
-  useState(() => {
+  useEffect(() => {
     console.log("Connectivity Status:", isOnline ? "ONLINE" : "OFFLINE");
     if (!isOnline) {
       setDeliveryProvider("INTERNAL");
     }
-  });
+  }, [isOnline]);
 
   const handleManualSearch = async () => {
     if (!query) return;

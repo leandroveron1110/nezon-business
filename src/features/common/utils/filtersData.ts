@@ -1,41 +1,119 @@
-import { IOrderShortDto } from "@/types/order";
-import { OrderStatus, DeliveryStatus, PaymentStatus } from "@/types/order-state-machine";
+import { IOrderShortDto, DeliveryType } from "@/types/order";
+import { OrderStatus, PaymentStatus } from "@/types/order-state-machine";
 
 export interface ISimplifiedFilter {
   label: string;
   condition: (order: IOrderShortDto) => boolean;
 }
 
+const isClosedLogistically = (o: IOrderShortDto) =>
+  o.status === OrderStatus.COMPLETED ||
+  o.status === OrderStatus.CANCELLED ||
+  o.status === OrderStatus.REJECTED;
+
+const isPaid = (o: IOrderShortDto) =>
+  o.paymentStatus === PaymentStatus.CONFIRMED;
+
 export const simplifiedFilters: ISimplifiedFilter[] = [
   {
     label: "Todos",
-    condition: () => true,
+
+    // Todo lo que todavía requiere atención operativa
+    // O financiera.
+    //
+    // Incluye:
+    // - Pedidos activos
+    // - Pedidos entregados pero NO cobrados
+    // - Pedidos completed pero pendientes de pago
+    //
+    // Excluye:
+    // - Cerrados + pagos
+    // - Cancelados
+    // - Rechazados
+
+    condition: (o) => {
+      // Cancelados/Rechazados desaparecen de la vista principal
+      if (
+        o.status === OrderStatus.CANCELLED ||
+        o.status === OrderStatus.REJECTED
+      ) {
+        return false;
+      }
+
+      // Si no está pago → sigue activo visualmente
+      if (!isPaid(o)) {
+        return true;
+      }
+
+      // Si está pago pero todavía no terminó → sigue activo
+      return o.status !== OrderStatus.COMPLETED;
+    },
   },
+
   {
-    label: "Pendientes",
-    // Prioridad 1: Órdenes nuevas o pagos por validar
-    condition: (o) => 
-      o.status === OrderStatus.PENDING || 
-      o.paymentStatus === PaymentStatus.IN_PROGRESS
+    label: "🚚 Delivery",
+
+    condition: (o) =>
+      o.deliveryType === DeliveryType.DELIVERY &&
+      o.status !== OrderStatus.CANCELLED &&
+      o.status !== OrderStatus.REJECTED &&
+      (
+        // Sigue visible mientras no termine
+        o.status !== OrderStatus.COMPLETED ||
+
+        // O aunque esté completed si todavía no pagó
+        !isPaid(o)
+      ),
   },
+
   {
-    label: "En curso",
-    // Órdenes que ya están en cocina o listas, pero no finalizadas
-    condition: (o) => 
-      [OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY].includes(o.status) &&
-      o.deliveryStatus !== DeliveryStatus.COMPLETED
+    label: "🛍️ Retiro",
+
+    condition: (o) =>
+      o.deliveryType === DeliveryType.PICKUP &&
+      o.status !== OrderStatus.CANCELLED &&
+      o.status !== OrderStatus.REJECTED &&
+      (
+        o.status !== OrderStatus.COMPLETED ||
+        !isPaid(o)
+      ),
   },
+
   {
-    label: "Completados",
-    // El hilo principal llegó al final
-    condition: (o) => o.status === OrderStatus.COMPLETED
+    label: "⚠️ Por Cobrar / Pendientes",
+
+    // TODO lo no cobrado.
+    //
+    // Sin importar:
+    // - completed
+    // - entregado
+    // - listo
+    // - delivery finalizado
+    //
+    // Mientras falte plata:
+    // → aparece acá.
+
+    condition: (o) =>
+      o.paymentStatus !== PaymentStatus.CONFIRMED &&
+      o.status !== OrderStatus.CANCELLED &&
+      o.status !== OrderStatus.REJECTED,
   },
+
   {
-    label: "Cancelados",
-    // Cualquiera de los hilos que haya terminado en error/cancelación
-    condition: (o) => 
-      o.status === OrderStatus.CANCELLED || 
-      o.status === OrderStatus.REJECTED ||
-      o.deliveryStatus === DeliveryStatus.CANCELLED
+    label: "✅ Cerrados",
+
+    // SOLO:
+    // - completados
+    // - Y pagos
+    //
+    // O cancelados/rechazados
+
+    condition: (o) =>
+      (
+        o.status === OrderStatus.COMPLETED &&
+        isPaid(o)
+      ) ||
+      o.status === OrderStatus.CANCELLED ||
+      o.status === OrderStatus.REJECTED,
   },
 ];

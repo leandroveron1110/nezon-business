@@ -15,7 +15,6 @@ import { useAlert } from "@/features/common/ui/Alert/Alert";
 import { OrderTicket } from "./order/ticket-order/OrderTicket";
 import { PrintSelectorModal } from "./order/PrintSelectorModal";
 import { usePrintTicket } from "../hooks/usePrintTicket";
-// import { toPng } from "html-to-image";
 import { useOrdersView } from "../hooks/useOrdersView";
 import { useSyncOrders } from "../hooks/useSyncOrders";
 import { useGetOrderById } from "../hooks/useGetOrderById";
@@ -33,98 +32,85 @@ interface Props {
 
 export default function BusinessOrdersPage({ businessId }: Props) {
   const { addAlert } = useAlert();
-
-  // Referencia para el contenedor oculto del ticket
-  const { print, generateImage } = usePrintTicket();
+  const { print } = usePrintTicket();
   const printRef = useRef<HTMLDivElement>(null);
 
-  // 1. Disparás la sincronización (background)
+  // 1. Sincronización en background y consumo de datos en UI
   useSyncOrders(businessId);
+  const { orders = [], isLoading } = useOrdersView(businessId);
 
-  // 2. Consumís los datos (UI)
-  const { orders, isLoading } = useOrdersView(businessId);
-
+  // --- ESTADOS DE CONTROL ---
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState("Todos");
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-  const [selectedPrintOrderId, setSelectedPrintOrderId] = useState<
-    string | null
-  >(null);
+  const [selectedPrintOrderId, setSelectedPrintOrderId] = useState<string | null>(null);
   const [isNewOrder, setIsNewOrder] = useState<boolean>(false);
-
 
   // --- ESTADOS DE IMPRESIÓN ---
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [orderToPrint, setOrderToPrint] = useState<IOrder | null>(null);
-  const [printMode, setPrintMode] = useState<
-    "KITCHEN" | "CUSTOMER" | "SHARE_WHATSAPP" | null
-  >(null);
+  const [printMode, setPrintMode] = useState<"KITCHEN" | "CUSTOMER" | "SHARE_WHATSAPP" | null>(null);
+  
+  // Custom hook que busca la orden por ID para imprimir
   const { order } = useGetOrderById(selectedPrintOrderId ?? "");
 
+  // Monitorea cuando llega la data de la orden a imprimir
   useEffect(() => {
-    if (order) {
-      console.log("imprimir orden");
+    if (order && selectedPrintOrderId) {
       setOrderToPrint(order);
       setShowPrintModal(true);
     }
-  }, [order]);
+  }, [order, selectedPrintOrderId]);
 
-  // 1. Inicia el proceso buscando la orden completa
-  const handlePrintRequest = async (id: string) => {
-    console.log("orderid", id);
+  const handlePrintRequest =async (id: string) => {
     setSelectedPrintOrderId(id);
   };
 
-  const executePrint = async (
-    mode: "KITCHEN" | "CUSTOMER" | "SHARE_WHATSAPP",
-  ) => {
+  const handleClosePrintModal = () => {
+    setShowPrintModal(false);
+    setSelectedPrintOrderId(null);
+    setOrderToPrint(null);
+  };
+
+  const executePrint = async (mode: "KITCHEN" | "CUSTOMER" | "SHARE_WHATSAPP") => {
     if (!orderToPrint) return;
 
     if (mode === "SHARE_WHATSAPP") {
       setShowPrintModal(false);
+      
+      // Lazy load de la librería pesada de captura de imagen
       const { toPng } = await import("html-to-image");
-
-      // 1. Forzamos el renderizado del ticket en modo Cliente
       setPrintMode("CUSTOMER");
 
-      // 2. Esperamos un poco más para que React lo inyecte en el DOM y las fuentes carguen
+      // Esperamos el re-render en el DOM (800ms optimizado para móviles)
       setTimeout(async () => {
         if (!printRef.current) return;
 
         try {
-          // Configuraciones extra para asegurar la captura en móviles
           const dataUrl = await toPng(printRef.current, {
-            cacheBust: true, // Evita problemas de caché de imágenes
-            pixelRatio: 2, // Mejora la calidad para que no se vea pixelado
+            cacheBust: true,
+            pixelRatio: 2,
             backgroundColor: "#ffffff",
-            skipFonts: false, // Asegura que use la fuente monoespaciada
+            skipFonts: false,
           });
 
           const blob = await (await fetch(dataUrl)).blob();
-
-          // // Verificación de seguridad
-          // if (blob.size < 1) {
-          //   throw new Error("Imagen generada vacía");
-          // }
-
           const ticketFile = new File(
             [blob],
             `Ticket_${orderToPrint.id.slice(-6)}.png`,
             { type: "image/png" },
           );
+          
           const message = `¡Hola! 👋 Acá tenés el detalle de tu pedido #${orderToPrint.id.slice(-6).toUpperCase()}.`;
 
-          if (
-            navigator.canShare &&
-            navigator.canShare({ files: [ticketFile] })
-          ) {
+          if (navigator.canShare && navigator.canShare({ files: [ticketFile] })) {
             await navigator.share({
               files: [ticketFile],
               title: "Ticket de Pedido",
               text: message,
             });
           } else {
-            // Si el navegador no permite compartir archivos, solo mandamos el link de texto
+            // Fallback si no admite compartir archivos nativos (ej: Web desktop)
             window.open(
               `https://wa.me/3442667301?text=${encodeURIComponent(message)}`,
               "_blank",
@@ -137,208 +123,257 @@ export default function BusinessOrdersPage({ businessId }: Props) {
             type: "error",
           });
         } finally {
-          setPrintMode(null); // Limpiamos el estado
+          setPrintMode(null);
+          setSelectedPrintOrderId(null); // Reseteo total de flujo
         }
-      }, 800); // Subimos a 800ms para darle tiempo al celu
+      }, 800);
 
     } else {
       setPrintMode(mode);
       setShowPrintModal(false);
+      
       setTimeout(() => {
         if (printRef.current && orderToPrint) {
           print(printRef.current.innerHTML);
         }
         setPrintMode(null);
+        setSelectedPrintOrderId(null); // Reseteo total de flujo
       }, 300);
     }
   };
 
-  const filteredAndSortedOrders = useMemo(() => {
-    if (!orders) return [];
+  // --- FILTRADO, ORDENAMIENTO Y NORMALIZACIÓN (Ultra eficiente) ---
+const filteredAndSortedOrders = useMemo(() => {
+  if (!orders.length) return [];
 
-    // 1. Pre-procesamos el filtro y el término de búsqueda
-    const currentFilter = simplifiedFilters.find(
-      (f) => f.label === activeFilter,
-    );
-    const term = searchTerm.toLowerCase().trim();
+  const currentFilter = simplifiedFilters.find(
+    (f) => f.label === activeFilter,
+  );
 
-    return orders
-      .filter((order) => {
-        // --- Hilo de Búsqueda ---
-        const matchesSearch =
-          !term ||
-          (order.id || order.idTemp || "").toLowerCase().includes(term) ||
-          (order.customerName || "").toLowerCase().includes(term);
+  const term = searchTerm.toLowerCase().trim();
 
-        if (!matchesSearch) return false;
+  return orders
+    .filter((order) => {
+      const matchesSearch =
+        !term ||
+        (order.id || order.idTemp || "")
+          .toLowerCase()
+          .includes(term) ||
+        (order.customerName || "")
+          .toLowerCase()
+          .includes(term);
 
-        // --- Hilo de Filtrado por Tab (BCA) ---
-        // Si no hay filtro o es "Todos", pasa directo
-        if (!currentFilter || activeFilter === "Todos") return true;
+      if (!matchesSearch) return false;
 
-        // Aplicamos la lógica de condición definida en simplifiedFilters
-        return currentFilter.condition({
-          id: order.id || order.idTemp,
-          customerName: order.customerName,
-          deliveryType: order.deliveryType as DeliveryType,
-          createdAt: String(order.createdAt),
-          orderPaymentMethod: order.orderPaymentMethod as PaymentMethodType,
-          status: order.status as OrderStatus,
-          deliveryStatus: order.deliveryStatus as DeliveryStatus,
-          paymentStatus: order.paymentStatus as PaymentStatus,
-          origin: order.origin,
-          total: order.total,
-          shortCode: order.shortCode || "",
-          userId: "", // No lo usamos en las condiciones actuales, pero lo dejamos por si se necesita en el futuro
-        });
-      })
-      .sort((a, b) => {
-        // --- Hilo de Prioridad (Soberanía del Negocio) ---
-        // Usamos la lógica de getOrderPriority que ya contempla fallos logísticos y pagos
-        const priorityA = getOrderPriority(a as any);
-        const priorityB = getOrderPriority(b as any);
+      // IMPORTANTE:
+      // "Todos" también usa su condición.
+      if (!currentFilter) return true;
 
-        if (priorityA !== priorityB) {
-          return priorityA - priorityB;
-        }
-
-        // --- Hilo Cronológico (FIFO) ---
-        // A igual prioridad, el pedido más antiguo va primero para no retrasar la cocina
-        return (
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        );
+      return currentFilter.condition({
+        id: order.id || order.idTemp,
+        customerName: order.customerName,
+        deliveryType: order.deliveryType as DeliveryType,
+        createdAt: String(order.createdAt),
+        orderPaymentMethod:
+          order.orderPaymentMethod as PaymentMethodType,
+        status: order.status as OrderStatus,
+        deliveryStatus:
+          order.deliveryStatus as DeliveryStatus,
+        paymentStatus:
+          order.paymentStatus as PaymentStatus,
+        origin: order.origin,
+        total: order.total,
+        shortCode: order.shortCode || "",
+        userId: "",
       });
-  }, [orders, activeFilter, searchTerm]); // simplifiedFilters es constante, no hace falta en dependencias
-  if (isLoading) return <p>Sincronizando con Nezon...</p>;
+    })
+    .sort((a, b) => {
+      const priorityA = getOrderPriority(a as any);
+      const priorityB = getOrderPriority(b as any);
+
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB;
+      }
+
+      return (
+        new Date(a.createdAt).getTime() -
+        new Date(b.createdAt).getTime()
+      );
+    })
+    .map((order) => ({
+      id: order.id || order.idTemp,
+      customerName: order.customerName,
+      deliveryType:
+        order.deliveryType as DeliveryType,
+      orderPaymentMethod:
+        order.orderPaymentMethod as PaymentMethodType,
+      status: order.status as OrderStatus,
+      total: order.total,
+      userId: "",
+      createdAt: String(order.createdAt),
+      origin: order.origin,
+      paymentStatus:
+        order.paymentStatus as PaymentStatus,
+      deliveryStatus:
+        order.deliveryStatus as DeliveryStatus,
+      shortCode: order.shortCode || "",
+    }));
+}, [orders, activeFilter, searchTerm]);
+
+  // Se normalizan las órdenes de manera segura para el subcomponente de filtros sin re-mapear en el return
+const shortedOrdersForFilters = useMemo(() => {
+  return orders.map((o) => ({
+    id: o.id || o.idTemp,
+    customerName: o.customerName,
+
+    deliveryType:
+      o.deliveryType as DeliveryType,
+
+    orderPaymentMethod:
+      o.orderPaymentMethod as PaymentMethodType,
+
+    status:
+      o.status as OrderStatus,
+
+    paymentStatus:
+      o.paymentStatus as PaymentStatus,
+
+    deliveryStatus:
+      o.deliveryStatus as DeliveryStatus,
+
+    total: o.total,
+
+    userId: "",
+
+    createdAt: String(o.createdAt),
+
+    origin: o.origin,
+
+    shortCode: o.shortCode || "",
+  })) as IOrderShortDto[];
+}, [orders]);
+
+  if (isLoading) return <p className="p-6 text-center text-gray-500 animate-pulse">Sincronizando con Nezon...</p>;
 
   return (
     <>
-    <div className="w-full h-full bg-gray-50 flex flex-col overflow-hidden">
-      {/* CAPTURA OCULTA */}
-      <div
-        style={{
-          position: "absolute",
-          left: "-9999px", // Lo mandamos "a la China" para que no se vea
-          top: "0",
-          visibility: "visible", // El navegador lo procesa normalmente
-          opacity: 0, // Es totalmente transparente
-          pointerEvents: "none", // Evita que alguien haga click accidentalmente en el aire
-        }}
-      >
-        <div ref={printRef}>
-          {orderToPrint && printMode && (
-            <OrderTicket order={orderToPrint} mode={printMode} />
-          )}
-        </div>
-      </div>
-
-      <button onClick={() => setIsNewOrder(!isNewOrder)}>Nueva orden</button>
-      <PrintSelectorModal
-        isOpen={showPrintModal}
-        onClose={() => setShowPrintModal(false)}
-        onSelect={executePrint}
-      />
-
-      <header className="bg-white border-b shadow-sm z-30">
-        <div className="p-4 max-w-7xl mx-auto w-full space-y-3">
-          <h1 className="text-xl font-black text-gray-800 flex items-center gap-2">
-            <LayoutGrid className="w-5 h-5 text-blue-600" />
-            Panel de Órdenes
-          </h1>
-
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Buscar por ID o nombre..."
-              className="w-full pl-10 pr-4 py-2.5 bg-gray-100 rounded-xl text-sm outline-none focus:bg-white focus:border-blue-500 border border-transparent transition-all"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-
-          <OrdersFilters
-            quickFilters={simplifiedFilters}
-            activeFilter={activeFilter}
-            setActiveFilter={setActiveFilter}
-            orders={
-              (orders.map((order) => ({
-                createdAt: String(order.createdAt),
-                customerName: order.customerName,
-                deliveryType: order.deliveryType as DeliveryType,
-                id: order.id || order.idTemp,
-                orderPaymentMethod:
-                  order.orderPaymentMethod as PaymentMethodType,
-                status: order.status as OrderStatus,
-                total: order.total,
-                userId: "",
-              })) || []) as IOrderShortDto[]
-            }
-          />
-        </div>
-      </header>
-
-      <div>
-        <SyncIndicator />
-      </div>
-
-{/* El contenedor padre de este main tiene que ser un flex con altura controlada */}
-      <main className="flex-1 h-[calc(100vh-70px)] overflow-y-auto scrollbar-thin">
-        {/* Eliminé el pb-20 porque al tener scroll interno ya controla los límites */}
-        <div className="max-w-7xl mx-auto w-full">
-          
-          {/* El header de la tabla ahora se va a quedar verdaderamente pegado arriba */}
-          <div className="hidden md:grid grid-cols-[100px_1fr_150px_140px_140px_120px] px-6 py-3 text-[11px] uppercase tracking-wider font-bold text-gray-400 border-b bg-white sticky top-0 z-10">
-            <span>Pedido</span>
-            <span>Cliente</span>
-          </div>
-
-          <div className="divide-y divide-gray-100 bg-white">
-            {filteredAndSortedOrders.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-                <Package className="w-12 h-12 mb-4 opacity-20" />
-                <p>No hay órdenes en esta sección</p>
-              </div>
-            ) : (
-              filteredAndSortedOrders.map((order) => (
-                <OrderList
-                  key={order.id || order.idTemp}
-                  order={{
-                    customerName: order.customerName,
-                    deliveryType: order.deliveryType as DeliveryType,
-                    id: order.id || order.idTemp,
-                    orderPaymentMethod:
-                      order.orderPaymentMethod as PaymentMethodType,
-                    status: order.status as OrderStatus,
-                    total: order.total,
-                    userId: "",
-                    createdAt: String(order.createdAt),
-                    origin: order.origin,
-                    paymentStatus: order.paymentStatus,
-                    deliveryStatus: order.deliveryStatus,
-                    shortCode: order.shortCode || "",
-                  }}
-                  onClick={() => setSelectedOrderId(order.id || order.idTemp)}
-                  onPrintDirect={handlePrintRequest}
-                />
-              ))
+      <div className="w-full h-full bg-gray-50 flex flex-col overflow-hidden">
+        
+        {/* CAPTURA OCULTA (Off-screen Rendering) */}
+        <div
+          style={{
+            position: "absolute",
+            left: "-9999px",
+            top: "0",
+            visibility: "visible",
+            opacity: 0,
+            pointerEvents: "none",
+          }}
+        >
+          <div ref={printRef}>
+            {orderToPrint && printMode && (
+              <OrderTicket order={orderToPrint} mode={printMode} />
             )}
           </div>
         </div>
-      </main>
 
-      {selectedOrderId && (
-        <OrderDetailsSidePanel
-          orderId={selectedOrderId}
-          onClose={() => setSelectedOrderId(null)}
+        {/* HEADER DEL PANEL */}
+        <header className="bg-white border-b shadow-sm z-30">
+          <div className="p-4 max-w-7xl mx-auto w-full space-y-3">
+            <div className="flex items-center justify-between">
+              <h1 className="text-xl font-black text-gray-800 flex items-center gap-2">
+                <LayoutGrid className="w-5 h-5 text-blue-600" />
+                Panel de Órdenes
+              </h1>
+              <button 
+                onClick={() => setIsNewOrder(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-sm"
+              >
+                Nueva orden
+              </button>
+            </div>
+
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Buscar por ID o nombre..."
+                className="w-full pl-10 pr-4 py-2.5 bg-gray-100 rounded-xl text-sm outline-none focus:bg-white focus:border-blue-500 border border-transparent transition-all"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+
+<OrdersFilters
+  quickFilters={simplifiedFilters}
+  activeFilter={activeFilter}
+  setActiveFilter={setActiveFilter}
+  orders={shortedOrdersForFilters}
+/>
+          </div>
+        </header>
+
+        {/* INDICADOR DE SINCRONIZACIÓN */}
+        <div>
+          <SyncIndicator />
+        </div>
+
+        {/* CONTENIDO PRINCIPAL (Scroll Controlado) */}
+        <main className="flex-1 h-[calc(100vh-70px)] overflow-y-auto scrollbar-thin">
+          <div className="max-w-7xl mx-auto w-full">
+            
+            {/* STICKY TABLE HEADER */}
+            <div className="hidden md:flex items-center gap-4 px-6 py-3 text-[11px] uppercase tracking-wider font-black text-slate-400 border-b bg-white sticky top-0 z-20 pl-8">
+              <div className="min-w-[78px] text-center">Pedido</div>
+              <div className="flex-1">Información del Cliente</div>
+              <div className="min-w-[75px]"></div>
+              <div className="min-w-[120px] text-right">Total</div>
+              <div className="w-12"></div> 
+            </div>
+
+            {/* LISTADO DE TARJETAS / FILAS */}
+            <div className="divide-y divide-gray-100 bg-white">
+              {filteredAndSortedOrders.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+                  <Package className="w-12 h-12 mb-4 opacity-20" />
+                  <p>No hay órdenes en esta sección</p>
+                </div>
+              ) : (
+                filteredAndSortedOrders.map((order) => (
+                  <OrderList
+                    key={order.id}
+                    order={order}
+                    onClick={() => setSelectedOrderId(order.id)}
+                    onPrintDirect={handlePrintRequest}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+        </main>
+
+        {/* DETALLE LATERAL (SIDE PANEL) */}
+        {selectedOrderId && (
+          <OrderDetailsSidePanel
+            orderId={selectedOrderId}
+            onClose={() => setSelectedOrderId(null)}
+          />
+        )}
+      </div>
+
+      {/* MODALES DEL SISTEMA */}
+      <PrintSelectorModal
+        isOpen={showPrintModal}
+        onClose={handleClosePrintModal}
+        onSelect={executePrint}
+      />
+
+      {isNewOrder && (
+        <OrderBuilder 
+          onClose={() => setIsNewOrder(false)} 
+          businessid={businessId} 
         />
       )}
-
-    </div>
-      {isNewOrder && (
-        <OrderBuilder onClose={() => setIsNewOrder(!isNewOrder)} businessid={businessId} />
-      )}
-    
     </>
   );
 }
