@@ -76,8 +76,7 @@ export const updateOrderStatusOrchestrator = async (
   const identity = new DexieOrderIdentityAdapter();
   const orderCore = OrderServicePublic({ repository, identity });
 
-  // 1. El Core valida la máquina de estados y guarda localmente (Paso obligatorio)
-  // ESTO ES LOCAL Y RÁPIDO.
+  // 1. El Core valida la máquina de estados y guarda localmente (Rápido y Offline-First)
   const result = await orderCore.updateStatus(input);
   if (!result.success || !result.data) return result;
 
@@ -86,11 +85,9 @@ export const updateOrderStatusOrchestrator = async (
   const esCambioCritico =
     input.thread === "DELIVERY" && input.nextValue === "REQUESTED";
 
-  // =================================================================
-  // CASO 1: La orden YA EXISTE en la nube. Sincronizamos en SEGUNDO PLANO.
-  // =================================================================
-  if (order.id) {
-    // 🔥 QUITAMOS EL AWAIT. Dejamos que la promesa se resuelva en el fondo.
+  if (order.id && (order.origin === "APP" || order.syncPriority === "HIGH")) {
+    
+    // 🔥 En segundo plano para no bloquear la UI
     cloudSyncService
       .updateOrder(order.id, {
         thread: input.thread,
@@ -99,33 +96,30 @@ export const updateOrderStatusOrchestrator = async (
       .then(async (success) => {
         if (success && order.id) {
           await orderCore.confirmCloudSync(order.idTemp, order.id);
-          // Nota: Si necesitás que la UI se entere del cambio de 'SYNCED',
-          // deberías manejarlo con un estado global/reactivo (ej: un hook que escuche Dexie),
-          // pero la UI ya continuó su flujo hace rato.
         } else {
           await orderCore.notifySyncError(order.idTemp);
         }
       })
       .catch(async (error) => {
         console.warn(
-          "Fallo de red al actualizar estado, el SyncWorker resolverá en el fondo.",
+          "Fallo de red al actualizar estado. El SyncWorker resolverá en el fondo.",
+          error
         );
         await orderCore.notifySyncError(order.idTemp);
       });
   }
   // =================================================================
-  // CASO 2: La orden es LOCAL pero sufrió un cambio crítico
+  // CASO 2: La orden es LOCAL (sin ID de nube) pero sufrió un cambio crítico
   // =================================================================
-  else if (esCambioCritico) {
+  else if (!order.id && esCambioCritico) {
     console.log(
-      "Orquestador: Cambio crítico detectado en orden local. Forzando sincronización completa...",
+      "Orquestador: Cambio crítico detectado en orden local. Forzando cola de sincronización...",
     );
-
-    // Esto ya lo tenías bien (sin await), ideal para el fondo.
+    // Aquí disparas tu Worker general (el que primero hace el POST de la creación de la orden
+    // y luego actualiza sus estados).
     // syncQueueWorker.processQueue().catch(...);
   }
 
   // 🚀 Retornamos el resultado local INMEDIATAMENTE.
-  // La UI se desbloquea instantáneamente.
   return result;
 };
