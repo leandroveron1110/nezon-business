@@ -59,6 +59,7 @@ export interface OrderItem {
 
 export interface IOrder {
   id: string;
+  idTemp?: string; // ID temporal para órdenes nuevas que aún no tienen ID real
   businessId: string;
   userId: string;
   deliveryCompanyId?: string | null;
@@ -80,6 +81,8 @@ export interface IOrder {
   customerObservations?: string | null;
   businessObservations?: string | null;
 
+  shortCode?: string | null; // código corto tipo A-23, asignado al sincronizar
+  dailyNumber?: number | null; // número secuencial diario, asignado al sincronizar
   user: User;
   bussiness: Bussiness;
 

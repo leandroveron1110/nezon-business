@@ -1,4 +1,3 @@
-
 import { IOrder } from "@/features/order/types/order";
 import { OrderPersistenceMapper } from "../mappers/order-persistence.mapper";
 import { OrderIdentityService } from "../../utils/order-identity.service";
@@ -10,29 +9,38 @@ export async function syncOrdersInboundCommand(
   latestTimestamp: string
 ): Promise<void> {
   
-  // Procesamos las órdenes una por una para manejar sus turnos
   const processedOrders: LocalOrder[] = [];
 
   for (const apiOrder of apiOrders) {
     const localOrder = OrderPersistenceMapper.toLocal(apiOrder);
 
-    // 🧠 LÓGICA DE TURNO PARA APP
-    // Si la orden ya está en nuestra DB, mantenemos su shortCode.
-    // Si es nueva y viene de la APP, le asignamos el turno A-X.
+    // 1. Buscamos si ya existe en la base de datos local
     const existing = await db.orders.get(localOrder.id!);
     
-    if (!existing || !existing.shortCode) {
-      const nextNumber = await OrderIdentityService.getNextDailyNumber("APP");
-      localOrder.dailyNumber = nextNumber;
-      localOrder.shortCode = OrderIdentityService.formatShortCode(nextNumber, "APP");
-    } else {
+    if (existing && existing.shortCode) {
+      // Si ya existía localmente, mantenemos estrictamente lo que ya teníamos guardado
       localOrder.dailyNumber = existing.dailyNumber;
       localOrder.shortCode = existing.shortCode;
+    } else {
+      // Si la orden es NUEVA en nuestra base de datos local:
+      
+      if (apiOrder.origin === "BUSINESS" && apiOrder.shortCode) {
+        // Si viene del negocio y ya trae su código (ej: "P-1"), LO RESPETAMOS
+        localOrder.dailyNumber = apiOrder.dailyNumber;
+        localOrder.shortCode = apiOrder.shortCode;
+      } else {
+        // Si el origen es "APP" o viene sin código (como el último de tu JSON que tiene shortCode: null)
+        // Generamos el turno diario correspondiente para la APP ("A-X")
+        const nextNumber = await OrderIdentityService.getNextDailyNumber("APP");
+        localOrder.dailyNumber = nextNumber;
+        localOrder.shortCode = OrderIdentityService.formatShortCode(nextNumber, "APP");
+      }
     }
 
     processedOrders.push(localOrder);
   }
 
+  // Guardamos todo en una sola transacción atómica
   await db.transaction('rw', [db.orders, db.metadata], async () => {
     await db.orders.bulkPut(processedOrders);
     await db.metadata.put({ id: 'last_sync_orders', value: latestTimestamp });

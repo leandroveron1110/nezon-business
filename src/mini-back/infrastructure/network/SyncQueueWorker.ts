@@ -37,7 +37,7 @@ class SyncQueueWorker {
     if (this.isProcessing) return;
 
     if (connectivityManager.isOffline()) {
-      console.log("[Sync] Offline mode");
+      console.log("[Sync] Offline mode queueing is paused. Will retry when back online.");
 
       return;
     }
@@ -269,6 +269,7 @@ class SyncQueueWorker {
   }
 
   async forceManualSyncAll() {
+    console.log("SyncWorker: Sincronización manual forzada iniciada por el usuario.");
     return await this.processQueue({ forceAll: true });
   }
 }

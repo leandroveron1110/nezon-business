@@ -59,7 +59,7 @@ export default function Header() {
   }
 
   return (
-    <header className="bg-white shadow sticky top-0 z-30">
+    <header className="bg-white">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between relative">
         
         {/* Lado izquierdo: Logo y botón de menú móvil */}

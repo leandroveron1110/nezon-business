@@ -4,7 +4,7 @@ export async function checkServerHealth() {
   if (typeof window === "undefined") return false;
 
   if (!navigator.onLine) {
-    connectivityManager.reportHeartbeat(true); // El navegador detecta que estamos offline, reportamos la falla
+    connectivityManager.reportHeartbeat(false); // El navegador detecta que estamos offline, reportamos la falla
     return false;
   }
 
@@ -27,11 +27,11 @@ export async function checkServerHealth() {
     clearTimeout(timeout);
 
     if (response.ok) {
-      connectivityManager.reportHeartbeat(false); // Reportamos que el servidor está vivo
+      connectivityManager.reportHeartbeat(true); // Reportamos que el servidor está vivo
       return true;
     }
 
-    connectivityManager.reportHeartbeat(false);
+    connectivityManager.reportHeartbeat(true);
     return false;
   } catch {
     clearTimeout(timeout);

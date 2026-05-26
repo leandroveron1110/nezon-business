@@ -6,33 +6,14 @@ export interface ISimplifiedFilter {
   condition: (order: IOrderShortDto) => boolean;
 }
 
-const isClosedLogistically = (o: IOrderShortDto) =>
-  o.status === OrderStatus.COMPLETED ||
-  o.status === OrderStatus.CANCELLED ||
-  o.status === OrderStatus.REJECTED;
-
 const isPaid = (o: IOrderShortDto) =>
   o.paymentStatus === PaymentStatus.CONFIRMED;
 
 export const simplifiedFilters: ISimplifiedFilter[] = [
   {
-    label: "Todos",
-
-    // Todo lo que todavía requiere atención operativa
-    // O financiera.
-    //
-    // Incluye:
-    // - Pedidos activos
-    // - Pedidos entregados pero NO cobrados
-    // - Pedidos completed pero pendientes de pago
-    //
-    // Excluye:
-    // - Cerrados + pagos
-    // - Cancelados
-    // - Rechazados
+    label: "Activos",
 
     condition: (o) => {
-      // Cancelados/Rechazados desaparecen de la vista principal
       if (
         o.status === OrderStatus.CANCELLED ||
         o.status === OrderStatus.REJECTED
@@ -40,34 +21,29 @@ export const simplifiedFilters: ISimplifiedFilter[] = [
         return false;
       }
 
-      // Si no está pago → sigue activo visualmente
       if (!isPaid(o)) {
         return true;
       }
 
-      // Si está pago pero todavía no terminó → sigue activo
       return o.status !== OrderStatus.COMPLETED;
     },
   },
 
   {
-    label: "🚚 Delivery",
+    label: "Delivery",
 
     condition: (o) =>
       o.deliveryType === DeliveryType.DELIVERY &&
       o.status !== OrderStatus.CANCELLED &&
       o.status !== OrderStatus.REJECTED &&
       (
-        // Sigue visible mientras no termine
         o.status !== OrderStatus.COMPLETED ||
-
-        // O aunque esté completed si todavía no pagó
         !isPaid(o)
       ),
   },
 
   {
-    label: "🛍️ Retiro",
+    label: "Retiro",
 
     condition: (o) =>
       o.deliveryType === DeliveryType.PICKUP &&
@@ -80,18 +56,7 @@ export const simplifiedFilters: ISimplifiedFilter[] = [
   },
 
   {
-    label: "⚠️ Por Cobrar / Pendientes",
-
-    // TODO lo no cobrado.
-    //
-    // Sin importar:
-    // - completed
-    // - entregado
-    // - listo
-    // - delivery finalizado
-    //
-    // Mientras falte plata:
-    // → aparece acá.
+    label: "Por Cobrar",
 
     condition: (o) =>
       o.paymentStatus !== PaymentStatus.CONFIRMED &&
@@ -100,13 +65,7 @@ export const simplifiedFilters: ISimplifiedFilter[] = [
   },
 
   {
-    label: "✅ Cerrados",
-
-    // SOLO:
-    // - completados
-    // - Y pagos
-    //
-    // O cancelados/rechazados
+    label: "Cerrados",
 
     condition: (o) =>
       (

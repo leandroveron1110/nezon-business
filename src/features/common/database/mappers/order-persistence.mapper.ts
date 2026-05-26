@@ -2,7 +2,7 @@
 
 import { IOrder } from "@/features/order/types/order";
 import { LocalOrder } from "@/mini-back/infrastructure/dexie/shcema/orders.schema";
-// 👇 Extendemos el tipo SIN usar any
+
 type ApiOrderExtended = IOrder & {
   deliveryProvider?: "PLATFORM" | "INTERNAL";
 };
@@ -13,7 +13,6 @@ export class OrderPersistenceMapper {
     // =========================
     // 🧠 Normalización logística
     // =========================
-
     const deliveryType: "DELIVERY" | "PICKUP" =
       apiOrder.deliveryType === "DELIVERY" ? "DELIVERY" : "PICKUP";
 
@@ -24,15 +23,8 @@ export class OrderPersistenceMapper {
       deliveryProvider === "INTERNAL" ? "MANUAL" : "AUTOMATIC";
 
     // =========================
-    // 🧠 Normalización pagos
-    // =========================
-
-    const paymentStatus= apiOrder.paymentStatus;
-
-    // =========================
     // 🧠 Items
     // =========================
-
     const items = apiOrder.items.map((item) => ({
       productId: item.id,
       productName: item.productName,
@@ -55,27 +47,27 @@ export class OrderPersistenceMapper {
     // =========================
     // 🚀 RESULTADO FINAL
     // =========================
-
     return {
-      // IDs
-      idTemp: apiOrder.id,
+      idTemp: apiOrder.idTemp ?? apiOrder.id, 
       id: apiOrder.id,
-      userId: apiOrder.user?.id,
+      userId: apiOrder.user?.id ?? undefined,
       businessId: apiOrder.businessId,
-      syncPriority: "HIGH", // Todo: Podríamos tener una lógica más compleja para esto
-      dailyNumber: 0, // Se asignará en el comando de sincronización
-      shortCode: "", // Se asignará en el comando de sincronización
-      // Sync
-      syncStatus: "SYNCED",
+      syncPriority: "HIGH", 
+      
+      // Mantenemos lo que manda la API (luego el InboundCommand decidirá si lo pisa o no)
+      dailyNumber: apiOrder.dailyNumber ?? undefined, 
+      shortCode: apiOrder.shortCode ?? undefined, 
 
+      // Al venir de la API, asumimos que este estado ya está impactado arriba
+      syncStatus: "SYNCED",
       syncedDelivery: true,
       syncedPayment: true,
       syncedStatus: true,
 
       // Cliente
-      customerName: apiOrder.user.fullName,
-      customerPhone: apiOrder.user.phone,
-      customerAddress: apiOrder.user.address ?? undefined,
+      customerName: apiOrder.user?.fullName ?? "Cliente Mostrador",
+      customerPhone: apiOrder.user?.phone ?? "",
+      customerAddress: apiOrder.user?.address ?? undefined,
       customerObservations: apiOrder.customerObservations ?? undefined,
 
       // Logística
@@ -88,20 +80,17 @@ export class OrderPersistenceMapper {
       total: Number(apiOrder.total),
 
       // Pagos
-      orderPaymentMethod: apiOrder.orderPaymentMethod as
-        | "CASH"
-        | "TRANSFER"
-        | "QR"
-        | "DELIVERY",
-
-      paymentStatus,
+      orderPaymentMethod: (apiOrder.orderPaymentMethod as "CASH" | "TRANSFER" | "QR" | "DELIVERY") ?? "CASH",
+      paymentStatus: apiOrder.paymentStatus,
 
       // Items
       items,
 
       // Metadata
       status: apiOrder.status,
-      origin: "APP",
+      
+      // ⚠️ CORREGIDO: Dinámico basado en lo que realmente responde tu backend
+      origin: (apiOrder.origin as "APP" | "BUSINESS") ?? "BUSINESS", 
 
       deliveryStatus: apiOrder.deliveryStatus ?? "PENDING",
 

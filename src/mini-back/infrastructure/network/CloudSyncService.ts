@@ -24,7 +24,7 @@ export const cloudSyncService = {
       paymentReceived: null,
       deliveryType: order.deliveryType,
       orderPaymentMethod: order.orderPaymentMethod,
-      origin: "BUSINESS", // O 'POS' según prefieras en el back
+      origin: order.origin, // O 'POS' según prefieras en el back
 
       // IMPORTANTE: Aseguramos que estos no sean undefined
       shortCode: order.shortCode || "S/N",
@@ -113,9 +113,6 @@ export const cloudSyncService = {
       })),
     };
 
-    console.log(
-      `CloudSyncService: Enviando bloque de ${orders.length} órdenes para sincronización masiva. businessId: ${businessId} `,
-    );
 
     const res = await apiPost<
       {

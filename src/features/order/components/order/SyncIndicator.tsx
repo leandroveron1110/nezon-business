@@ -1,6 +1,6 @@
 "use client";
-import { getSyncQueueWorker } from "@/mini-back/infrastructure/network/SyncQueueWorker";
 // src/components/SyncIndicator.tsx
+import { getSyncQueueWorker } from "@/mini-back/infrastructure/network/SyncQueueWorker";
 import { Loader2, CloudUpload, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 
@@ -13,14 +13,9 @@ export function SyncIndicator() {
     setSuccess(false);
 
     try {
-        console.log("SyncIndicator: Iniciando sincronización manual de todas las órdenes pendientes...");
       await getSyncQueueWorker().forceManualSyncAll();
-
       setSuccess(true);
-
-      setTimeout(() => {
-        setSuccess(false);
-      }, 3000);
+      setTimeout(() => setSuccess(false), 3000);
     } catch (error) {
       alert("Hubo un problema al sincronizar algunas órdenes.");
     } finally {
@@ -33,47 +28,37 @@ export function SyncIndicator() {
       onClick={handleSyncClick}
       disabled={syncing}
       className={`
-        group relative overflow-hidden
         flex items-center justify-center gap-2
-        min-w-[260px]
-        px-5 py-3
-        rounded-2xl
-        font-medium text-sm
-        transition-all duration-300
-        shadow-md
-        border
+        px-3.5 py-2 rounded-xl
+        font-semibold text-xs md:text-sm
+        border transition-all duration-200
+        disabled:cursor-not-allowed select-none
         ${
           syncing
-            ? "bg-blue-600 border-blue-500 text-white"
+            ? "bg-blue-50 border-blue-200 text-blue-600 shadow-inner"
             : success
-            ? "bg-emerald-600 border-emerald-500 text-white"
-            : "bg-zinc-900 border-zinc-800 text-zinc-100 hover:bg-zinc-800 hover:scale-[1.02]"
+            ? "bg-emerald-50 border-emerald-200 text-emerald-600"
+            : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800 shadow-sm active:scale-98"
         }
-        disabled:cursor-not-allowed disabled:opacity-90
       `}
     >
-      {/* Glow effect */}
-      <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-
-      {/* Content */}
-      <div className="relative flex items-center gap-2">
-        {syncing ? (
-          <>
-            <Loader2 className="w-4 h-4 animate-spin" />
-            <span>Sincronizando órdenes...</span>
-          </>
-        ) : success ? (
-          <>
-            <CheckCircle2 className="w-4 h-4" />
-            <span>Sincronizado correctamente</span>
-          </>
-        ) : (
-          <>
-            <CloudUpload className="w-4 h-4" />
-            <span>Sincronizar Mostrador</span>
-          </>
-        )}
-      </div>
+      {syncing ? (
+        <>
+          <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
+          <span>Sincronizando...</span>
+        </>
+      ) : success ? (
+        <>
+          <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+          <span>Sincronizado</span>
+        </>
+      ) : (
+        <>
+          <CloudUpload className="w-4 h-4 flex-shrink-0" />
+          {/* Oculta texto secundario en pantallas muy chicas para mantener la armonía */}
+          <span className="inline-block">Sincronizar</span>
+        </>
+      )}
     </button>
   );
 }
