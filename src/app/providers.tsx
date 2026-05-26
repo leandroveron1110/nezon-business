@@ -6,6 +6,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient"; // o donde tengas tu cliente
 import { AlertProvider } from "@/features/common/ui/Alert/Alert";
 import { useBusinessPushSubscription } from "@/lib/hooks/useBusinessPushSubscription";
+import { PWAReloadManager } from "@/features/common/ui/PWAReloadManager";
 
 function PushSubscriptionManager() {
   useBusinessPushSubscription();
@@ -27,6 +28,7 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <AlertProvider>
+        <PWAReloadManager />
         <PushSubscriptionManager />
         {children}
       </AlertProvider>

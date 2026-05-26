@@ -1,12 +1,14 @@
-// @ts-check
-import withPWAInit from "@ducanh2912/next-pwa";
 import type { NextConfig } from "next";
 
-const withPWA = withPWAInit({
+const withPWA = require("@ducanh2912/next-pwa").default({
   dest: "public",
-  register: true,
-  // skipWaiting ya no va acá, se maneja solo
-  disable: process.env.NODE_ENV === "development",
+  disable: process.env.NODE_ENV === "development", // No cachear en desarrollo
+  register: true,   // Deja que la librería registre el SW automáticamente
+  skipWaiting: true, // ⚡ CRÍTICO: Fuerza al nuevo Service Worker a activarse de inmediato
+  clientsClaim: true, // ⚡ CRÍTICO: Toma el control de las pestañas abiertas inmediatamente
+  
+  // Forzar que el Service Worker se valide constantemente contra el servidor
+  reloadOnOnline: true, 
 });
 
 /** @type {import('next').NextConfig} */
