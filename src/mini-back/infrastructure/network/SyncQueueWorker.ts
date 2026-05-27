@@ -7,6 +7,17 @@ import { db } from "../dexie/db";
 import { checkServerHealth } from "../connectivity/health-monitor";
 import { connectivityManager } from "../connectivity/connectivity-manager";
 
+export type SyncResult = {
+  success: boolean;
+  status:
+    | "NO_CHANGES"
+    | "SYNCED_FULLY"
+    | "PARTIAL_ERROR"
+    | "OFFLINE"
+    | "SERVER_DOWN";
+  pendingCount?: number;
+};
+
 class SyncQueueWorker {
   private isProcessing = false;
   private repository = new DexieOrderRepositoryAdapter();
@@ -33,29 +44,46 @@ class SyncQueueWorker {
     return chunks;
   }
 
-  async processQueue(options: { forceAll: boolean } = { forceAll: false }) {
-    if (this.isProcessing) return;
+  // ... Dentro de la clase SyncQueueWorker ...
+
+  async forceManualSyncAll(): Promise<SyncResult> {
+    console.log(
+      "SyncWorker: Sincronización manual forzada iniciada por el usuario.",
+    );
+    return await this.processQueue({ forceAll: true });
+  }
+
+  async processQueue(
+    options: { forceAll: boolean } = { forceAll: false },
+  ): Promise<SyncResult> {
+    if (this.isProcessing) {
+      return { success: false, status: "PARTIAL_ERROR" }; // Evita colisiones si ya está corriendo
+    }
 
     if (connectivityManager.isOffline()) {
-      console.log("[Sync] Offline mode queueing is paused. Will retry when back online.");
-
-      return;
+      console.log(
+        "[Sync] Offline mode queueing is paused. Will retry when back online.",
+      );
+      return { success: false, status: "OFFLINE" };
     }
 
     try {
-      // 🛑 PRE-CHEQUEO VELOZ: Validamos índices directo en Dexie
+      // 🛑 PRE-CHEQUEO VELOZ
       const pendingOrdersCount = await this.repository.getPendingCount();
       const pendingEventsCount = await db.orderStateEvents
         .where("syncStatus")
         .equals("PENDING")
         .count();
 
-      // Si no hay nada colgado en ninguna tabla, salimos sin consumir recursos
-      if (pendingOrdersCount === 0 && pendingEventsCount === 0) return;
+      if (pendingOrdersCount === 0 && pendingEventsCount === 0) {
+        return { success: true, status: "NO_CHANGES" };
+      }
 
       // Si hay trabajo, verificamos la salud de la API
       const isServerAlive = await checkServerHealth();
-      if (!isServerAlive) return;
+      if (!isServerAlive) {
+        return { success: false, status: "SERVER_DOWN" };
+      }
 
       this.isProcessing = true;
 
@@ -88,7 +116,6 @@ class SyncQueueWorker {
             for (const result of syncResults) {
               if (result.cloudId) {
                 await orderCore.confirmCloudSync(result.idTemp, result.cloudId);
-                // Al crearse de cero limpia, seteamos los hilos en true localmente
                 await db.orders.update(result.idTemp, {
                   syncedStatus: true,
                   syncedPayment: true,
@@ -101,7 +128,7 @@ class SyncQueueWorker {
               "SyncWorker: Falló un chunk de creación masiva.",
               err,
             );
-            throw err; // Detiene la cola para preservar el orden FIFO
+            throw err; // Lanza al catch principal para frenar
           }
         }
       }
@@ -115,7 +142,6 @@ class SyncQueueWorker {
             const promises = [];
             const localUpdates: Record<string, any> = {};
 
-            // 🔍 Hilo 1: Estado General
             if (order.syncedStatus === false) {
               promises.push(
                 cloudSyncService
@@ -130,7 +156,6 @@ class SyncQueueWorker {
               );
             }
 
-            // 🔍 Hilo 2: Estado de Pago
             if (order.syncedPayment === false) {
               promises.push(
                 cloudSyncService
@@ -145,7 +170,6 @@ class SyncQueueWorker {
               );
             }
 
-            // 🔍 Hilo 3: Logística / Despacho
             if (
               order.deliveryStatus !== "NOT_APPLICABLE" &&
               order.syncedDelivery === false
@@ -163,19 +187,15 @@ class SyncQueueWorker {
               );
             }
 
-            // Si estaba marcada como pendiente pero los hilos ya estaban subidos, limpiamos estado global
             if (promises.length === 0) {
               await db.orders.update(order.idTemp, { syncStatus: "SYNCED" });
               continue;
             }
 
-            // Se ejecutan únicamente los endpoints cuyos hilos cambiaron localmente
             const results = await Promise.all(promises);
 
             if (results.every((res) => res === true)) {
-              // Traemos la orden fresca para ver si con estos cambios completamos todos los hilos
               const freshOrder = await db.orders.get(order.idTemp);
-
               const allThreadsSynced =
                 (localUpdates.syncedStatus || freshOrder?.syncedStatus) &&
                 (localUpdates.syncedPayment || freshOrder?.syncedPayment) &&
@@ -184,10 +204,8 @@ class SyncQueueWorker {
                   freshOrder?.syncedDelivery);
 
               if (allThreadsSynced) {
-                localUpdates.syncStatus = "SYNCED"; // Pasa a limpia de forma inmutable
+                localUpdates.syncStatus = "SYNCED";
               }
-
-              // Guardamos el progreso parcial o total en Dexie
               await db.orders.update(order.idTemp, localUpdates);
             } else {
               throw new Error("Fallo parcial en la ráfaga de estados remotos");
@@ -198,20 +216,39 @@ class SyncQueueWorker {
               err,
             );
             await db.orders.update(order.idTemp, { syncStatus: "SYNC_ERROR" });
-            break;
+            throw err; // 🌟 Cambiado de break a throw para romper el flujo global e informar error
           }
         }
       }
 
       // =================================================================
-      // 3. SINCRONIZACIÓN DE HISTORIAL DE EVENTOS (CON LÍMITE DE RAM)
+      // 3. SINCRONIZACIÓN DE HISTORIAL DE EVENTOS
       // =================================================================
       await this.syncPendingHistoryEvents();
+
+      // Verificación final post-proceso
+      const remainingOrders = await this.repository.getPendingCount();
+      const remainingEvents = await db.orderStateEvents
+        .where("syncStatus")
+        .equals("PENDING")
+        .count();
+      const totalRemaining = remainingOrders + remainingEvents;
+
+      if (totalRemaining === 0) {
+        return { success: true, status: "SYNCED_FULLY" };
+      } else {
+        return {
+          success: false,
+          status: "PARTIAL_ERROR",
+          pendingCount: totalRemaining,
+        };
+      }
     } catch (error) {
       console.error(
         "SyncWorker: Error deteniendo cola por fallo de bloque.",
         error,
       );
+      return { success: false, status: "PARTIAL_ERROR" };
     } finally {
       this.isProcessing = false;
     }
@@ -266,11 +303,6 @@ class SyncQueueWorker {
         error,
       );
     }
-  }
-
-  async forceManualSyncAll() {
-    console.log("SyncWorker: Sincronización manual forzada iniciada por el usuario.");
-    return await this.processQueue({ forceAll: true });
   }
 }
 

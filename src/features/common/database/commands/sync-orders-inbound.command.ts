@@ -1,3 +1,4 @@
+// sync-orders-inbound.command.ts
 import { IOrder } from "@/features/order/types/order";
 import { OrderPersistenceMapper } from "../mappers/order-persistence.mapper";
 import { OrderIdentityService } from "../../utils/order-identity.service";
@@ -14,26 +15,33 @@ export async function syncOrdersInboundCommand(
   for (const apiOrder of apiOrders) {
     const localOrder = OrderPersistenceMapper.toLocal(apiOrder);
 
-    // 1. Buscamos si ya existe en la base de datos local
-    const existing = await db.orders.get(localOrder.id!);
-    
+    // 1. BUSQUEDA INTELIGENTE: Buscamos por ID real o por ID Temporal
+    let existing = await db.orders.get(localOrder.idTemp);
+    if (!existing && localOrder.id) {
+      existing = await db.orders.get(localOrder.id);
+    }
+
+    console.log(`orgin API: ${apiOrder.origin} | existing origin: ${existing?.origin} | shortCode API: ${apiOrder.shortCode} | existing shortCode: ${existing?.shortCode}`);
+      
     if (existing && existing.shortCode) {
-      // Si ya existía localmente, mantenemos estrictamente lo que ya teníamos guardado
+      // Si ya existía localmente, mantenemos estrictamente la identidad que ya tenía
       localOrder.dailyNumber = existing.dailyNumber;
       localOrder.shortCode = existing.shortCode;
+      localOrder.origin = existing.origin; // Preservamos también el origen original
     } else {
-      // Si la orden es NUEVA en nuestra base de datos local:
-      
-      if (apiOrder.origin === "BUSINESS" && apiOrder.shortCode) {
-        // Si viene del negocio y ya trae su código (ej: "P-1"), LO RESPETAMOS
+      const incomingOrigin = String(apiOrder.origin).toUpperCase();
+
+      // Si es de Business con código válido, lo respetamos
+      if (incomingOrigin === "BUSINESS" && apiOrder.shortCode) {
         localOrder.dailyNumber = apiOrder.dailyNumber;
         localOrder.shortCode = apiOrder.shortCode;
+        localOrder.origin = "BUSINESS";
       } else {
-        // Si el origen es "APP" o viene sin código (como el último de tu JSON que tiene shortCode: null)
-        // Generamos el turno diario correspondiente para la APP ("A-X")
+        // Para cualquier otro caso (Es "APP" o vino de "BUSINESS" sin código)
         const nextNumber = await OrderIdentityService.getNextDailyNumber("APP");
         localOrder.dailyNumber = nextNumber;
         localOrder.shortCode = OrderIdentityService.formatShortCode(nextNumber, "APP");
+        localOrder.origin = "APP";
       }
     }
 

@@ -44,6 +44,13 @@ export class OrderPersistenceMapper {
         })) ?? [],
     }));
 
+
+    let finalOrigin: "APP" | "BUSINESS" = "BUSINESS";
+    if (apiOrder.origin) {
+      const normalizedOrigin = String(apiOrder.origin).toUpperCase();
+      if (normalizedOrigin === "APP") finalOrigin = "APP";
+    }
+
     // =========================
     // 🚀 RESULTADO FINAL
     // =========================
@@ -89,8 +96,7 @@ export class OrderPersistenceMapper {
       // Metadata
       status: apiOrder.status,
       
-      // ⚠️ CORREGIDO: Dinámico basado en lo que realmente responde tu backend
-      origin: (apiOrder.origin as "APP" | "BUSINESS") ?? "BUSINESS", 
+      origin: finalOrigin,
 
       deliveryStatus: apiOrder.deliveryStatus ?? "PENDING",
 

@@ -187,99 +187,77 @@ export default function BusinessOrdersPage({ businessId }: Props) {
     return orders.find((o) => (o.id || o.idTemp) === viewTicketOrderId) || null;
   }, [viewTicketOrderId, orders]);
 
+  const normalizedOrders = useMemo(() => {
+    return orders.map((o) => ({
+      id: o.id || o.idTemp,
+      customerName: o.customerName,
+      deliveryType: o.deliveryType as DeliveryType,
+      orderPaymentMethod: o.orderPaymentMethod as PaymentMethodType,
+      status: o.status as OrderStatus,
+      paymentStatus: o.paymentStatus as PaymentStatus,
+      deliveryStatus: o.deliveryStatus as DeliveryStatus,
+      total: o.total,
+      userId: "",
+      createdAt: String(o.createdAt),
+      origin: o.origin,
+      shortCode: o.shortCode || "",
+    })) as IOrderShortDto[];
+  }, [orders]);
+
   // --- FILTRADO, ORDENAMIENTO Y NORMALIZACIÓN (Ultra eficiente) ---
   const filteredAndSortedOrders = useMemo(() => {
-    if (!orders.length) return [];
+    if (!normalizedOrders.length) return [];
 
     const currentFilter = simplifiedFilters.find(
       (f) => f.label === activeFilter,
     );
 
-    const term = searchTerm.toLowerCase().trim();
+    const normalizedSearch = searchTerm.toLowerCase().trim().replace(/-/g, "");
 
-    return orders
-      .filter((order) => {
-        const matchesSearch =
-          !term ||
-          (order.id || order.idTemp || "").toLowerCase().includes(term) ||
-          (order.customerName || "").toLowerCase().includes(term);
+    return (
+      normalizedOrders
 
-        if (!matchesSearch) return false;
+        // 1. FILTRO ACTIVO
+        .filter((order) => {
+          if (!currentFilter) return true;
 
-        // IMPORTANTE:
-        // "Todos" también usa su condición.
-        if (!currentFilter) return true;
+          return currentFilter.condition(order);
+        })
 
-        return currentFilter.condition({
-          id: order.id || order.idTemp,
-          customerName: order.customerName,
-          deliveryType: order.deliveryType as DeliveryType,
-          createdAt: String(order.createdAt),
-          orderPaymentMethod: order.orderPaymentMethod as PaymentMethodType,
-          status: order.status as OrderStatus,
-          deliveryStatus: order.deliveryStatus as DeliveryStatus,
-          paymentStatus: order.paymentStatus as PaymentStatus,
-          origin: order.origin,
-          total: order.total,
-          shortCode: order.shortCode || "",
-          userId: "",
-        });
-      })
-      .sort((a, b) => {
-        const priorityA = getOrderPriority(a as any);
-        const priorityB = getOrderPriority(b as any);
+        // 2. BÚSQUEDA
+        .filter((order) => {
+          if (!normalizedSearch) return true;
 
-        if (priorityA !== priorityB) {
-          return priorityA - priorityB;
-        }
+          const normalizedShortCode = order.shortCode
+            .toLowerCase()
+            .replace(/-/g, "");
 
-        return (
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        );
-      })
-      .map((order) => ({
-        id: order.id || order.idTemp,
-        customerName: order.customerName,
-        deliveryType: order.deliveryType as DeliveryType,
-        orderPaymentMethod: order.orderPaymentMethod as PaymentMethodType,
-        status: order.status as OrderStatus,
-        total: order.total,
-        userId: "",
-        createdAt: String(order.createdAt),
-        origin: order.origin,
-        paymentStatus: order.paymentStatus as PaymentStatus,
-        deliveryStatus: order.deliveryStatus as DeliveryStatus,
-        shortCode: order.shortCode || "",
-      }));
-  }, [orders, activeFilter, searchTerm]);
+          const normalizedId = order.id.toLowerCase().replace(/-/g, "");
 
-  // Se normalizan las órdenes de manera segura para el subcomponente de filtros sin re-mapear en el return
-  const shortedOrdersForFilters = useMemo(() => {
-    return orders.map((o) => ({
-      id: o.id || o.idTemp,
-      customerName: o.customerName,
+          const normalizedCustomer = order.customerName.toLowerCase();
 
-      deliveryType: o.deliveryType as DeliveryType,
+          return (
+            normalizedShortCode.includes(normalizedSearch) ||
+            normalizedId.includes(normalizedSearch) ||
+            normalizedCustomer.includes(normalizedSearch)
+          );
+        })
 
-      orderPaymentMethod: o.orderPaymentMethod as PaymentMethodType,
+        // 3. ORDENAMIENTO
+        .sort((a, b) => {
+          const priorityA = getOrderPriority(a as any);
+          const priorityB = getOrderPriority(b as any);
 
-      status: o.status as OrderStatus,
+          if (priorityA !== priorityB) {
+            return priorityA - priorityB;
+          }
 
-      paymentStatus: o.paymentStatus as PaymentStatus,
-
-      deliveryStatus: o.deliveryStatus as DeliveryStatus,
-
-      total: o.total,
-
-      userId: "",
-
-      createdAt: String(o.createdAt),
-
-      origin: o.origin,
-
-      shortCode: o.shortCode || "",
-    })) as IOrderShortDto[];
-  }, [orders]);
+          return (
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+        })
+    );
+  }, [normalizedOrders, activeFilter, searchTerm]);
 
   if (isLoading)
     return (
@@ -403,7 +381,7 @@ export default function BusinessOrdersPage({ businessId }: Props) {
                 quickFilters={simplifiedFilters}
                 activeFilter={activeFilter}
                 setActiveFilter={setActiveFilter}
-                orders={shortedOrdersForFilters}
+                orders={normalizedOrders}
               />
             </div>
           </div>

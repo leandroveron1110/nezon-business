@@ -20,16 +20,9 @@ export async function syncOrdersInteractor(
   // 1. Buscamos el post-it en metadata
   const meta = await db.metadata.get("last_sync_orders");
 
-  // 2. Definimos si usamos el timestamp o no
-  // SOLO lo seteamos como undefined si:
-  // - El usuario apretó "Refrescar" (force === true)
-  // - O si se aplicaron filtros de fecha (daysBack/specificDate !== undefined)
   const isFiltering = daysBack !== undefined || specificDate !== undefined;
   const lastSyncTime = force || isFiltering ? undefined : meta?.value;
 
-  console.log(
-    `[Sync] Enviando lastSyncTime: ${lastSyncTime ?? "Carga Completa"}`,
-  );
 
   try {
     const isServerAlive = await checkServerHealth();
