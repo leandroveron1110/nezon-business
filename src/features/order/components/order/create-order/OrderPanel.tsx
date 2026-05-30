@@ -1,14 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Trash2, Plus, Minus, Send, Zap, Truck, Store } from "lucide-react";
+import { Trash2, Plus, Minus, Send, Zap, Truck, Store, FileText } from "lucide-react";
 import { useLocationAutocomplete } from "@/features/order/hooks/useLocationAutocomplete";
 import { formatPrice } from "@/features/common/utils/formatPrice";
-import { useAutoResolveLocation } from "./AutoLocationResolver";
-import { fetchCalculateDeliveryCost } from "@/features/order/api/catalog-api";
-import { STREET_SUGGESTIONS } from "@/data/street-suggestions";
-import { LOCATION_DATA } from "@/data/location-search-data";
-import { BarrioSuggestion } from "@/data/location-search";
+import { quoteDeliveryOrchestrator } from "@/mini-back/orchestrator/delivery.orchestrator";
 import { LocalOrderItem } from "@/mini-back/infrastructure/dexie/shcema/orders.schema";
 import { useConnectivity } from "@/lib/hooks/useConnectivity";
 
@@ -16,8 +12,8 @@ interface OrderPanelProps {
   businessId: string;
   items: LocalOrderItem[];
   updateQty: (index: number, delta: number) => void;
+  updateItemNote?: (index: number, note: string) => void; // Agregado para mutar la nota directamente acá
   total: number;
-  // Actualizado: Ahora acepta el flag de preparación inmediata
   createOrder: (instantPrepare?: boolean) => void;
   customerName: string;
   setCustomerName: (v: string) => void;
@@ -40,6 +36,7 @@ export function OrderPanel({
   businessId,
   items,
   updateQty,
+  updateItemNote,
   total,
   createOrder,
   customerName,
@@ -61,181 +58,73 @@ export function OrderPanel({
   const isDelivery = deliveryType === "DELIVERY";
   const isLocus = deliveryProvider === "PLATFORM";
 
+  const [openNoteIndex, setOpenNoteIndex] = useState<number | null>(null);
+
   const subtotal = items.reduce(
     (acc, item) => acc + item.priceAtPurchase * item.quantity,
     0,
   );
   const { query, setQuery, results } = useLocationAutocomplete();
-  const { resolve } = useAutoResolveLocation();
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedZoneId, setSelectedZoneIdLocal] = useState<string | null>(
     null,
   );
   const { isOnline } = useConnectivity();
 
-  
   useEffect(() => {
-    console.log("Connectivity Status:", isOnline ? "ONLINE" : "OFFLINE");
     if (!isOnline) {
       setDeliveryProvider("INTERNAL");
     }
   }, [isOnline]);
 
   const handleManualSearch = async () => {
-    if (!query) return;
+    if (!query.trim()) return;
 
-    const queryLimpio = query.trim().toLowerCase();
-
-    // Expresión regular idéntica a la del motor para capturar internas de barrio
-    const regexInteriorBarrio =
-      /\b(mza|mz|m|casa|csa|c|mod|modulo|sec|seccion|s|block|b|lote|l)\b/i;
-
-    let queryParaEsri = null;
-    let barrioEncontrado: BarrioSuggestion | null = null;
-
-    // =========================================================================
-    // 1. EVALUAR FORMATO CON GUION (Seleccionado desde el Dropdown)
-    // =========================================================================
-    if (query.includes(" - ")) {
-      const partes = query.split(" - ");
-      const nombreBarrio = partes[0].trim().toLowerCase();
-      const restoDireccion = partes[1].trim();
-
-      barrioEncontrado = LOCATION_DATA.find(
-        (s) => s.type === "BARRIO" && s.name.toLowerCase() === nombreBarrio,
-      ) as BarrioSuggestion | null;
-
-      // Si después del guion hay estructura de manzana, es Barrio Puro. Si no, va a ESRI.
-      if (regexInteriorBarrio.test(restoDireccion.toLowerCase())) {
-        console.log("Formato guion detectado: Estructura interna de BARRIO");
-      } else {
-        console.log(
-          "Formato guion detectado: BARRIO + CALLE. Preparando geocodificación.",
-        );
-        queryParaEsri = restoDireccion;
-      }
-    }
-    // =========================================================================
-    // 2. EVALUAR TEXTO CORRIDO (Escrito a mano por el cajero sin guion)
-    // =========================================================================
-    else {
-      // Buscamos si el inicio coincide con un barrio conocido
-      barrioEncontrado = LOCATION_DATA.filter((s) => s.type === "BARRIO")
-        .sort((a, b) => b.name.length - a.name.length)
-        .find((b) =>
-          queryLimpio.startsWith(b.name.toLowerCase()),
-        ) as BarrioSuggestion | null;
-
-      if (barrioEncontrado) {
-        // Extraemos lo que escribió después del nombre del barrio
-        const restoDireccion = query
-          .substring(barrioEncontrado.name.length)
-          .trim();
-
-        if (restoDireccion) {
-          // Si tiene palabras clave de manzana/casa, se procesa como Barrio Puro (No va a ESRI)
-          if (regexInteriorBarrio.test(restoDireccion.toLowerCase())) {
-            console.log(
-              "Texto corrido: Se detectó patrón interno. Es BARRIO puro.",
-            );
-          } else {
-            // Si es texto libre (calle conocida o nueva), se extrae para mandarlo a ESRI
-            console.log(
-              "Texto corrido: Se detectó una CALLE posterior al Barrio.",
-            );
-            queryParaEsri = restoDireccion;
-          }
-        } else {
-          console.log(
-            "Texto corrido: Solo se ingresó el nombre del BARRIO base.",
-          );
-        }
-      }
-    }
-
-    // =========================================================================
-    // EJECUCIÓN DE LÓGICAS DE NEGOCIO Y APIS
-    // =========================================================================
-
-    // Si en cualquiera de los pasos anteriores identificamos un Barrio, aseguramos su Zona de costos
-    if (barrioEncontrado) {
-      console.log(
-        "Asignando ZoneID del Barrio detectado:",
-        barrioEncontrado.zoneId,
-      );
-      // barrioEncontrado.
-      // setZoneId(barrioEncontrado.zoneId);
-    }
-
-    // CASO A: Es un Barrio Puro (No tenemos query asignado para ESRI)
-    if (barrioEncontrado && !queryParaEsri) {
-      console.log(
-        "Finalizando flujo: Destino procesado como BARRIO PURO interno.",
-      );
-      // handleLocationSyncSuccess({ latitude: null, longitude: null, address: query.trim() });
-      return; // Frenamos acá, no gasta peticiones en el mapa.
-    }
-
-    // CASO B: Hay una calle por resolver (Sea Calle Pura o una calle dentro de un Barrio)
-    // Si no hay barrioEncontrado, queryParaEsri sigue siendo null, así que usa el query original (Calle Pura)
-    const direccionFinalABuscar = queryParaEsri || query;
-
-    let result = await resolve(direccionFinalABuscar);
-
-    // Fallback tradicional de alias por si ESRI no encuentra la altura de la calle
-    if (!result) {
-      const querySinAltura = direccionFinalABuscar
-        .replace(/\d+/g, "")
-        .trim()
-        .toLowerCase();
-      const streetInfo = STREET_SUGGESTIONS.find(
-        (s) =>
-          s.name.toLowerCase() === querySinAltura ||
-          s.aliases?.some((a) => a.toLowerCase() === querySinAltura),
+    try {
+      const response = await quoteDeliveryOrchestrator(
+        query,
+        businessId,
+        deliveryProvider,
       );
 
-      if (streetInfo?.aliases?.length) {
-        console.log(
-          "Calle no encontrada en primera instancia. Reintentando con alias...",
-        );
-        const altura = direccionFinalABuscar.match(/\d+/)?.[0] || "";
-
-        for (const alias of streetInfo.aliases) {
-          const fallbackQuery = `${alias} ${altura}`.trim();
-          const fallbackResult = await resolve(fallbackQuery);
-
-          if (fallbackResult) {
-            result = fallbackResult;
-            break;
-          }
-        }
+      if (!response.success || !response.data) {
+        alert(response.error?.message || "No pudimos procesar la dirección.");
+        return;
       }
-    }
 
-    // Procesamos el cobro con el pin del mapa si se encontró
-    if (result) {
-      console.log(
-        "Coordenadas obtenidas con éxito de ESRI:",
-        result.latitude,
-        result.longitude,
-      );
-      await fetchCalculateDeliveryCost({
-        businessId: businessId,
-        latitude: result.latitude,
-        longitude: result.longitude,
-      });
-      // handleLocationSyncSuccess(result);
-    } else {
-      // Si la calle estaba dentro de un barrio conocido (Calle Nueva), dejamos pasar el cobro por zona
-      if (barrioEncontrado) {
-        alert(
-          `Ubicación guardada en ${barrioEncontrado.name}. No pudimos verificar la altura exacta en el mapa, pero el costo de envío se calculó por zona.`,
-        );
-      } else {
-        alert(
-          "No pudimos encontrar la altura exacta en el mapa. Por favor, verificá el número o intentá con una calle cercana.",
-        );
+      const quotation = response.data;
+      setCustomerAddress(quotation.resolvedAddress);
+
+      if (quotation.zoneId) {
+        setZoneId(quotation.zoneId);
+        setSelectedZoneIdLocal(quotation.zoneId);
       }
+
+      if (
+        quotation.quotationStatus === "RESOLVED" &&
+        quotation.quotedCost != null
+      ) {
+        setDeliveryCost(quotation.quotedCost);
+        return;
+      }
+
+      if (quotation.resolutionStrategy === "ZONE_ONLY") {
+        alert("Dirección detectada como barrio interno. El envío deberá asignarse manualmente.");
+        return;
+      }
+
+      if (quotation.resolutionStrategy === "ZONE_FALLBACK") {
+        alert("No pudimos calcular automáticamente el envío, pero detectamos la zona.");
+        return;
+      }
+
+      if (quotation.resolutionStrategy === "MANUAL") {
+        alert("No pudimos verificar la dirección en el mapa. Revisá la altura o intentá con otra calle.");
+        return;
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Ocurrió un error inesperado.");
     }
   };
 
@@ -246,9 +135,7 @@ export function OrderPanel({
         <button
           onClick={() => setDeliveryType("PICKUP")}
           className={`flex-1 flex items-center justify-center gap-1.5 text-[10px] font-black transition-colors ${
-            !isDelivery
-              ? "bg-slate-900 text-white"
-              : "bg-slate-50 text-slate-400"
+            !isDelivery ? "bg-slate-900 text-white" : "bg-slate-50 text-slate-400"
           }`}
         >
           <Store className="w-3.5 h-3.5" /> RETIRO
@@ -331,19 +218,12 @@ export function OrderPanel({
                           key={r.id}
                           type="button"
                           onMouseDown={(e) => {
-                            e.preventDefault(); // Evita perder el foco del input
-
-                            // Extraemos cualquier altura numérica que el usuario ya haya escrito al final
-                            const alturaExistente =
-                              query.match(/\d+$/)?.[0] || "";
-
+                            e.preventDefault();
+                            const alturaExistente = query.match(/\d+$/)?.[0] || "";
                             let newQuery = "";
                             if (r.name.includes(" - ")) {
-                              // Si es un resultado mixto (Barrio - Calle), seteamos la estructura limpia
-                              newQuery =
-                                `${r.name} ${alturaExistente}`.trim() + " ";
+                              newQuery = `${r.name} ${alturaExistente}`.trim() + " ";
                             } else {
-                              // Si es un resultado simple
                               newQuery = r.name + " ";
                             }
 
@@ -351,7 +231,6 @@ export function OrderPanel({
                             setCustomerAddress(newQuery);
                             setShowDropdown(false);
 
-                            // Si el item trae zoneId (sea Barrio puro o la Calle combinada), lo seteamos
                             if (r.type == "BARRIO" && r.zoneId) {
                               setZoneId(r.zoneId);
                             }
@@ -362,28 +241,13 @@ export function OrderPanel({
                               : "bg-white hover:bg-slate-700 text-slate-800"
                           } group`}
                         >
-                          <div
-                            className={`absolute left-0 top-0 bottom-0 w-1.5 ${
-                              isBarrio
-                                ? "bg-blue-500"
-                                : "bg-slate-300 group-hover:bg-white/50"
-                            }`}
-                          />
+                          <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${isBarrio ? "bg-blue-500" : "bg-slate-300 group-hover:bg-white/50"}`} />
                           <div className="flex flex-col min-w-0 pl-2">
                             <span className="text-[11px] font-black uppercase truncate group-hover:text-white">
                               {r.name}
                             </span>
-                            <span
-                              className={`text-[9px] leading-none group-hover:text-white/50 ${
-                                isBarrio ? "text-blue-700/50" : "text-slate-400"
-                              }`}
-                            >
-                              {/* Si el nombre fue transformado a mixto, indicamos ambas cosas */}
-                              {r.name.includes(" - ")
-                                ? "Barrio + Calle"
-                                : isBarrio
-                                  ? "Zona / Barrio"
-                                  : "Calle"}
+                            <span className={`text-[9px] leading-none group-hover:text-white/50 ${isBarrio ? "text-blue-700/50" : "text-slate-400"}`}>
+                              {r.name.includes(" - ") ? "Barrio + Calle" : isBarrio ? "Zona / Barrio" : "Calle"}
                             </span>
                           </div>
                         </button>
@@ -407,58 +271,108 @@ export function OrderPanel({
       </div>
 
       {/* 3. LISTA DE PRODUCTOS */}
-      <div className="flex-1 overflow-y-auto bg-white z-10">
-        {items.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-slate-300 opacity-40">
-            <Store className="w-8 h-8 mb-1" />
-            <p className="text-[9px] font-black uppercase tracking-tighter">
-              Esperando pedido...
+<div className="flex-1 overflow-y-auto bg-white z-10 divide-y divide-slate-100">
+  {items.length === 0 ? (
+    <div className="h-full flex flex-col items-center justify-center text-slate-300 opacity-40">
+      <Store className="w-8 h-8 mb-1" />
+      <p className="text-[9px] font-black uppercase tracking-tighter">
+        Esperando pedido...
+      </p>
+    </div>
+  ) : (
+    items.map((item, i) => (
+      <div
+        key={i}
+        className="px-2 py-1.5 flex flex-col hover:bg-slate-50/60 transition-colors"
+      >
+        {/* FILA PRINCIPAL */}
+        <div className="flex items-center justify-between gap-2">
+          
+          {/* INFO */}
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-black uppercase truncate leading-tight">
+              {item.productName}
+            </p>
+
+            <p className="text-[9px] text-blue-600 font-bold">
+              {formatPrice(item.priceAtPurchase)}{" "}
+              <span className="text-slate-400 font-normal">x unid.</span>
             </p>
           </div>
-        ) : (
-          items.map((item, i) => (
-            <div
-              key={i}
-              className="px-2 py-1.5 border-b flex items-center justify-between hover:bg-slate-50"
+
+          {/* CONTROLES CANTIDAD */}
+          <div className="flex items-center bg-slate-100 rounded-md p-0.5 border select-none">
+            <button
+              onClick={() => updateQty(i, -1)}
+              className="w-6 h-6 flex items-center justify-center hover:bg-white rounded transition-colors"
             >
-              <div className="flex-1 min-w-0 pr-2">
-                <p className="text-[10px] font-black uppercase truncate leading-tight">
-                  {item.productName}
-                </p>
-                <p className="text-[9px] text-blue-600 font-bold">
-                  {formatPrice(item.priceAtPurchase)}{" "}
-                  <span className="text-slate-400 font-normal">x unid.</span>
-                </p>
-              </div>
-              <div className="flex items-center bg-slate-100 rounded-md p-0.5 border">
-                <button
-                  onClick={() => updateQty(i, -1)}
-                  className="w-6 h-6 flex items-center justify-center hover:bg-white rounded transition-colors"
-                >
-                  {item.quantity === 1 ? (
-                    <Trash2 size={12} className="text-red-500" />
-                  ) : (
-                    <Minus size={12} />
-                  )}
-                </button>
-                <span className="text-[10px] font-black w-5 text-center">
-                  {item.quantity}
-                </span>
-                <button
-                  onClick={() => updateQty(i, 1)}
-                  className="w-6 h-6 flex items-center justify-center hover:bg-white rounded transition-colors"
-                >
-                  <Plus size={12} />
-                </button>
-              </div>
-            </div>
-          ))
+              {item.quantity === 1 ? (
+                <Trash2 size={12} className="text-red-500" />
+              ) : (
+                <Minus size={12} />
+              )}
+            </button>
+
+            <span className="text-[10px] font-black w-5 text-center">
+              {item.quantity}
+            </span>
+
+            <button
+              onClick={() => updateQty(i, 1)}
+              className="w-6 h-6 flex items-center justify-center hover:bg-white rounded transition-colors"
+            >
+              <Plus size={12} />
+            </button>
+          </div>
+
+          {/* BOTÓN NOTA */}
+          <button
+            onClick={() =>
+              setOpenNoteIndex(openNoteIndex === i ? null : i)
+            }
+            className="w-6 h-6 flex items-center justify-center ml-1"
+          >
+            <FileText
+              size={11}
+              className={
+                item.notes
+                  ? "text-orange-500"
+                  : "text-slate-400"
+              }
+            />
+          </button>
+        </div>
+
+        {/* NOTA COLAPSADA (INLINE SOLO SI ACTIVA) */}
+        {openNoteIndex === i && (
+          <div className="flex items-center gap-1 mt-1 bg-slate-50 border border-slate-200/60 rounded px-1.5 py-0.5">
+            <FileText size={10} className="text-slate-400 shrink-0" />
+
+            <input
+              autoFocus
+              type="text"
+              placeholder="Escribir observación..."
+              value={item.notes || ""}
+              // onChange={(e) => updateItemNote(i, e.target.value)}
+              onBlur={() => setOpenNoteIndex(null)}
+              className="w-full text-[10px] font-bold bg-transparent outline-none placeholder:text-slate-400"
+            />
+          </div>
+        )}
+
+        {/* RESUMEN SI EXISTE NOTA (VISIBLE SIN ABRIR) */}
+        {item.notes && openNoteIndex !== i && (
+          <div className="text-[9px] text-orange-600 font-bold mt-1 truncate">
+            Obs: {item.notes}
+          </div>
         )}
       </div>
+    ))
+  )}
+</div>
 
       {/* 4. PAGO Y ACCIONES */}
       <div className="border-t border-slate-200 bg-white shadow-[0_-4px_12px_rgba(0,0,0,0.08)]">
-        {/* SELECTOR DE PAGOS: Plano, sobrio y ultra-operativo */}
         <div className="p-1.5 bg-white">
           <div className="flex gap-1">
             {[
@@ -473,13 +387,11 @@ export function OrderPanel({
                   type="button"
                   onClick={() => setPaymentMethod(m.key as any)}
                   className={`
-              flex-1 py-2 text-[10px] font-black rounded-xl border transition-all duration-75 tracking-wider
-              ${
-                isSelected
-                  ? "bg-slate-900 text-white border-slate-900"
-                  : "bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100 hover:text-slate-600"
-              }
-            `}
+                    flex-1 py-2 text-[10px] font-black rounded-xl border transition-all duration-75 tracking-wider
+                    ${isSelected
+                      ? "bg-slate-900 text-white border-slate-900"
+                      : "bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100 hover:text-slate-600"}
+                  `}
                 >
                   {m.label}
                 </button>
@@ -488,9 +400,7 @@ export function OrderPanel({
           </div>
         </div>
 
-        {/* CONTENEDOR OSCURO: Totales y Acciones (Tu estructura original) */}
         <div className="bg-slate-900 text-white p-3">
-          {/* Desglose de totales */}
           <div className="space-y-1 mb-3">
             <div className="flex justify-between items-baseline">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
@@ -508,9 +418,7 @@ export function OrderPanel({
                 </span>
                 <span className="text-sm font-bold text-sky-400 tracking-tight">
                   {isLocus
-                    ? selectedZoneId
-                      ? "ZONA OK"
-                      : "AUTO"
+                    ? selectedZoneId ? "ZONA OK" : "AUTO"
                     : formatPrice(deliveryCost)}
                 </span>
               </div>
@@ -526,22 +434,16 @@ export function OrderPanel({
             </div>
           </div>
 
-          {/* BOTONES DE ACCIÓN: Corregidos mecánicamente para el fondo oscuro */}
           <div className="mt-4 mb-2 flex gap-3 px-1 select-none">
-            {/* BOTÓN SECUNDARIO: SOLO GUARDAR (Estilo Plano Minimalista) */}
             <button
               type="button"
               onClick={() => createOrder(false)}
               disabled={items.length === 0}
               className="
-                flex-1
-                h-14
-                rounded-xl
-                border-2 border-slate-200
+                flex-1 h-14 rounded-xl border-2 border-slate-200
                 flex flex-col items-center justify-center
                 bg-white hover:bg-slate-50 active:bg-slate-100
-                text-slate-700 font-bold
-                transition-all duration-150 ease-in-out
+                text-slate-700 font-bold transition-all duration-150 ease-in-out
                 disabled:opacity-40 disabled:bg-slate-50 disabled:border-slate-100 disabled:text-slate-400 disabled:pointer-events-none
               "
             >
@@ -551,20 +453,15 @@ export function OrderPanel({
               </span>
             </button>
 
-            {/* BOTÓN PRINCIPAL: ¡MARCHAR! (Estilo Sólido de Alta Conversión) */}
             <button
               type="button"
               onClick={() => createOrder(true)}
               disabled={items.length === 0}
               className="
-                flex-[2] /* Le da más ancho al botón de acción principal */
-                h-14
-                rounded-xl
+                flex-[2] h-14 rounded-xl
                 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700
-                flex flex-col items-center justify-center
-                text-white font-bold
-                transition-all duration-150 ease-in-out
-                shadow-sm active:shadow-none
+                flex flex-col items-center justify-center text-white font-bold
+                transition-all duration-150 ease-in-out shadow-sm active:shadow-none
                 disabled:opacity-40 disabled:bg-emerald-700/50 disabled:pointer-events-none
               "
             >

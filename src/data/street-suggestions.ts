@@ -1,12 +1,8 @@
-export interface StreetSuggestion {
-  id: string;
-  name: string;
-  normalized: string;
-  tokens: string[];
-  aliases?: string[];
-}
+// src/data/street-suggestions.ts
 
-export const STREET_SUGGESTIONS: StreetSuggestion[] = [
+import { BaseSuggestion, CalleSuggestion } from "@/mini-back/core/DeliveryCore/public";
+
+const STREET: BaseSuggestion[] = [
   // --- CALLES NORTE (Columna Izquierda) ---
   {
     id: "st_n_9",
@@ -1093,3 +1089,12 @@ export const STREET_SUGGESTIONS: StreetSuggestion[] = [
     aliases: ["17 norte"],
   },
 ];
+
+export const STREET_SUGGESTIONS: CalleSuggestion[] = STREET.map<CalleSuggestion>((s) => ({
+    id: s.id,
+    name: s.name,
+    normalized: s.normalized,
+    tokens: s.tokens,
+    aliases: s.aliases,
+    type: "CALLE",
+  }))

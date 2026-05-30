@@ -29,6 +29,7 @@ export const cloudSyncService = {
       // IMPORTANTE: Aseguramos que estos no sean undefined
       shortCode: order.shortCode || "S/N",
       dailyNumber: order.dailyNumber || 0,
+      createdAt: order.createdAt ? new Date(order.createdAt).toISOString() : undefined,
 
       items: order.items.map((item: OrderItem) => ({
         // CAMBIO: Usamos item.productId que es como se llama en tu interfaz OrderItem
@@ -91,6 +92,7 @@ export const cloudSyncService = {
         deliveryStatus: order.deliveryStatus,
         paymentExpected: {},
         paymentReceived: {},
+        createdAt: order.createdAt ? new Date(order.createdAt).toISOString() : undefined,
         items: order.items.map((item) => ({
           menuProductId: item.productId,
           productName: item.productName,

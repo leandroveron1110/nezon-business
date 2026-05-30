@@ -1,29 +1,13 @@
 // src/data/location-search-data.ts
 
+import { LocationSuggestion } from "@/mini-back/core/DeliveryCore/public";
 import { LOCATION_ALIASES } from "./location-aliases";
-import { LocationSuggestion } from "./location-search";
 import { STREET_SUGGESTIONS } from "./street-suggestions";
 
 export const LOCATION_DATA: LocationSuggestion[] = [
   // 🟦 BARRIOS
-  ...LOCATION_ALIASES
-    .filter(b => b.active)
-    .map<LocationSuggestion>((b) => ({
-      id: b.id,
-      name: b.name,
-      normalized: b.normalized,
-      tokens: b.tokens,
-      type: "BARRIO",
-      zoneId: b.zoneId,
-    })),
+  ...LOCATION_ALIASES,
 
   // 🟩 CALLES
-  ...STREET_SUGGESTIONS.map<LocationSuggestion>((s) => ({
-    id: s.id,
-    name: s.name,
-    normalized: s.normalized,
-    tokens: s.tokens,
-    aliases: s.aliases,
-    type: "CALLE",
-  })),
+  ...STREET_SUGGESTIONS,
 ];

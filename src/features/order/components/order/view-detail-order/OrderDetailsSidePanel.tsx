@@ -3,8 +3,6 @@
 import { useMemo, useRef, useState } from "react";
 import {
   X,
-  ChevronRight,
-  Loader2,
   Printer,
   User,
   Package,
@@ -12,6 +10,10 @@ import {
   CreditCard,
   AlertCircle,
   CheckCircle2,
+  Bike,
+  Undo2,
+  Loader2,
+  Send,
 } from "lucide-react";
 
 import { DeliveryType } from "@/types/order";
@@ -30,6 +32,7 @@ import { OrderTicket } from "../ticket-order/OrderTicket";
 import { usePrintTicket } from "@/features/order/hooks/usePrintTicket";
 import { OrderStatus, PaymentStatus } from "@/types/order-state-machine";
 import { updateOrderStatusOrchestrator } from "@/mini-back/orchestrator/order.orchestrator";
+import { DeliveryStatus } from "@/mini-back/core/orders/domain/order-state-machine";
 
 interface Props {
   orderId: string;
@@ -63,7 +66,7 @@ const getStatusAction = (status: OrderStatus, deliveryType: DeliveryType) => {
     },
     [OrderStatus.READY]: {
       label: isPickup ? "ENTREGAR Y CERRAR" : "PEDIDO DESPACHADO",
-      next: OrderStatus.COMPLETED, // Si es delivery, el cierre final lo da la entrega del cadete, pero el local "cumple" al despachar.
+      next: OrderStatus.COMPLETED,
       color: "bg-slate-900 hover:bg-black",
     },
   };
@@ -95,8 +98,56 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
     return getStatusAction(safeOrder.status, safeOrder.deliveryType);
   }, [safeOrder]);
 
+  // ===================================
+  // HANDLERS LOGÍSTICOS (CON TU ENUM)
+  // ===================================
+  const handleSolicitarCadete = async () => {
+    if (!safeOrder || loading) return;
+    try {
+      setLoading(true);
+      const result = await updateOrderStatusOrchestrator({
+        idTemp: safeOrder.idTemp,
+        thread: "DELIVERY",
+        nextValue: DeliveryStatus.REQUESTED, // Pasa a Solicitado
+      });
+
+      if (result.success) {
+        addAlert({ message: "Pedido enviado a la Base de Cadetería correctamente" });
+      } else {
+        addAlert({ message: result.error?.message || "Error al solicitar", type: "error" });
+      }
+    } catch (e) {
+      addAlert({ message: "Error al conectar con el servidor", type: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelarCadete = async () => {
+    if (!safeOrder || loading) return;
+    if (!window.confirm("¿Querés retirar este pedido de la base de cadetes?")) return;
+    try {
+      setLoading(true);
+      const result = await updateOrderStatusOrchestrator({
+        idTemp: safeOrder.idTemp,
+        thread: "DELIVERY",
+        nextValue: DeliveryStatus.PENDING, // Vuelve a estar en el local sin mandar
+      });
+
+      if (result.success) {
+        addAlert({ message: "Se canceló el aviso a la base. El pedido quedó en el local.", type: "info" });
+      } else {
+        addAlert({ message: result.error?.message || "Error al cancelar", type: "error" });
+      }
+    } catch (e) {
+      addAlert({ message: "Error al conectar con el servidor", type: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // =========================
-  // HANDLERS
+  // HANDLERS ORIGINALES 
   // =========================
   const handleTogglePayment = async () => {
     if (!safeOrder || loading) return;
@@ -129,7 +180,6 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
     if (!safeOrder || !action || loading) return;
     try {
       setLoading(true);
-      // Llamamos al orquestador con un objeto plano (Input)
       const result = await updateOrderStatusOrchestrator({
         idTemp: safeOrder.idTemp,
         thread: "STATUS",
@@ -142,8 +192,6 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
       } else {
         addAlert({ message: result.error?.message || "Error", type: "error" });
       }
-      // await updateOrderStateInteractor(safeOrder.id, 'STATUS', action.next, safeOrder.origin);
-      // addAlert({ message: `Orden: ${action.label}` });
       if (action.next === OrderStatus.COMPLETED) onClose();
     } catch (e) {
       addAlert({ message: "Error al actualizar estado", type: "error" });
@@ -160,7 +208,6 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
       return;
     try {
       setLoading(true);
-      // await fetchUpdateOrdersByOrderID(safeOrder.id, targetStatus);
       addAlert({ message: "Pedido cancelado", type: "info" });
       onClose();
     } catch (e) {
@@ -210,7 +257,6 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
             </span>
             <OrderStatusBadge
               deliveryStatus={safeOrder.deliveryStatus}
-              // paymentStatus={safeOrder.paymentStatus}
               status={safeOrder.status}
             />
           </div>
@@ -230,7 +276,7 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
           </div>
         </div>
 
-        {/* SUB-HEADER: Datos rápidos de entrega */}
+        {/* SUB-HEADER */}
         <div className="px-4 py-2 bg-white border-b flex justify-between text-[11px] font-black text-slate-400 uppercase tracking-tight shrink-0">
           <span className="flex items-center gap-1 text-slate-600">
             <User size={13} /> {safeOrder.user.fullName}
@@ -245,7 +291,54 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
           </span>
         </div>
 
-        {/* ITEMS: Lista de alta densidad para lectura rápida */}
+        {/* ========================================================= */}
+        {/* NUEVO BLOQUE: CONTROL LOGÍSTICO EXCLUSIVO PARA CAJERO     */}
+        {/* ========================================================= */}
+        {safeOrder.deliveryType === DeliveryType.DELIVERY && (
+          <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2 shrink-0">
+            <div className="flex items-center gap-2">
+              <Bike 
+                size={16} 
+                className={
+                  safeOrder.deliveryStatus === DeliveryStatus.REQUESTED ? "text-amber-500 animate-pulse" :
+                  safeOrder.deliveryStatus === DeliveryStatus.SHIPPED ? "text-blue-500" :
+                  safeOrder.deliveryStatus === DeliveryStatus.COMPLETED ? "text-emerald-600" : "text-slate-400"
+                } 
+              />
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black tracking-wider text-slate-400 uppercase leading-none">Logística de Envío</span>
+                <span className="text-xs font-bold text-slate-700">
+                  {safeOrder.deliveryStatus === DeliveryStatus.PENDING && "Local Retiene (No enviado)"}
+                  {safeOrder.deliveryStatus === DeliveryStatus.REQUESTED && "Esperando Asignación de Base..."}
+                  {safeOrder.deliveryStatus === DeliveryStatus.SHIPPED && "En Viaje de Reparto"}
+                  {safeOrder.deliveryStatus === DeliveryStatus.COMPLETED && "Entregado por Cadete"}
+                  {safeOrder.deliveryStatus === DeliveryStatus.CANCELLED && "Cancelado"}
+                </span>
+              </div>
+            </div>
+            {safeOrder.deliveryStatus === DeliveryStatus.PENDING && (
+              <button
+                onClick={handleSolicitarCadete}
+                disabled={loading || safeOrder.status === OrderStatus.PENDING}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-black shadow-sm transition-all flex items-center gap-1.5 disabled:opacity-50"
+              >
+                <Send size={12} /> ENVIAR A BASE
+              </button>
+            )}
+
+            {safeOrder.deliveryStatus === DeliveryStatus.REQUESTED && (
+              <button
+                onClick={handleCancelarCadete}
+                disabled={loading}
+                className="flex items-center gap-1 bg-white hover:bg-red-50 text-red-600 border border-red-200 px-2.5 py-1.5 rounded-lg text-xs font-black shadow-sm transition-all"
+              >
+                <Undo2 size={13} /> RETIRAR DE BASE
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* ITEMS */}
         <div className="flex-1 overflow-y-auto bg-white">
           {safeOrder.items.map((item, i) => (
             <div
@@ -283,113 +376,93 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
             </div>
           ))}
         </div>
+<div className="p-4 border-t bg-slate-50 space-y-4 shrink-0 shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
+          
+          {/* Desglose de Dinero (Solución Problema 1) */}
+          <div className="border-b border-slate-200/60 pb-2 space-y-1">
+            <div className="flex justify-between text-xs font-medium text-slate-500">
+              <span>Subtotal Productos:</span>
+              <span className="font-mono font-bold">{formatPrice(safeOrder.total - (safeOrder.totalDeliveryCost ?? 0))}</span>
+            </div>
+            {safeOrder.deliveryType === DeliveryType.DELIVERY && (
+              <div className="flex justify-between text-xs font-medium text-slate-500">
+                <span>Costo de Envío (Base):</span>
+                <span className="font-mono font-bold text-blue-600">+{formatPrice(safeOrder.totalDeliveryCost ?? 0)}</span>
+              </div>
+            )}
+          </div>
 
-        {/* FOOTER: Acciones de Caja */}
-        <div className="p-4 border-t bg-slate-50 space-y-4 shrink-0 shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
-          {/* Fila de Pago y Total */}
           <div className="flex justify-between items-end">
             <div className="space-y-1">
               <div className="flex items-center gap-1.5 text-slate-500">
                 <CreditCard size={14} />
-                <span className="text-[10px] font-black uppercase tracking-widest">
-                  {safeOrder.orderPaymentMethod}
-                </span>
+                <span className="text-[10px] font-black uppercase tracking-widest">{safeOrder.orderPaymentMethod}</span>
               </div>
-
-              <div className="flex items-center gap-1.5">
+              <div>
                 {isPaid ? (
                   <div className="flex items-center gap-1 text-green-600">
                     <CheckCircle2 size={14} />
-                    <span className="text-[11px] font-black uppercase tracking-tighter">
-                      Cobrado
-                    </span>
+                    <span className="text-[11px] font-black uppercase tracking-tighter">Cobrado</span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-1 text-red-500 animate-pulse">
                     <AlertCircle size={14} />
-                    <span className="text-[11px] font-black uppercase tracking-tighter">
-                      Pendiente de Pago
-                    </span>
+                    <span className="text-[11px] font-black uppercase tracking-tighter">Pendiente de Pago</span>
                   </div>
                 )}
               </div>
             </div>
 
             <div className="text-right">
-              <span className="text-[10px] text-slate-400 font-black block mb-1 tracking-widest leading-none">
-                TOTAL NETO
-              </span>
-              <span className="text-3xl font-black text-slate-900 tracking-tighter leading-none">
-                {formatPrice(safeOrder.total)}
-              </span>
+              <span className="text-[10px] text-slate-400 font-black block mb-1 tracking-widest leading-none">TOTAL NETO</span>
+              <span className="text-3xl font-black text-slate-900 tracking-tighter leading-none">{formatPrice(safeOrder.total)}</span>
             </div>
           </div>
 
-          {/* Botonera Principal */}
+          {/* Botonera de acciones */}
           <div className="flex gap-2">
-            {/* 💰 COBRAR → compacto */}
             <button
               onClick={handleTogglePayment}
               disabled={loading}
-              className={`
-      px-4 py-3 rounded-xl font-black text-xs border-2 transition-all whitespace-nowrap
-      ${
-        isPaid
-          ? "bg-white text-slate-300 border-slate-100"
-          : "bg-emerald-600 text-white border-emerald-600 active:scale-95"
-      }
-    `}
+              className={`px-4 py-3 rounded-xl font-black text-xs border-2 transition-all ${
+                isPaid ? "bg-white text-slate-300 border-slate-100" : "bg-emerald-600 text-white border-emerald-600 active:scale-95"
+              }`}
             >
               {isPaid ? "COBRADO" : "COBRAR"}
             </button>
 
-            {/* 🚀 ACCIÓN PRINCIPAL → flexible */}
             {action && (
               <button
                 onClick={handleAdvance}
                 disabled={loading}
-                className={`
-        flex-1 min-w-0 ${action.color} text-white py-3 px-4
-        rounded-xl font-black text-sm flex items-center justify-center gap-2
-        active:scale-95
-      `}
+                className={`flex-1 min-w-0 ${action.color} text-white py-3 px-4 rounded-xl font-black text-sm flex items-center justify-center gap-2 active:scale-95`}
               >
-                {loading ? (
-                  <Loader2 className="animate-spin" size={18} />
-                ) : (
-                  <span className="truncate">{action.label}</span>
-                )}
+                {loading ? <Loader2 className="animate-spin" size={18} /> : <span className="truncate">{action.label}</span>}
               </button>
             )}
           </div>
 
+          {/* Danger Zone */}
           <div className="pt-2 border-t border-slate-200">
             {!showDangerZone ? (
-              <button
-                onClick={() => setShowDangerZone(true)}
-                className="w-full text-center text-[11px] font-bold text-slate-400 text-red-500 transition-colors"
-              >
-                Gestionar pedido
+              <button onClick={() => setShowDangerZone(true)} className="w-full text-center text-[11px] font-bold text-red-500 transition-colors">
+                Gestionar pedido / Rechazar
               </button>
             ) : (
               <div className="space-y-2 animate-in fade-in">
                 <OrderCancellationActions
                   status={safeOrder.status}
                   deliveryStatus={safeOrder.deliveryStatus}
-                  // paymentStatus={safeOrder.paymentStatus}
                   onCancel={handleCancelOrder}
                   loading={loading}
                 />
-
-                <button
-                  onClick={() => setShowDangerZone(false)}
-                  className="w-full text-center text-[11px] text-slate-400"
-                >
-                  Cancelar
+                <button onClick={() => setShowDangerZone(false)} className="w-full text-center text-[11px] text-slate-400">
+                  Volver atrás
                 </button>
               </div>
             )}
           </div>
+
         </div>
       </div>
     </div>

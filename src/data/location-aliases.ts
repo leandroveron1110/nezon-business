@@ -1,23 +1,8 @@
 // src/data/location-aliases.ts
 
-export interface LocationAlias {
-  id: string;
-  name: string;
-  normalized: string;
-  zoneId: string;
-  tokens: string[];
-  rules?: LocationRule[];
-  active: boolean;
-}
+import { BarrioSuggestion } from "@/mini-back/core/DeliveryCore/public";
 
-export interface LocationRule {
-  id: string;
-  tokens: string[];
-  priority: number;
-  zoneId: string;
-}
-
-export const LOCATION_ALIASES: LocationAlias[] = [
+export const LOCATION_ALIASES: BarrioSuggestion[] = [
   // --- BARRIOS PRIVADOS Y SEMIPRIVADOS ---
   {
     id: "barrio_ss",
@@ -26,6 +11,7 @@ export const LOCATION_ALIASES: LocationAlias[] = [
     zoneId: "", 
     tokens: ["ss", "privado"],
     active: true,
+    type: "BARRIO",
   },
   {
     id: "rincon_urquiza",
@@ -34,6 +20,7 @@ export const LOCATION_ALIASES: LocationAlias[] = [
     zoneId: "",
     tokens: ["rincon", "urquiza"],
     active: true,
+    type: "BARRIO",
   },
   {
     id: "los_bretes",
@@ -42,6 +29,7 @@ export const LOCATION_ALIASES: LocationAlias[] = [
     zoneId: "",
     tokens: ["bretes"],
     active: true,
+    type: "BARRIO",
   },
   {
     id: "pueblo_duffard",
@@ -50,6 +38,7 @@ export const LOCATION_ALIASES: LocationAlias[] = [
     zoneId: "",
     tokens: ["duffard"],
     active: true,
+    type: "BARRIO",
   },
 
   // --- TRADICIONALES Y CÉNTRICOS ---
@@ -60,6 +49,7 @@ export const LOCATION_ALIASES: LocationAlias[] = [
     zoneId: "",
     tokens: ["san", "isidro"],
     active: true,
+    type: "BARRIO",
   },
   {
     id: "la_quilmes",
@@ -68,6 +58,7 @@ export const LOCATION_ALIASES: LocationAlias[] = [
     zoneId: "",
     tokens: ["quilmes"],
     active: true,
+    type: "BARRIO",
   },
   {
     id: "la_concepcion",
@@ -76,6 +67,7 @@ export const LOCATION_ALIASES: LocationAlias[] = [
     zoneId: "",
     tokens: ["concepcion"],
     active: true,
+    type: "BARRIO",
   },
   {
     id: "puerto_viejo",
@@ -84,6 +76,7 @@ export const LOCATION_ALIASES: LocationAlias[] = [
     zoneId: "",
     tokens: ["puerto", "viejo"],
     active: true,
+    type: "BARRIO",
   },
   {
     id: "rocamora",
@@ -92,6 +85,7 @@ export const LOCATION_ALIASES: LocationAlias[] = [
     zoneId: "",
     tokens: ["rocamora"],
     active: true,
+    type: "BARRIO",
   },
 
   // --- VIVIENDAS E IAPV ---
@@ -102,6 +96,7 @@ export const LOCATION_ALIASES: LocationAlias[] = [
     zoneId: "",
     tokens: ["192", "viviendas"],
     active: true,
+    type: "BARRIO",
   },
   {
     id: "150_viviendas",
@@ -110,6 +105,7 @@ export const LOCATION_ALIASES: LocationAlias[] = [
     zoneId: "",
     tokens: ["150", "viviendas"],
     active: true,
+    type: "BARRIO",
   },
   {
     id: "80_viviendas",
@@ -118,6 +114,7 @@ export const LOCATION_ALIASES: LocationAlias[] = [
     zoneId: "",
     tokens: ["80", "viviendas"],
     active: true,
+    type: "BARRIO",
   },
   {
     id: "100_viviendas",
@@ -126,6 +123,7 @@ export const LOCATION_ALIASES: LocationAlias[] = [
     zoneId: "",
     tokens: ["100", "viviendas"],
     active: true,
+    type: "BARRIO",
   },
 
   // --- ZONAS PERIFÉRICAS ---
@@ -136,6 +134,7 @@ export const LOCATION_ALIASES: LocationAlias[] = [
     zoneId: "",
     tokens: ["lomas", "norte"],
     active: true,
+    type: "BARRIO",
   },
   {
     id: "villa_las_lomas_sur",
@@ -144,6 +143,7 @@ export const LOCATION_ALIASES: LocationAlias[] = [
     zoneId: "",
     tokens: ["lomas", "sur"],
     active: true,
+    type: "BARRIO",
   },
   {
     id: "santa_teresita",
@@ -152,6 +152,7 @@ export const LOCATION_ALIASES: LocationAlias[] = [
     zoneId: "",
     tokens: ["santa", "teresita"],
     active: true,
+    type: "BARRIO",
   },
   {
     id: "la_higuera",
@@ -160,6 +161,7 @@ export const LOCATION_ALIASES: LocationAlias[] = [
     zoneId: "",
     tokens: ["higuera"],
     active: true,
+    type: "BARRIO",
   },
   {
     id: "la_rural",
@@ -168,6 +170,7 @@ export const LOCATION_ALIASES: LocationAlias[] = [
     zoneId: "",
     tokens: ["rural"],
     active: true,
+    type: "BARRIO",
   },
   {
     id: "cantera_25",
@@ -176,6 +179,7 @@ export const LOCATION_ALIASES: LocationAlias[] = [
     zoneId: "",
     tokens: ["cantera", "25"],
     active: true,
+    type: "BARRIO",
   },
   {
     id: "barrio_obrero",
@@ -184,6 +188,7 @@ export const LOCATION_ALIASES: LocationAlias[] = [
     zoneId: "",
     tokens: ["obrero"],
     active: true,
+    type: "BARRIO",
   },
   {
     id: "ex_circuito_mena",
@@ -192,6 +197,7 @@ export const LOCATION_ALIASES: LocationAlias[] = [
     zoneId: "",
     tokens: ["mena"],
     active: true,
+    type: "BARRIO",
   },
   {
     id: "balneario_itape",
@@ -200,6 +206,7 @@ export const LOCATION_ALIASES: LocationAlias[] = [
     zoneId: "",
     tokens: ["itape"],
     active: true,
+    type: "BARRIO",
   },
   {
     id: "barrio_vicoer",
@@ -208,6 +215,7 @@ export const LOCATION_ALIASES: LocationAlias[] = [
     zoneId: "",
     tokens: ["vicoer"],
     active: true,
+    type: "BARRIO",
   },
   {
     id: "barrio_cgt",
@@ -216,5 +224,6 @@ export const LOCATION_ALIASES: LocationAlias[] = [
     zoneId: "",
     tokens: ["cgt"],
     active: true,
+    type: "BARRIO",
   }
 ];

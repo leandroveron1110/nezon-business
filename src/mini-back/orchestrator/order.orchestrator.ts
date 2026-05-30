@@ -8,6 +8,7 @@ import {
 import { DexieOrderIdentityAdapter } from "../infrastructure/dexie/repositories/dexie-order-identity.adapter";
 import { DexieOrderRepositoryAdapter } from "../infrastructure/dexie/repositories/dexie-order.repository";
 import { cloudSyncService } from "../infrastructure/network/CloudSyncService";
+import { quoteDeliveryOrchestrator } from "./delivery.orchestrator";
 // import { syncQueueWorker } from "../infrastructure/network/SyncQueueWorker";
 
 const MAX_RETRIES = 3;
@@ -23,6 +24,48 @@ export const createOrderOrchestrator = async (input: CreateOrderInput) => {
     repository: repositoryAdapter,
     identity: identityAdapter,
   });
+
+  if (
+    input.deliveryType === "DELIVERY" &&
+    input.deliveryProvider === "INTERNAL" &&
+    input.customerAddress &&
+    input.totalDeliveryCost === 0
+  ) {
+    const quotation = await quoteDeliveryOrchestrator(
+      input.customerAddress,
+      input.businessId,
+      input.deliveryProvider,
+    );
+
+    if (quotation.success && quotation.data) {
+      const data = quotation.data;
+
+      input = {
+        ...input,
+
+        totalDeliveryCost:
+          data.quotedCost || 0,
+
+        // deliveryZoneId:
+        //   data.zoneId || null,
+
+        // deliveryLatitude:
+        //   data.latitude || null,
+
+        // deliveryLongitude:
+        //   data.longitude || null,
+
+        // deliveryQuotationStatus:
+        //   data.quotationStatus,
+
+        // deliveryResolutionStrategy:
+        //   data.resolutionStrategy,
+
+        // normalizedAddress:
+        //   data.resolvedAddress,
+      };
+    }
+  }
 
   // 1. Ejecución soberana del negocio en Local (Dexie)
   let result = await orderCore.createOrder(input);
@@ -64,6 +107,19 @@ export const createOrderOrchestrator = async (input: CreateOrderInput) => {
         await orderCore.notifySyncError(order.idTemp);
       }
     }
+
+    // verificamos si el pedido pide delibery por la plataforma y si es así, lo mandamos a la cola de sincronización aunque no sea HIGH
+    if (order.deliveryProvider === "PLATFORM") {
+      // si es pedido por la plataforma, verificamos si ya se assigno el precio o no
+      if (order.totalDeliveryCost === 0) {
+        console.log(
+          `Orden ${order.shortCode} requiere delivery por plataforma pero no tiene precio asignado. Forzando sincronización...`,
+        );
+      }
+      // Aquí disparas tu Worker general (el que primero hace el POST de la creación de la orden
+      // y luego actualiza sus estados).
+      // syncQueueWorker.processQueue().catch(...);
+    }
   }
 
   return result;
@@ -86,7 +142,6 @@ export const updateOrderStatusOrchestrator = async (
     input.thread === "DELIVERY" && input.nextValue === "REQUESTED";
 
   if (order.id && (order.origin === "APP" || order.syncPriority === "HIGH")) {
-    
     // 🔥 En segundo plano para no bloquear la UI
     cloudSyncService
       .updateOrder(order.id, {
@@ -103,7 +158,7 @@ export const updateOrderStatusOrchestrator = async (
       .catch(async (error) => {
         console.warn(
           "Fallo de red al actualizar estado. El SyncWorker resolverá en el fondo.",
-          error
+          error,
         );
         await orderCore.notifySyncError(order.idTemp);
       });
