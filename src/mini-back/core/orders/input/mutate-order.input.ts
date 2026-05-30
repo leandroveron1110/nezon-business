@@ -2,7 +2,7 @@
 
 import { OrderStatus, PaymentStatus, DeliveryStatus } from "../domain/order-state-machine";
 
-export type CoreOrderThreadType = "ORDER" | "PAYMENT" | "DELIVERED" | "SYNC";
+export type CoreOrderThreadType = "ORDER" | "PAYMENT" | "DELIVERY" | "SYNC";
 export type CoreOrderAuthorType = "SYSTEM" | "BUSINESS" | "CUSTOMER";
 
 export type SyncStatusType = "SYNC_PENDING" | "LOCAL_ONLY" | "SYNCED" | "SYNC_ERROR";
@@ -17,5 +17,5 @@ type BaseMutateInput = {
 export type MutateOrderStateInput =
   | (BaseMutateInput & { thread: "ORDER"; nextValue: OrderStatus })
   | (BaseMutateInput & { thread: "PAYMENT"; nextValue: PaymentStatus })
-  | (BaseMutateInput & { thread: "DELIVERED"; nextValue: DeliveryStatus })
+  | (BaseMutateInput & { thread: "DELIVERY"; nextValue: DeliveryStatus })
   | (BaseMutateInput & { thread: "SYNC"; nextValue: SyncStatusType });

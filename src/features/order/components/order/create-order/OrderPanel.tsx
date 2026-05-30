@@ -1,12 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Trash2, Plus, Minus, Send, Zap, Truck, Store, FileText } from "lucide-react";
+import {
+  Trash2,
+  Plus,
+  Minus,
+  Send,
+  Zap,
+  Truck,
+  Store,
+  FileText,
+} from "lucide-react";
 import { useLocationAutocomplete } from "@/features/order/hooks/useLocationAutocomplete";
 import { formatPrice } from "@/features/common/utils/formatPrice";
 import { quoteDeliveryOrchestrator } from "@/mini-back/orchestrator/delivery.orchestrator";
 import { LocalOrderItem } from "@/mini-back/infrastructure/dexie/shcema/orders.schema";
 import { useConnectivity } from "@/lib/hooks/useConnectivity";
+import { useAlert } from "@/features/common/ui/Alert/Alert";
 
 interface OrderPanelProps {
   businessId: string;
@@ -57,6 +67,7 @@ export function OrderPanel({
 }: OrderPanelProps) {
   const isDelivery = deliveryType === "DELIVERY";
   const isLocus = deliveryProvider === "PLATFORM";
+  const { addAlert } = useAlert();
 
   const [openNoteIndex, setOpenNoteIndex] = useState<number | null>(null);
 
@@ -69,6 +80,7 @@ export function OrderPanel({
   const [selectedZoneId, setSelectedZoneIdLocal] = useState<string | null>(
     null,
   );
+  const [isSearching, setIsSearching] = useState(false);
   const { isOnline } = useConnectivity();
 
   useEffect(() => {
@@ -77,56 +89,88 @@ export function OrderPanel({
     }
   }, [isOnline]);
 
-  const handleManualSearch = async () => {
-    if (!query.trim()) return;
 
-    try {
-      const response = await quoteDeliveryOrchestrator(
-        query,
-        businessId,
-        deliveryProvider,
-      );
 
-      if (!response.success || !response.data) {
-        alert(response.error?.message || "No pudimos procesar la dirección.");
-        return;
-      }
+const handleManualSearch = async () => {
+  if (!query.trim() || isSearching) return;
 
-      const quotation = response.data;
-      setCustomerAddress(quotation.resolvedAddress);
+  try {
+    setIsSearching(true);
 
-      if (quotation.zoneId) {
-        setZoneId(quotation.zoneId);
-        setSelectedZoneIdLocal(quotation.zoneId);
-      }
+    const response = await quoteDeliveryOrchestrator(
+      query,
+      businessId,
+      deliveryProvider
+    );
 
-      if (
-        quotation.quotationStatus === "RESOLVED" &&
-        quotation.quotedCost != null
-      ) {
-        setDeliveryCost(quotation.quotedCost);
-        return;
-      }
-
-      if (quotation.resolutionStrategy === "ZONE_ONLY") {
-        alert("Dirección detectada como barrio interno. El envío deberá asignarse manualmente.");
-        return;
-      }
-
-      if (quotation.resolutionStrategy === "ZONE_FALLBACK") {
-        alert("No pudimos calcular automáticamente el envío, pero detectamos la zona.");
-        return;
-      }
-
-      if (quotation.resolutionStrategy === "MANUAL") {
-        alert("No pudimos verificar la dirección en el mapa. Revisá la altura o intentá con otra calle.");
-        return;
-      }
-    } catch (error) {
-      console.error(error);
-      alert("Ocurrió un error inesperado.");
+    // 1. Falla de conexión o error crítico de backend
+    if (!response.success || !response.data) {
+      addAlert({
+        message: "No pudimos procesar la dirección. Revisá la conexión o intentá de nuevo.",
+        type: "error", // Rojo de alerta
+      });
+      return;
     }
-  };
+
+    const quotation = response.data;
+    setCustomerAddress(quotation.resolvedAddress);
+
+    if (quotation.zoneId) {
+      setZoneId(quotation.zoneId);
+      setSelectedZoneIdLocal(quotation.zoneId);
+    }
+
+    // 2. Éxito absoluto: Dirección mapeada y cotizada al toque
+    if (
+      quotation.quotationStatus === "RESOLVED" &&
+      quotation.quotedCost != null
+    ) {
+      setDeliveryCost(quotation.quotedCost);
+      return;
+    }
+
+    // =========================================================
+    // RESOLUCIÓN MANUAL (Usando type: "info" para avisar a Base)
+    // =========================================================
+
+    // Caso A: Barrio cerrado / Country / Entrada única
+    if (quotation.resolutionStrategy === "ZONE_ONLY") {
+      addAlert({
+        message: "Dirección identificada (Barrio Interno). Se notificó a la base para cotizar el envío; te avisamos apenas respondan.",
+        type: "info", // Azul/Gris informativo, transmite tranquilidad
+      });
+      return;
+    }
+
+    // Caso B: Detectó la zona por coordenadas pero falló el cálculo por km
+    if (quotation.resolutionStrategy === "ZONE_FALLBACK") {
+      addAlert({
+        message: "Ubicamos la zona pero no el costo exacto. El pedido ya fue enviado a base para fijar el precio manualmente.",
+        type: "info",
+      });
+      return;
+    }
+
+    // Caso C: No coincide la altura o calle inexistente en el mapa
+    if (quotation.resolutionStrategy === "MANUAL") {
+      addAlert({
+        message: "No pudimos verificar la altura en el mapa. Despachamos una solicitud de cotización manual a la base para resolverlo.",
+        type: "info",
+      });
+      return;
+    }
+
+  } catch (error) {
+    console.error("Error en cotización manual:", error);
+    addAlert({
+      message: "Ocurrió un inconveniente inesperado. Si persiste, comunicate con soporte.",
+      type: "error",
+    });
+  } finally {
+    setIsSearching(false);
+  }
+};
+
 
   return (
     <div className="md:w-[440px] border-l flex flex-col bg-white h-full overflow-hidden relative select-none">
@@ -135,7 +179,9 @@ export function OrderPanel({
         <button
           onClick={() => setDeliveryType("PICKUP")}
           className={`flex-1 flex items-center justify-center gap-1.5 text-[10px] font-black transition-colors ${
-            !isDelivery ? "bg-slate-900 text-white" : "bg-slate-50 text-slate-400"
+            !isDelivery
+              ? "bg-slate-900 text-white"
+              : "bg-slate-50 text-slate-400"
           }`}
         >
           <Store className="w-3.5 h-3.5" /> RETIRO
@@ -219,10 +265,12 @@ export function OrderPanel({
                           type="button"
                           onMouseDown={(e) => {
                             e.preventDefault();
-                            const alturaExistente = query.match(/\d+$/)?.[0] || "";
+                            const alturaExistente =
+                              query.match(/\d+$/)?.[0] || "";
                             let newQuery = "";
                             if (r.name.includes(" - ")) {
-                              newQuery = `${r.name} ${alturaExistente}`.trim() + " ";
+                              newQuery =
+                                `${r.name} ${alturaExistente}`.trim() + " ";
                             } else {
                               newQuery = r.name + " ";
                             }
@@ -241,13 +289,21 @@ export function OrderPanel({
                               : "bg-white hover:bg-slate-700 text-slate-800"
                           } group`}
                         >
-                          <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${isBarrio ? "bg-blue-500" : "bg-slate-300 group-hover:bg-white/50"}`} />
+                          <div
+                            className={`absolute left-0 top-0 bottom-0 w-1.5 ${isBarrio ? "bg-blue-500" : "bg-slate-300 group-hover:bg-white/50"}`}
+                          />
                           <div className="flex flex-col min-w-0 pl-2">
                             <span className="text-[11px] font-black uppercase truncate group-hover:text-white">
                               {r.name}
                             </span>
-                            <span className={`text-[9px] leading-none group-hover:text-white/50 ${isBarrio ? "text-blue-700/50" : "text-slate-400"}`}>
-                              {r.name.includes(" - ") ? "Barrio + Calle" : isBarrio ? "Zona / Barrio" : "Calle"}
+                            <span
+                              className={`text-[9px] leading-none group-hover:text-white/50 ${isBarrio ? "text-blue-700/50" : "text-slate-400"}`}
+                            >
+                              {r.name.includes(" - ")
+                                ? "Barrio + Calle"
+                                : isBarrio
+                                  ? "Zona / Barrio"
+                                  : "Calle"}
                             </span>
                           </div>
                         </button>
@@ -271,105 +327,102 @@ export function OrderPanel({
       </div>
 
       {/* 3. LISTA DE PRODUCTOS */}
-<div className="flex-1 overflow-y-auto bg-white z-10 divide-y divide-slate-100">
-  {items.length === 0 ? (
-    <div className="h-full flex flex-col items-center justify-center text-slate-300 opacity-40">
-      <Store className="w-8 h-8 mb-1" />
-      <p className="text-[9px] font-black uppercase tracking-tighter">
-        Esperando pedido...
-      </p>
-    </div>
-  ) : (
-    items.map((item, i) => (
-      <div
-        key={i}
-        className="px-2 py-1.5 flex flex-col hover:bg-slate-50/60 transition-colors"
-      >
-        {/* FILA PRINCIPAL */}
-        <div className="flex items-center justify-between gap-2">
-          
-          {/* INFO */}
-          <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-black uppercase truncate leading-tight">
-              {item.productName}
-            </p>
-
-            <p className="text-[9px] text-blue-600 font-bold">
-              {formatPrice(item.priceAtPurchase)}{" "}
-              <span className="text-slate-400 font-normal">x unid.</span>
+      <div className="flex-1 overflow-y-auto bg-white z-10 divide-y divide-slate-100">
+        {items.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center text-slate-300 opacity-40">
+            <Store className="w-8 h-8 mb-1" />
+            <p className="text-[9px] font-black uppercase tracking-tighter">
+              Esperando pedido...
             </p>
           </div>
-
-          {/* CONTROLES CANTIDAD */}
-          <div className="flex items-center bg-slate-100 rounded-md p-0.5 border select-none">
-            <button
-              onClick={() => updateQty(i, -1)}
-              className="w-6 h-6 flex items-center justify-center hover:bg-white rounded transition-colors"
+        ) : (
+          items.map((item, i) => (
+            <div
+              key={i}
+              className="px-2 py-1.5 flex flex-col hover:bg-slate-50/60 transition-colors"
             >
-              {item.quantity === 1 ? (
-                <Trash2 size={12} className="text-red-500" />
-              ) : (
-                <Minus size={12} />
+              {/* FILA PRINCIPAL */}
+              <div className="flex items-center justify-between gap-2">
+                {/* INFO */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-black uppercase truncate leading-tight">
+                    {item.productName}
+                  </p>
+
+                  <p className="text-[9px] text-blue-600 font-bold">
+                    {formatPrice(item.priceAtPurchase)}{" "}
+                    <span className="text-slate-400 font-normal">x unid.</span>
+                  </p>
+                </div>
+
+                {/* CONTROLES CANTIDAD */}
+                <div className="flex items-center bg-slate-100 rounded-md p-0.5 border select-none">
+                  <button
+                    onClick={() => updateQty(i, -1)}
+                    className="w-6 h-6 flex items-center justify-center hover:bg-white rounded transition-colors"
+                  >
+                    {item.quantity === 1 ? (
+                      <Trash2 size={12} className="text-red-500" />
+                    ) : (
+                      <Minus size={12} />
+                    )}
+                  </button>
+
+                  <span className="text-[10px] font-black w-5 text-center">
+                    {item.quantity}
+                  </span>
+
+                  <button
+                    onClick={() => updateQty(i, 1)}
+                    className="w-6 h-6 flex items-center justify-center hover:bg-white rounded transition-colors"
+                  >
+                    <Plus size={12} />
+                  </button>
+                </div>
+
+                {/* BOTÓN NOTA */}
+                <button
+                  onClick={() =>
+                    setOpenNoteIndex(openNoteIndex === i ? null : i)
+                  }
+                  className="w-6 h-6 flex items-center justify-center ml-1"
+                >
+                  <FileText
+                    size={11}
+                    className={
+                      item.notes ? "text-orange-500" : "text-slate-400"
+                    }
+                  />
+                </button>
+              </div>
+
+              {/* NOTA COLAPSADA (INLINE SOLO SI ACTIVA) */}
+              {openNoteIndex === i && (
+                <div className="flex items-center gap-1 mt-1 bg-slate-50 border border-slate-200/60 rounded px-1.5 py-0.5">
+                  <FileText size={10} className="text-slate-400 shrink-0" />
+
+                  <input
+                    autoFocus
+                    type="text"
+                    placeholder="Escribir observación..."
+                    value={item.notes || ""}
+                    // onChange={(e) => updateItemNote(i, e.target.value)}
+                    onBlur={() => setOpenNoteIndex(null)}
+                    className="w-full text-[10px] font-bold bg-transparent outline-none placeholder:text-slate-400"
+                  />
+                </div>
               )}
-            </button>
 
-            <span className="text-[10px] font-black w-5 text-center">
-              {item.quantity}
-            </span>
-
-            <button
-              onClick={() => updateQty(i, 1)}
-              className="w-6 h-6 flex items-center justify-center hover:bg-white rounded transition-colors"
-            >
-              <Plus size={12} />
-            </button>
-          </div>
-
-          {/* BOTÓN NOTA */}
-          <button
-            onClick={() =>
-              setOpenNoteIndex(openNoteIndex === i ? null : i)
-            }
-            className="w-6 h-6 flex items-center justify-center ml-1"
-          >
-            <FileText
-              size={11}
-              className={
-                item.notes
-                  ? "text-orange-500"
-                  : "text-slate-400"
-              }
-            />
-          </button>
-        </div>
-
-        {/* NOTA COLAPSADA (INLINE SOLO SI ACTIVA) */}
-        {openNoteIndex === i && (
-          <div className="flex items-center gap-1 mt-1 bg-slate-50 border border-slate-200/60 rounded px-1.5 py-0.5">
-            <FileText size={10} className="text-slate-400 shrink-0" />
-
-            <input
-              autoFocus
-              type="text"
-              placeholder="Escribir observación..."
-              value={item.notes || ""}
-              // onChange={(e) => updateItemNote(i, e.target.value)}
-              onBlur={() => setOpenNoteIndex(null)}
-              className="w-full text-[10px] font-bold bg-transparent outline-none placeholder:text-slate-400"
-            />
-          </div>
-        )}
-
-        {/* RESUMEN SI EXISTE NOTA (VISIBLE SIN ABRIR) */}
-        {item.notes && openNoteIndex !== i && (
-          <div className="text-[9px] text-orange-600 font-bold mt-1 truncate">
-            Obs: {item.notes}
-          </div>
+              {/* RESUMEN SI EXISTE NOTA (VISIBLE SIN ABRIR) */}
+              {item.notes && openNoteIndex !== i && (
+                <div className="text-[9px] text-orange-600 font-bold mt-1 truncate">
+                  Obs: {item.notes}
+                </div>
+              )}
+            </div>
+          ))
         )}
       </div>
-    ))
-  )}
-</div>
 
       {/* 4. PAGO Y ACCIONES */}
       <div className="border-t border-slate-200 bg-white shadow-[0_-4px_12px_rgba(0,0,0,0.08)]">
@@ -388,9 +441,11 @@ export function OrderPanel({
                   onClick={() => setPaymentMethod(m.key as any)}
                   className={`
                     flex-1 py-2 text-[10px] font-black rounded-xl border transition-all duration-75 tracking-wider
-                    ${isSelected
-                      ? "bg-slate-900 text-white border-slate-900"
-                      : "bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100 hover:text-slate-600"}
+                    ${
+                      isSelected
+                        ? "bg-slate-900 text-white border-slate-900"
+                        : "bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100 hover:text-slate-600"
+                    }
                   `}
                 >
                   {m.label}
@@ -418,7 +473,9 @@ export function OrderPanel({
                 </span>
                 <span className="text-sm font-bold text-sky-400 tracking-tight">
                   {isLocus
-                    ? selectedZoneId ? "ZONA OK" : "AUTO"
+                    ? selectedZoneId
+                      ? "ZONA OK"
+                      : "AUTO"
                     : formatPrice(deliveryCost)}
                 </span>
               </div>

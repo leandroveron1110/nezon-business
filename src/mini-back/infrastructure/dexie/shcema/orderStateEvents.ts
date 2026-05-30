@@ -1,6 +1,6 @@
 // src/common/database/shcema/orderStateEvents.ts
 
-type stateType = "ORDER" | "PAYMENT" | "DELIVERED" | "SYNC";
+type stateType = "ORDER" | "PAYMENT" | "DELIVERY" | "SYNC";
 type syncStatus = "PENDING" | "SYNCED" | "FAILED";
 type authorType = "SYSTEM" | "BUSINESS" | "CUSTOMER";
 

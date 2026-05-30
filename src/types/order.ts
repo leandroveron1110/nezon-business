@@ -88,4 +88,5 @@ export interface IOrderShortDto {
   customerName: string;
   origin: Origin
   shortCode: string;
+  deliveryFee: number
 }

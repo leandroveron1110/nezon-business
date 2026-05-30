@@ -91,7 +91,7 @@ export class OrderService implements IOrderPublicService {
         break;
       }
 
-      case "DELIVERED": {
+      case "DELIVERY": {
         // input.nextValue es inferred automáticamente como DeliveryStatus
         isValid = OrderStateMachine.canChangeDelivery(input.nextValue, order);
         updates.deliveryStatus = input.nextValue;
@@ -256,7 +256,7 @@ export class OrderService implements IOrderPublicService {
       case "DELIVERY":
         return this.mutateState({
           ...baseConfig,
-          thread: "DELIVERED",
+          thread: "DELIVERY",
           nextValue: input.nextValue as DeliveryStatus,
         });
 

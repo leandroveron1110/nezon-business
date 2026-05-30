@@ -29,7 +29,9 @@ export const cloudSyncService = {
       // IMPORTANTE: Aseguramos que estos no sean undefined
       shortCode: order.shortCode || "S/N",
       dailyNumber: order.dailyNumber || 0,
-      createdAt: order.createdAt ? new Date(order.createdAt).toISOString() : undefined,
+      createdAt: order.createdAt
+        ? new Date(order.createdAt).toISOString()
+        : undefined,
 
       items: order.items.map((item: OrderItem) => ({
         // CAMBIO: Usamos item.productId que es como se llama en tu interfaz OrderItem
@@ -92,7 +94,9 @@ export const cloudSyncService = {
         deliveryStatus: order.deliveryStatus,
         paymentExpected: {},
         paymentReceived: {},
-        createdAt: order.createdAt ? new Date(order.createdAt).toISOString() : undefined,
+        createdAt: order.createdAt
+          ? new Date(order.createdAt).toISOString()
+          : undefined,
         items: order.items.map((item) => ({
           menuProductId: item.productId,
           productName: item.productName,
@@ -114,7 +118,6 @@ export const cloudSyncService = {
         })),
       })),
     };
-
 
     const res = await apiPost<
       {
@@ -168,21 +171,48 @@ export const cloudSyncService = {
     }
   },
 
-  updateOrder: async (
+  // updateOrder: async (
+  //   orderId: string,
+  //   updates: { thread: OrderThread; nextValue: string },
+  // ): Promise<boolean> => {
+  //   try {
+  //     if(updates.thread === "STATUS") {
+  //       await apiPatch(`/orders/order/status/${orderId}`, { status: updates.nextValue });
+  //     }else if(updates.thread === "PAYMENT") {
+  //       await apiPatch(`/orders/order/payment-status/status/${orderId}`, { status: updates.nextValue });
+  //     }else if(updates.thread === "DELIVERY") {
+  //       // await apiPatch(`/order/delivery-status/${orderId}`, { deliveryStatus: updates.nextValue });
+  //     }
+  //     return true;
+  //   } catch (error) {
+  //     console.error("Error al actualizar estado en la nube:", error);
+  //     return false;
+  //   }
+  // },
+
+  syncOrderUpdatesOffline: async (
     orderId: string,
-    updates: { thread: OrderThread; nextValue: string },
+    updatesPayload: {
+      status?: string;
+      paymentStatus?: string;
+      deliveryStatus?: string;
+      updatedAt: string;
+    },
   ): Promise<boolean> => {
     try {
-      if(updates.thread === "STATUS") {
-        await apiPatch(`/orders/order/status/${orderId}`, { status: updates.nextValue });
-      }else if(updates.thread === "PAYMENT") {
-        await apiPatch(`/orders/order/payment-status/status/${orderId}`, { status: updates.nextValue });
-      }else if(updates.thread === "DELIVERY") {
-        // await apiPatch(`/order/delivery-status/${orderId}`, { deliveryStatus: updates.nextValue });
-      }
-      return true;
+      // Impacta directamente al nuevo endpoint del Back que procesa el Delta
+      const res = await apiPatch<{
+        id: string;
+        idTemp: string | null;
+      }>(`/orders/sync-offline-updates/${orderId}`, updatesPayload);
+
+      // Retornamos true si la API respondió de manera exitosa
+      return !!res.success;
     } catch (error) {
-      console.error("Error al actualizar estado en la nube:", error);
+      console.error(
+        `Error enviando actualizaciones offline unificadas de orden ${orderId}:`,
+        error,
+      );
       return false;
     }
   },

@@ -108,6 +108,7 @@ class SyncQueueWorker {
         for (const chunk of chunks) {
           try {
             const businessId = chunk[0].businessId;
+            // El batch ya manda las órdenes con sus estados finales congelados del POS
             const syncResults = await cloudSyncService.triggerBatchSync(
               businessId,
               chunk,
@@ -116,7 +117,11 @@ class SyncQueueWorker {
             for (const result of syncResults) {
               if (result.cloudId) {
                 await orderCore.confirmCloudSync(result.idTemp, result.cloudId);
+
+                // 🔥 AQUÍ ESTÁ EL TRUCO: Como la orden nació de cero en el back con su estado actual,
+                // desactivamos todas las banderas de hilos para que la Sección 2 ni la toque.
                 await db.orders.update(result.idTemp, {
+                  syncStatus: "SYNCED",
                   syncedStatus: true,
                   syncedPayment: true,
                   syncedDelivery: true,
@@ -128,95 +133,78 @@ class SyncQueueWorker {
               "SyncWorker: Falló un chunk de creación masiva.",
               err,
             );
-            throw err; // Lanza al catch principal para frenar
+            throw err;
           }
         }
       }
 
       // =================================================================
-      // 2. MUTACIONES DE ESTADO QUIRÚRGICAS (SOLO LO QUE FALTA SUBIR)
+      // 2. MUTACIONES DE ESTADO QUIRÚRGICAS (SOLO LO QUE FALTA SUBIR EN ÓRDENES EXISTENTES)
       // =================================================================
       if (ordersToUpdateStatus.length > 0) {
         for (const order of ordersToUpdateStatus) {
           try {
-            const promises = [];
-            const localUpdates: Record<string, any> = {};
+            const updatesPayload: {
+              status?: string | undefined;
+              paymentStatus?: string | undefined;
+              deliveryStatus?: string | undefined;
+              updatedAt: string;
+            } = {
+              updatedAt: "",
+              deliveryStatus: undefined,
+              paymentStatus: undefined,
+              status: undefined,
+            };
 
-            if (order.syncedStatus === false) {
-              promises.push(
-                cloudSyncService
-                  .updateOrder(order.id!, {
-                    thread: "STATUS",
-                    nextValue: order.status,
-                  })
-                  .then((res) => {
-                    if (res) localUpdates.syncedStatus = true;
-                    return res;
-                  }),
-              );
-            }
-
-            if (order.syncedPayment === false) {
-              promises.push(
-                cloudSyncService
-                  .updateOrder(order.id!, {
-                    thread: "PAYMENT",
-                    nextValue: order.paymentStatus,
-                  })
-                  .then((res) => {
-                    if (res) localUpdates.syncedPayment = true;
-                    return res;
-                  }),
-              );
-            }
-
+            // Construimos el delta quirúrgico comparando banderas locales
+            if (order.syncedStatus === false)
+              updatesPayload.status = order.status;
+            if (order.syncedPayment === false)
+              updatesPayload.paymentStatus = order.paymentStatus;
             if (
-              order.deliveryStatus !== "NOT_APPLICABLE" &&
-              order.syncedDelivery === false
+              order.syncedDelivery === false &&
+              order.deliveryStatus !== "NOT_APPLICABLE"
             ) {
-              promises.push(
-                cloudSyncService
-                  .updateOrder(order.id!, {
-                    thread: "DELIVERY",
-                    nextValue: order.deliveryStatus,
-                  })
-                  .then((res) => {
-                    if (res) localUpdates.syncedDelivery = true;
-                    return res;
-                  }),
-              );
+              updatesPayload.deliveryStatus = order.deliveryStatus;
             }
 
-            if (promises.length === 0) {
+            // Si localmente está marcada para actualizar pero no hay cambios reales en los hilos, salteamos
+            if (Object.keys(updatesPayload).length === 0) {
               await db.orders.update(order.idTemp, { syncStatus: "SYNCED" });
               continue;
             }
 
-            const results = await Promise.all(promises);
+            // Adjuntamos cuándo ocurrió el último cambio real en esta orden
+            updatesPayload.updatedAt = order.updatedAt
+              ? new Date(order.updatedAt).toISOString()
+              : new Date().toISOString();
 
-            if (results.every((res) => res === true)) {
-              const freshOrder = await db.orders.get(order.idTemp);
-              const allThreadsSynced =
-                (localUpdates.syncedStatus || freshOrder?.syncedStatus) &&
-                (localUpdates.syncedPayment || freshOrder?.syncedPayment) &&
-                (order.deliveryStatus === "NOT_APPLICABLE" ||
-                  localUpdates.syncedDelivery ||
-                  freshOrder?.syncedDelivery);
+            // Pegamos al nuevo endpoint consolidado del Back
+            const success = await cloudSyncService.syncOrderUpdatesOffline(
+              order.id!,
+              updatesPayload,
+            );
 
-              if (allThreadsSynced) {
-                localUpdates.syncStatus = "SYNCED";
-              }
-              await db.orders.update(order.idTemp, localUpdates);
+            if (success) {
+              // Confirmación total de hilos para esta orden
+              await db.orders.update(order.idTemp, {
+                syncStatus: "SYNCED",
+                syncedStatus: true,
+                syncedPayment: true,
+                syncedDelivery: true,
+              });
             } else {
-              throw new Error("Fallo parcial en la ráfaga de estados remotos");
+              throw new Error(
+                "El servidor rechazó la conciliación de estados offline",
+              );
             }
           } catch (err) {
             console.error(
-              `SyncWorker: Error en estados de orden ${order.shortCode}. Deteniendo ciclo.`,
+              `SyncWorker: Error sincronizando estados diferidos de orden ${order.shortCode}.`,
               err,
             );
             await db.orders.update(order.idTemp, { syncStatus: "SYNC_ERROR" });
-            throw err; // 🌟 Cambiado de break a throw para romper el flujo global e informar error
+            throw err; // Frena el ciclo para proteger la consistencia
           }
         }
       }
