@@ -143,6 +143,14 @@ export default function OrderBuilder({
     );
   };
 
+  const updateItemNote = (index: number, note: string) => {
+  setItems((prev) =>
+    prev.map((item, i) =>
+      i === index ? { ...item, notes: note } : item,
+    )
+  );
+};
+
   const totalProducts = items.reduce(
     (a, i) => a + i.priceAtPurchase * i.quantity,
     0,
@@ -269,6 +277,7 @@ export default function OrderBuilder({
                     items={items}
                     updateQty={updateQty}
                     total={total}
+                    updateItemNote={updateItemNote}
                     createOrder={createOrder}
                     customerName={customerName}
                     setCustomerName={setCustomerName}
@@ -302,6 +311,7 @@ export default function OrderBuilder({
               <div className="shrink-0 bg-white border-t border-slate-200 z-20 max-h-[60vh] overflow-y-auto overflow-x-hidden">
                 <OrderSheet
                   businessId={businessid}
+                  updateItemNote={updateItemNote}
                   isSubmitting={isSubmitting}
                   items={items}
                   updateQty={updateQty}

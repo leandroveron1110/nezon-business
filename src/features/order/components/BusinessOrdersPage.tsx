@@ -184,7 +184,7 @@ export default function BusinessOrdersPage({ businessId }: Props) {
   // Buscamos la orden para renderizar en el Modal de comanda en pantalla
   const orderToView = useMemo(() => {
     if (!viewTicketOrderId || !orders) return null;
-    return orders.find((o) => (o.id || o.idTemp) === viewTicketOrderId) || null;
+    return orders.find((o) => (o.idTemp) === viewTicketOrderId) || null;
   }, [viewTicketOrderId, orders]);
 
   const normalizedOrders = useMemo(() => {
@@ -422,7 +422,10 @@ export default function BusinessOrdersPage({ businessId }: Props) {
                     showViewTicketButton={businessSettings.allowDigitalTicket}
                     onClick={() => setSelectedOrderId(order.id)}
                     onPrintDirect={handlePrintRequest}
-                    onViewTicket={(id) => setViewTicketOrderId(id)}
+                    onViewTicket={(id) =>{
+                      console.log(`id de la orden:${id}`)
+                      setViewTicketOrderId(id)
+                    } }
                   />
                 ))
               )}
@@ -463,7 +466,7 @@ export default function BusinessOrdersPage({ businessId }: Props) {
             </div>
 
             {/* CONTENEDOR INTERNO CON SCROLL INDEPENDIENTE */}
-            <div className="flex-1 overflow-y-auto p-5 scrollbar-thin bg-white">
+            <div className="flex-1 overflow-y-auto p-6 scrollbar-thin bg-white">
               <OrderKitchenView order={orderToView as any} now={now} />
             </div>
           </div>

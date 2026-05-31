@@ -374,7 +374,7 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
                       {item.productName}
                     </p>
                     {item.notes && (
-                      <p className="text-[11px] text-amber-600 font-bold leading-tight italic">
+                      <p className="text-[11px] text-amber-600 font-bold leading-tight italic whitespace-pre-line">
                         Nota: "{item.notes}"
                       </p>
                     )}

@@ -23,7 +23,7 @@ interface OrderPanelProps {
   isSubmitting: boolean;
   items: LocalOrderItem[];
   updateQty: (index: number, delta: number) => void;
-  updateItemNote?: (index: number, note: string) => void; // Agregado para mutar la nota directamente acá
+  updateItemNote: (index: number, note: string) => void; // Agregado para mutar la nota directamente acá
   total: number;
   createOrder: (instantPrepare?: boolean) => void;
   customerName: string;
@@ -401,25 +401,28 @@ export function OrderPanel({
 
               {/* NOTA COLAPSADA (INLINE SOLO SI ACTIVA) */}
               {openNoteIndex === i && (
-                <div className="flex items-center gap-1 mt-1 bg-slate-50 border border-slate-200/60 rounded px-1.5 py-0.5">
-                  <FileText size={10} className="text-slate-400 shrink-0" />
+                <div className="flex items-start gap-1 mt-1 bg-slate-50 border border-slate-200/60 rounded px-1.5 py-1">
+                  <FileText
+                    size={10}
+                    className="text-slate-400 shrink-0 mt-0.5"
+                  />
 
-                  <input
+                  <textarea
                     autoFocus
-                    type="text"
-                    placeholder="Escribir observación..."
+                    rows={3}
+                    placeholder="Mucho queso&#10;Poca cocción..."
                     value={item.notes || ""}
-                    // onChange={(e) => updateItemNote(i, e.target.value)}
+                    onChange={(e) => updateItemNote?.(i, e.target.value)}
                     onBlur={() => setOpenNoteIndex(null)}
-                    className="w-full text-[10px] font-bold bg-transparent outline-none placeholder:text-slate-400"
+                    className="w-full text-[10px] font-bold bg-transparent outline-none placeholder:text-slate-400 resize-none leading-tight"
                   />
                 </div>
               )}
 
               {/* RESUMEN SI EXISTE NOTA (VISIBLE SIN ABRIR) */}
               {item.notes && openNoteIndex !== i && (
-                <div className="text-[9px] text-orange-600 font-bold mt-1 truncate">
-                  Obs: {item.notes}
+                <div className="text-[9px] text-orange-600 font-bold mt-1 bg-orange-50/60 p-1 rounded border border-orange-100 whitespace-pre-line">
+                  {item.notes}
                 </div>
               )}
             </div>
@@ -494,8 +497,7 @@ export function OrderPanel({
             </div>
           </div>
 
-          {!isSubmitting ? 
-          (
+          {!isSubmitting ? (
             <div className="mt-4 mb-2 flex gap-3 px-1 select-none">
               <button
                 type="button"
@@ -537,9 +539,9 @@ export function OrderPanel({
                 </div>
               </button>
             </div>
-          )
-          : <div></div>
-          }
+          ) : (
+            <div></div>
+          )}
         </div>
       </div>
     </div>

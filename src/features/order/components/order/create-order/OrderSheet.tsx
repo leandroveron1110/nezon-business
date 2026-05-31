@@ -27,6 +27,8 @@ interface OrderSheetProps {
   paymentMethod: "CASH" | "TRANSFER" | "QR" | "DELIVERY";
   setPaymentMethod: (v: "CASH" | "TRANSFER" | "QR" | "DELIVERY") => void;
   setZoneId: (v: string | null) => void;
+
+  updateItemNote: (index: number, note: string) => void;
 }
 export function OrderSheet(props: OrderSheetProps) {
   const [open, setOpen] = useState(false);
