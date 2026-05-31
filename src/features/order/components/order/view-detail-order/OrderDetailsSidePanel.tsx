@@ -300,9 +300,46 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
         </div>
 
         {/* ========================================================= */}
+{/* LOGÍSTICA DE ENVÍO                                        */}
+{/* ========================================================= */}
+{safeOrder.deliveryType === DeliveryType.DELIVERY && (
+  <>
+    {/* ===================================================== */}
+    {/* REPARTO INTERNO DEL LOCAL                             */}
+    {/* ===================================================== */}
+    {safeOrder.deliveryProvider === "INTERNAL" && (
+      <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2 shrink-0">
+        <div className="flex items-center gap-2">
+          <Bike size={16} className="text-slate-400" />
+
+          <div className="flex flex-col">
+            <span className="text-[10px] font-black tracking-wider text-slate-400 uppercase leading-none">
+              Reparto
+            </span>
+
+            <span className="text-xs font-bold text-slate-700">
+              Entrega realizada por el local
+            </span>
+          </div>
+        </div>
+
+        <button
+          onClick={handleSolicitarCadete}
+          disabled={loading || safeOrder.status === OrderStatus.PENDING}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-black shadow-sm transition-all flex items-center gap-1.5 disabled:opacity-50"
+        >
+          <Send size={12} />
+          ASIGNAR A PLATAFORMA
+        </button>
+      </div>
+    )}
+  </>
+)}
+
+        {/* ========================================================= */}
         {/* NUEVO BLOQUE: CONTROL LOGÍSTICO EXCLUSIVO PARA CAJERO     */}
         {/* ========================================================= */}
-        {safeOrder.deliveryType === DeliveryType.DELIVERY && (
+        {(safeOrder.deliveryType === DeliveryType.DELIVERY && safeOrder.deliveryProvider === "PLATFORM") && (
           <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2 shrink-0">
             <div className="flex items-center gap-2">
               <Bike

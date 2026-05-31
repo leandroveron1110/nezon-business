@@ -1,10 +1,12 @@
     // src/features/orders/types/ui-order.ts
 
-    import { IOrder } from "./order";
+    import { DeliveryProvider } from "@/mini-back/core/orders/public";
+import { IOrder } from "./order";
 
 
     export interface UIOrder extends IOrder{
     id: string; // El id de Postgres
     idTemp: string;
     syncStatus: 'pending' | 'synced';
+    deliveryProvider: DeliveryProvider;
     }
