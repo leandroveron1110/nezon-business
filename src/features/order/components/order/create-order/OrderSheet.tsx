@@ -7,6 +7,7 @@ import { LocalOrderItem } from "@/mini-back/infrastructure/dexie/shcema/orders.s
 interface OrderSheetProps {
   businessId: string;
   items: LocalOrderItem[];
+  isSubmitting: boolean;
   updateQty: (index: number, delta: number) => void;
   total: number;
   createOrder: () => void;

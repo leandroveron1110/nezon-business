@@ -47,6 +47,7 @@ export default function OrderBuilder({
     "CASH" | "TRANSFER" | "QR" | "DELIVERY"
   >("CASH");
   const [deliveryCost, setDeliveryCost] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Detección de Mobile para Layout
   useEffect(() => {
@@ -150,7 +151,11 @@ export default function OrderBuilder({
     totalProducts + (deliveryType === "DELIVERY" ? deliveryCost : 0);
 
   const createOrder = async (instantPrepare?: boolean) => {
-    if (!items.length) return;
+    // 1. Validaciones previas de seguridad
+    if (!items.length || isSubmitting) return;
+
+    // Activamos el bloqueo INMEDIATAMENTE de forma síncrona
+    setIsSubmitting(true);
 
     let initialPaymentStatus: PaymentStatus = PaymentStatus.PENDING;
 
@@ -197,6 +202,9 @@ export default function OrderBuilder({
     } catch (error) {
       console.error("Error al crear el pedido:", error);
       // Aquí podrías agregar un toast de error
+    } finally {
+      // Apagamos el bloqueo pase lo que pase (éxito o error)
+      setIsSubmitting(false);
     }
   };
   return (
@@ -256,6 +264,7 @@ export default function OrderBuilder({
                 {/* Forzamos scroll vertical estricto, matando cualquier deformación hacia los costados */}
                 <div className="flex-1 h-full overflow-y-auto overflow-x-hidden p-1">
                   <OrderPanel
+                    isSubmitting={isSubmitting}
                     businessId={businessid}
                     items={items}
                     updateQty={updateQty}
@@ -293,6 +302,7 @@ export default function OrderBuilder({
               <div className="shrink-0 bg-white border-t border-slate-200 z-20 max-h-[60vh] overflow-y-auto overflow-x-hidden">
                 <OrderSheet
                   businessId={businessid}
+                  isSubmitting={isSubmitting}
                   items={items}
                   updateQty={updateQty}
                   total={total}

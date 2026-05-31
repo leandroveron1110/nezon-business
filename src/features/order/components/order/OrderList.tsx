@@ -156,7 +156,6 @@ export const OrderList = memo(function OrderList({
                 <deliveryInfo.Icon size={11} strokeWidth={3} />
                 {deliveryInfo.label}
                 {/* INFO EXTRA DE ENVÍO EN MOBILE */}
-                {hasDeliveryFee}
                 {hasDeliveryFee && (
                   <span className="ml-1 bg-slate-100 text-slate-600 px-1 rounded text-[9px] font-bold">
                     + {formatPrice(order.deliveryFee!)} env

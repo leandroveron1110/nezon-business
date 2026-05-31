@@ -42,7 +42,7 @@ export default function BusinessOrdersPage({ businessId }: Props) {
 
   // --- ESTADOS DE CONTROL ---
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeFilter, setActiveFilter] = useState("Todos");
+  const [activeFilter, setActiveFilter] = useState("Activos");
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [selectedPrintOrderId, setSelectedPrintOrderId] = useState<
     string | null
@@ -189,7 +189,7 @@ export default function BusinessOrdersPage({ businessId }: Props) {
 
   const normalizedOrders = useMemo(() => {
     return orders.map((o) => ({
-      id: o.id || o.idTemp,
+      id: o.idTemp,
       customerName: o.customerName,
       deliveryType: o.deliveryType as DeliveryType,
       orderPaymentMethod: o.orderPaymentMethod as PaymentMethodType,

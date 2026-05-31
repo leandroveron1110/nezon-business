@@ -5,17 +5,18 @@ import { useLiveQuery } from "dexie-react-hooks";
 
 export function useOrdersView(businessId: string) {
   const orders = useLiveQuery(async () => {
-    // Inicio del día local
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
+    // Inicio de ayer
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 3);
+    startDate.setHours(0, 0, 0, 0);
 
-    // Fin del día local
-    const endOfDay = new Date();
-    endOfDay.setHours(23, 59, 59, 999);
+    // Fin de hoy
+    const endDate = new Date();
+    endDate.setHours(23, 59, 59, 999);
 
     return await db.orders
       .where("createdAt")
-      .between(startOfDay, endOfDay, true, true)
+      .between(startDate, endDate, true, true)
       .reverse()
       .toArray();
   }, []);

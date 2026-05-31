@@ -20,11 +20,6 @@ import { DeliveryType } from "@/types/order";
 
 import { formatPrice } from "@/features/common/utils/formatPrice";
 import { useAlert } from "@/features/common/ui/Alert/Alert";
-import {
-  fetchUpdateOrdersByOrderID,
-  fetchUpdateOrdersPaymentByOrderID,
-} from "../../../api/catalog-api";
-
 import OrderStatusBadge from "../../OrderStatusBadge";
 import { OrderCancellationActions } from "../OrderCancellationActions";
 import { useGetOrderById } from "../../../hooks/useGetOrderById";

@@ -20,6 +20,7 @@ import { useAlert } from "@/features/common/ui/Alert/Alert";
 
 interface OrderPanelProps {
   businessId: string;
+  isSubmitting: boolean;
   items: LocalOrderItem[];
   updateQty: (index: number, delta: number) => void;
   updateItemNote?: (index: number, note: string) => void; // Agregado para mutar la nota directamente acá
@@ -44,6 +45,7 @@ interface OrderPanelProps {
 
 export function OrderPanel({
   businessId,
+  isSubmitting,
   items,
   updateQty,
   updateItemNote,
@@ -89,88 +91,89 @@ export function OrderPanel({
     }
   }, [isOnline]);
 
+  const handleManualSearch = async () => {
+    if (!query.trim() || isSearching) return;
 
+    try {
+      setIsSearching(true);
 
-const handleManualSearch = async () => {
-  if (!query.trim() || isSearching) return;
+      const response = await quoteDeliveryOrchestrator(
+        query,
+        businessId,
+        deliveryProvider,
+      );
 
-  try {
-    setIsSearching(true);
+      // 1. Falla de conexión o error crítico de backend
+      if (!response.success || !response.data) {
+        addAlert({
+          message:
+            "No pudimos procesar la dirección. Revisá la conexión o intentá de nuevo.",
+          type: "error", // Rojo de alerta
+        });
+        return;
+      }
 
-    const response = await quoteDeliveryOrchestrator(
-      query,
-      businessId,
-      deliveryProvider
-    );
+      const quotation = response.data;
+      setCustomerAddress(quotation.resolvedAddress);
 
-    // 1. Falla de conexión o error crítico de backend
-    if (!response.success || !response.data) {
+      if (quotation.zoneId) {
+        setZoneId(quotation.zoneId);
+        setSelectedZoneIdLocal(quotation.zoneId);
+      }
+
+      // 2. Éxito absoluto: Dirección mapeada y cotizada al toque
+      if (
+        quotation.quotationStatus === "RESOLVED" &&
+        quotation.quotedCost != null
+      ) {
+        setDeliveryCost(quotation.quotedCost);
+        return;
+      }
+
+      // =========================================================
+      // RESOLUCIÓN MANUAL (Usando type: "info" para avisar a Base)
+      // =========================================================
+
+      // Caso A: Barrio cerrado / Country / Entrada única
+      if (quotation.resolutionStrategy === "ZONE_ONLY") {
+        addAlert({
+          message:
+            "Dirección identificada (Barrio Interno). Se notificó a la base para cotizar el envío; te avisamos apenas respondan.",
+          type: "info", // Azul/Gris informativo, transmite tranquilidad
+        });
+        return;
+      }
+
+      // Caso B: Detectó la zona por coordenadas pero falló el cálculo por km
+      if (quotation.resolutionStrategy === "ZONE_FALLBACK") {
+        addAlert({
+          message:
+            "Ubicamos la zona pero no el costo exacto. El pedido ya fue enviado a base para fijar el precio manualmente.",
+          type: "info",
+        });
+        return;
+      }
+
+      // Caso C: No coincide la altura o calle inexistente en el mapa
+      if (quotation.resolutionStrategy === "MANUAL") {
+        addAlert({
+          message:
+            "No pudimos verificar la altura en el mapa. Despachamos una solicitud de cotización manual a la base para resolverlo.",
+          type: "info",
+        });
+        return;
+      }
+    } catch (error) {
+      console.error("Error en cotización manual:", error);
       addAlert({
-        message: "No pudimos procesar la dirección. Revisá la conexión o intentá de nuevo.",
-        type: "error", // Rojo de alerta
+        message:
+          "Ocurrió un inconveniente inesperado. Si persiste, comunicate con soporte.",
+        type: "error",
       });
-      return;
+    } finally {
+      setIsSearching(false);
     }
-
-    const quotation = response.data;
-    setCustomerAddress(quotation.resolvedAddress);
-
-    if (quotation.zoneId) {
-      setZoneId(quotation.zoneId);
-      setSelectedZoneIdLocal(quotation.zoneId);
-    }
-
-    // 2. Éxito absoluto: Dirección mapeada y cotizada al toque
-    if (
-      quotation.quotationStatus === "RESOLVED" &&
-      quotation.quotedCost != null
-    ) {
-      setDeliveryCost(quotation.quotedCost);
-      return;
-    }
-
-    // =========================================================
-    // RESOLUCIÓN MANUAL (Usando type: "info" para avisar a Base)
-    // =========================================================
-
-    // Caso A: Barrio cerrado / Country / Entrada única
-    if (quotation.resolutionStrategy === "ZONE_ONLY") {
-      addAlert({
-        message: "Dirección identificada (Barrio Interno). Se notificó a la base para cotizar el envío; te avisamos apenas respondan.",
-        type: "info", // Azul/Gris informativo, transmite tranquilidad
-      });
-      return;
-    }
-
-    // Caso B: Detectó la zona por coordenadas pero falló el cálculo por km
-    if (quotation.resolutionStrategy === "ZONE_FALLBACK") {
-      addAlert({
-        message: "Ubicamos la zona pero no el costo exacto. El pedido ya fue enviado a base para fijar el precio manualmente.",
-        type: "info",
-      });
-      return;
-    }
-
-    // Caso C: No coincide la altura o calle inexistente en el mapa
-    if (quotation.resolutionStrategy === "MANUAL") {
-      addAlert({
-        message: "No pudimos verificar la altura en el mapa. Despachamos una solicitud de cotización manual a la base para resolverlo.",
-        type: "info",
-      });
-      return;
-    }
-
-  } catch (error) {
-    console.error("Error en cotización manual:", error);
-    addAlert({
-      message: "Ocurrió un inconveniente inesperado. Si persiste, comunicate con soporte.",
-      type: "error",
-    });
-  } finally {
-    setIsSearching(false);
-  }
-};
-
+  };
 
   return (
     <div className="md:w-[440px] border-l flex flex-col bg-white h-full overflow-hidden relative select-none">
@@ -491,47 +494,52 @@ const handleManualSearch = async () => {
             </div>
           </div>
 
-          <div className="mt-4 mb-2 flex gap-3 px-1 select-none">
-            <button
-              type="button"
-              onClick={() => createOrder(false)}
-              disabled={items.length === 0}
-              className="
+          {!isSubmitting ? 
+          (
+            <div className="mt-4 mb-2 flex gap-3 px-1 select-none">
+              <button
+                type="button"
+                onClick={() => createOrder(false)}
+                disabled={items.length === 0}
+                className="
                 flex-1 h-14 rounded-xl border-2 border-slate-200
                 flex flex-col items-center justify-center
                 bg-white hover:bg-slate-50 active:bg-slate-100
                 text-slate-700 font-bold transition-all duration-150 ease-in-out
                 disabled:opacity-40 disabled:bg-slate-50 disabled:border-slate-100 disabled:text-slate-400 disabled:pointer-events-none
               "
-            >
-              <Send size={16} className="mb-1 stroke-[2.2]" />
-              <span className="text-[10px] font-bold uppercase tracking-wider">
-                Solo Guardar
-              </span>
-            </button>
+              >
+                <Send size={16} className="mb-1 stroke-[2.2]" />
+                <span className="text-[10px] font-bold uppercase tracking-wider">
+                  Solo Guardar
+                </span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => createOrder(true)}
-              disabled={items.length === 0}
-              className="
+              <button
+                type="button"
+                onClick={() => createOrder(true)}
+                disabled={items.length === 0}
+                className="
                 flex-[2] h-14 rounded-xl
                 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700
                 flex flex-col items-center justify-center text-white font-bold
                 transition-all duration-150 ease-in-out shadow-sm active:shadow-none
                 disabled:opacity-40 disabled:bg-emerald-700/50 disabled:pointer-events-none
               "
-            >
-              <div className="flex flex-col items-center justify-center leading-tight">
-                <span className="text-sm font-black uppercase tracking-wider">
-                  ¡Marchar Pedido!
-                </span>
-                <span className="text-[9px] font-medium uppercase tracking-wider text-emerald-100/80 mt-0.5">
-                  Confirmar + Cocina
-                </span>
-              </div>
-            </button>
-          </div>
+              >
+                <div className="flex flex-col items-center justify-center leading-tight">
+                  <span className="text-sm font-black uppercase tracking-wider">
+                    ¡Marchar Pedido!
+                  </span>
+                  <span className="text-[9px] font-medium uppercase tracking-wider text-emerald-100/80 mt-0.5">
+                    Confirmar + Cocina
+                  </span>
+                </div>
+              </button>
+            </div>
+          )
+          : <div></div>
+          }
         </div>
       </div>
     </div>
