@@ -1,7 +1,14 @@
-// src/common/database/shcema/orders.schema.ts
+// src/common/database/schema/orders.schema.ts
 
 import { Origin } from "@/types/order";
-import { DeliveryStatus, PaymentStatus } from "@/types/order-state-machine";
+import {
+  DeliveryStatus,
+  PaymentStatus,
+} from "@/types/order-state-machine";
+
+// ============================================================================
+// PRODUCTOS
+// ============================================================================
 
 export interface LocalOrderOption {
   optionId?: string;
@@ -24,47 +31,213 @@ export interface LocalOrderItem {
   optionGroups: LocalOrderOptionGroup[];
 }
 
-export type SyncStatus = 
-  | 'LOCAL_ONLY'      // La orden solo existe aquí (ej. Venta mostrador aún no sincronizada)
-  | 'SYNC_PENDING'    // El negocio ya decidió que esto DEBE ir a la nube
-  | 'SYNCED'          // El servidor ya confirmó recepción y tenemos un ID definitivo
-  | 'SYNC_ERROR'      // Se intentó subir y el negocio debe decidir qué hacer
+// ============================================================================
+// SINCRONIZACIÓN
+// ============================================================================
 
+export type SyncStatus =
+  | "LOCAL_ONLY" // Solo existe localmente (ej: venta mostrador aún no enviada)
+  | "SYNC_PENDING" // Debe sincronizarse con la nube
+  | "SYNCED" // La nube confirmó recepción
+  | "SYNC_ERROR"; // Hubo un error y requiere reintento o intervención
+
+// ============================================================================
+// DELIVERY SNAPSHOT
+// ============================================================================
+// Estos estados pertenecen al dominio Delivery.
+//
+// Se persisten dentro de LocalOrder únicamente para soportar:
+//
+// - funcionamiento offline
+// - recargas de página
+// - reinicios del navegador
+// - recuperación de cotizaciones pendientes
+//
+// El dominio Delivery sigue siendo independiente.
+// Esto es solamente un snapshot persistido para reconstruir la UI.
+// ============================================================================
+
+export type DeliveryQuotationStatus =
+  | "PENDING" // Esperando resolución (ej: operador Base)
+  | "RESOLVED" // Cotización obtenida exitosamente
+  | "MANUAL" // Precio ingresado manualmente por el negocio
+  | "ERROR"; // No fue posible resolver la cotización
+
+export type DeliveryResolutionStrategy =
+  | "LIVE_MAP" // Resuelto automáticamente mediante geocoding + proveedor
+  | "ZONE_ONLY" // Solo se identificó el barrio/zona
+  | "ZONE_WITH_STREET" // Barrio identificado + calle geolocalizada
+  | "ZONE_FALLBACK" // Fallback de zona por falla del proveedor
+  | "BASE" // Pendiente o resuelto por operador humano (Base)
+  | "MANUAL"; // Precio ingresado manualmente por caja
+
+// ============================================================================
+// ORDEN LOCAL
+// ============================================================================
+// Esta entidad NO representa el dominio Order puro.
+//
+// Representa el snapshot completo que Caja necesita reconstruir
+// después de:
+//
+// - refresh
+// - cierre de pestaña
+// - reinicio del navegador
+// - pérdida de internet
+//
+// Por ese motivo contiene información proveniente de varios dominios
+// (Order, Payment, Delivery, Sync, etc).
+// ============================================================================
 
 export interface LocalOrder {
-  idTemp: string;               
-  id?: string | null;           
+  // ==========================================================================
+  // IDENTIFICACIÓN
+  // ==========================================================================
+
+  // UUID local generado inmediatamente al crear la orden.
+  // Es la clave primaria real dentro de IndexedDB.
+  idTemp: string;
+
+  // ID definitivo asignado por el servidor luego de sincronizar.
+  id?: string | null;
+
   userId?: string;
+
+  // Negocio propietario de la orden.
   businessId: string;
-  
+
+  // ==========================================================================
+  // SINCRONIZACIÓN
+  // ==========================================================================
+
   syncStatus: SyncStatus;
 
-  // 🔥 FLAGS DE CONTROL POR HILO (Evitan ráfagas duplicadas al servidor)
-  syncedStatus: boolean;    // true si el status actual de la orden ya impactó en la nube
-  syncedPayment: boolean;   // true si el paymentStatus actual ya impactó en la nube
-  syncedDelivery: boolean;  // true si el deliveryStatus actual ya impactó en la nube
+  // Evitan enviar múltiples veces el mismo cambio.
+  //
+  // Cada hilo (status, pago, delivery) se sincroniza de forma independiente.
+  // Cuando un valor cambia, el flag vuelve a false y queda pendiente.
+  syncedStatus: boolean;
+  syncedPayment: boolean;
+  syncedDelivery: boolean;
+
+  // Prioridad utilizada por los workers de sincronización.
+  syncPriority: "HIGH" | "LOW";
+
+  // ==========================================================================
+  // CLIENTE
+  // ==========================================================================
 
   customerName: string;
+
   customerPhone: string;
+
   customerAddress?: string;
+
   customerObservations?: string;
-  total: number;
-  deliveryType: 'DELIVERY' | 'PICKUP';
-  deliveryProvider: 'PLATFORM' | 'INTERNAL'; 
-  deliveryPriceMode: 'AUTOMATIC' | 'MANUAL';
+
+  // ==========================================================================
+  // DELIVERY (SNAPSHOT)
+  // ==========================================================================
+
+  // Estado de la cotización de envío.
+  //
+  // Permite recuperar pedidos pendientes de Base luego
+  // de una recarga o pérdida de conexión.
+  deliveryQuotationStatus?: DeliveryQuotationStatus;
+
+  // Estrategia utilizada para resolver el costo del envío.
+  deliveryResolutionStrategy?: DeliveryResolutionStrategy;
+
+  // Identificador remoto de la solicitud enviada a Base.
+  //
+  // Se utiliza para consultar posteriormente si el operador
+  // ya resolvió la cotización.
+  deliveryQuotationId?: string;
+
+  // Dirección normalizada utilizada durante la resolución.
+  resolvedAddress?: string;
+
+  // Coordenadas obtenidas por geocoding.
+  latitude?: number;
+  longitude?: number;
+
+  // Zona/barrio asociado durante la resolución.
+  zoneId?: string;
+
+  // ==========================================================================
+  // CONFIGURACIÓN LOGÍSTICA
+  // ==========================================================================
+
+  deliveryType: "DELIVERY" | "PICKUP";
+
+  deliveryProvider: "PLATFORM" | "INTERNAL";
+
+  // Indica si el costo fue calculado automáticamente
+  // o cargado manualmente por el negocio.
+  deliveryPriceMode: "AUTOMATIC" | "MANUAL";
+
   totalDeliveryCost: number;
-  syncPriority: 'HIGH' | 'LOW';
-  orderPaymentMethod: 'CASH' | 'TRANSFER' | 'QR' | "DELIVERY";
-  paymentStatus: PaymentStatus;
+
+  // Estado operativo del envío.
+  //
+  // No debe confundirse con DeliveryQuotationStatus.
+  //
+  // Ejemplo:
+  // quotationStatus = RESOLVED
+  // deliveryStatus = REQUESTED
   deliveryStatus: DeliveryStatus;
-  shortCode?: string | null;
-  dailyNumber?: number | null;
+
+  // ==========================================================================
+  // PAGOS
+  // ==========================================================================
+
+  orderPaymentMethod:
+    | "CASH"
+    | "TRANSFER"
+    | "QR"
+    | "DELIVERY";
+
+  paymentStatus: PaymentStatus;
+
+  // ==========================================================================
+  // TOTALES
+  // ==========================================================================
+
+  total: number;
+
+  // ==========================================================================
+  // PRODUCTOS
+  // ==========================================================================
+
   items: LocalOrderItem[];
-  status: string;               
-  origin: Origin;   
+
+  // ==========================================================================
+  // ESTADO DE NEGOCIO
+  // ==========================================================================
+
+  status: string;
+
+  origin: Origin;
+
+  // ==========================================================================
+  // IDENTIFICADORES VISUALES
+  // ==========================================================================
+
+  shortCode?: string | null;
+
+  dailyNumber?: number | null;
+
+  // ==========================================================================
+  // AUDITORÍA
+  // ==========================================================================
+
   createdAt: Date;
+
   updatedAt: Date;
 }
 
-// Indexamos también por los estados de los hilos para búsquedas quirúrgicas si hiciese falta
-export const ORDERS_STORE = 'idTemp, id, status, syncStatus, syncedStatus, syncedPayment, syncedDelivery, createdAt';
+// ============================================================================
+// ÍNDICES DEXIE
+// ============================================================================
+
+export const ORDERS_STORE =
+  "idTemp, id, status, syncStatus, syncedStatus, syncedPayment, syncedDelivery, createdAt";

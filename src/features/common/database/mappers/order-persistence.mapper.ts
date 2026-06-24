@@ -102,6 +102,7 @@ export class OrderPersistenceMapper {
 
       createdAt: new Date(apiOrder.createdAt),
       updatedAt: new Date(apiOrder.updatedAt),
+      
     };
   }
 }

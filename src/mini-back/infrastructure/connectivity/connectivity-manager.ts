@@ -38,9 +38,9 @@ class ConnectivityManager {
         this.updateState("OFFLINE");
       } else {
         // Seguimos en modo evaluación, no alarmamos a la UI todavía
-        console.log(
-          `[Connectivity] Fallo detectado. En período de gracia: ${Math.round((this.gracePeriod - timeSinceLastOnline) / 1000)}s restantes.`
-        );
+        // console.log(
+        //   `[Connectivity] Fallo detectado. En período de gracia: ${Math.round((this.gracePeriod - timeSinceLastOnline) / 1000)}s restantes.`
+        // );
       }
     }
   }
@@ -58,7 +58,7 @@ class ConnectivityManager {
     if (this.state === newState) return;
     
     this.state = newState;
-    console.log("[Connectivity Consolidado]", newState);
+    // console.log("[Connectivity Consolidado]", newState);
     
     // Notificar a todos los componentes React suscritos
     this.listeners.forEach((listener) => listener(newState));

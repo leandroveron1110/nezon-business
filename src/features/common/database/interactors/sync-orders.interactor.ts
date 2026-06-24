@@ -10,7 +10,7 @@ export async function syncOrdersInteractor(
   options: { force?: boolean; daysBack?: number; specificDate?: string } = {},
 ): Promise<void> {
   if (connectivityManager.isOffline()) {
-    console.log("[Sync] Offline mode");
+    // console.log("[Sync] Offline mode");
 
     return;
   }

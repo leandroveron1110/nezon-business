@@ -21,7 +21,7 @@ export async function syncOrdersInboundCommand(
       existing = await db.orders.get(localOrder.id);
     }
 
-    console.log(`orgin API: ${apiOrder.origin} | existing origin: ${existing?.origin} | shortCode API: ${apiOrder.shortCode} | existing shortCode: ${existing?.shortCode}`);
+    // console.log(`orgin API: ${apiOrder.origin} | existing origin: ${existing?.origin} | shortCode API: ${apiOrder.shortCode} | existing shortCode: ${existing?.shortCode}`);
       
     if (existing && existing.shortCode) {
       // Si ya existía localmente, mantenemos estrictamente la identidad que ya tenía

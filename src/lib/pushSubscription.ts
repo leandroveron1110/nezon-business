@@ -96,10 +96,10 @@ export async function subscribeBusinessToPush(
                 
                 // Si la lista de IDs actual es idéntica a la lista cacheada, SALIMOS.
                 if (arraysAreEquivalent(businessIds, storedBusinessIds)) {
-                    console.log("✅ Suscripción de Negocios ya registrada y actualizada. Omitiendo llamadas a la API.");
+                    // console.log("✅ Suscripción de Negocios ya registrada y actualizada. Omitiendo llamadas a la API.");
                     return;
                 }
-                console.log("⚠️ La lista de Negocios ha cambiado. Re-suscribiendo...");
+                // console.log("⚠️ La lista de Negocios ha cambiado. Re-suscribiendo...");
             } catch {
                 console.error("Error al parsear el estado de suscripción de negocios de localStorage. Re-suscribiendo...");
                 localStorage.removeItem(BUSINESS_SUB_STATUS_STORAGE); // Limpiar dato corrupto
@@ -110,7 +110,7 @@ export async function subscribeBusinessToPush(
         let VAPID_PUBLIC_KEY = sessionStorage.getItem(VAPID_KEY_STORAGE);
 
         if (!VAPID_PUBLIC_KEY) {
-            console.log("🔑 Obteniendo clave VAPID de la API.");
+            // console.log("🔑 Obteniendo clave VAPID de la API.");
             const keyResponse = await apiGet<PushKeyResponse>("/push/key"); // ⚠️ AHORRO DE LLAMADA
             VAPID_PUBLIC_KEY = keyResponse.data?.publicKey ? keyResponse.data?.publicKey : null;
 
@@ -120,7 +120,7 @@ export async function subscribeBusinessToPush(
             }
             sessionStorage.setItem(VAPID_KEY_STORAGE, VAPID_PUBLIC_KEY); // Guardar para la sesión
         } else {
-            console.log("🔑 Clave VAPID recuperada de sessionStorage.");
+            // console.log("🔑 Clave VAPID recuperada de sessionStorage.");
         }
 
 
@@ -136,9 +136,9 @@ export async function subscribeBusinessToPush(
                 userVisibleOnly: true,
                 applicationServerKey: convertedKey,
             });
-            console.log("Nueva suscripción de negocio creada.");
+            // console.log("Nueva suscripción de negocio creada.");
         } else {
-            console.log("Suscripción de negocio existente encontrada. Actualizando.");
+            // console.log("Suscripción de negocio existente encontrada. Actualizando.");
         }
 
         const subscriptionJSON = subscription.toJSON();
@@ -157,7 +157,7 @@ export async function subscribeBusinessToPush(
         );
 
         if (postResponse.success) {
-            console.log(`Dispositivo suscrito/actualizado con éxito a ${businessIds.length} negocios.`);
+            // console.log(`Dispositivo suscrito/actualizado con éxito a ${businessIds.length} negocios.`);
             
             // ✅ CRUCIAL: Guardar la lista de IDs actualizada en localStorage
             localStorage.setItem(

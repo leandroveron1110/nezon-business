@@ -423,7 +423,7 @@ export default function BusinessOrdersPage({ businessId }: Props) {
                     onClick={() => setSelectedOrderId(order.id)}
                     onPrintDirect={handlePrintRequest}
                     onViewTicket={(id) =>{
-                      console.log(`id de la orden:${id}`)
+                      // console.log(`id de la orden:${id}`)
                       setViewTicketOrderId(id)
                     } }
                   />

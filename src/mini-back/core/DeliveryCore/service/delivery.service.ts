@@ -5,10 +5,7 @@ import {
   DeliveryResolutionStrategy,
 } from "../domain/delivery.entity";
 
-import {
-  BarrioSuggestion,
-  LocationSuggestion,
-} from "../domain/delivery.types";
+import { BarrioSuggestion, LocationSuggestion } from "../domain/delivery.types";
 
 import { GeocodingPort } from "../ports/geocoding.port";
 import { DeliveryProviderPort } from "../ports/delivery-provider.port";
@@ -61,8 +58,7 @@ export class DeliveryService {
       // =========================================================================
 
       const barrios = input.locations.filter(
-        (location): location is BarrioSuggestion =>
-          location.type === "BARRIO",
+        (location): location is BarrioSuggestion => location.type === "BARRIO",
       );
 
       // =========================================================================
@@ -88,9 +84,7 @@ export class DeliveryService {
         const restoDireccion = partes[1]?.trim() || "";
 
         barrioEncontrado =
-          barrios.find(
-            (b) => b.name.toLowerCase() === nombreBarrio,
-          ) || null;
+          barrios.find((b) => b.name.toLowerCase() === nombreBarrio) || null;
 
         if (regexInteriorBarrio.test(restoDireccion.toLowerCase())) {
           queryParaGeocoding = null;
@@ -102,14 +96,11 @@ export class DeliveryService {
       // =========================================================================
       // TEXTO CORRIDO
       // =========================================================================
-
       else {
         barrioEncontrado =
           barrios
             .sort((a, b) => b.name.length - a.name.length)
-            .find((b) =>
-              queryLower.startsWith(b.name.toLowerCase()),
-            ) || null;
+            .find((b) => queryLower.startsWith(b.name.toLowerCase())) || null;
 
         if (barrioEncontrado) {
           const restoDireccion = query
@@ -117,9 +108,7 @@ export class DeliveryService {
             .trim();
 
           if (restoDireccion) {
-            if (
-              regexInteriorBarrio.test(restoDireccion.toLowerCase())
-            ) {
+            if (regexInteriorBarrio.test(restoDireccion.toLowerCase())) {
               queryParaGeocoding = null;
             } else {
               queryParaGeocoding = restoDireccion;
@@ -155,8 +144,7 @@ export class DeliveryService {
 
       const finalAddress = queryParaGeocoding || query;
 
-      const resolved =
-        await this.geocoding.resolveAddress(finalAddress);
+      const resolved = await this.geocoding.resolveAddress(finalAddress);
 
       if (!resolved) {
         return {
@@ -175,9 +163,7 @@ export class DeliveryService {
       return {
         success: true,
         data: {
-          strategy: barrioEncontrado
-            ? "ZONE_WITH_STREET"
-            : "LIVE_MAP",
+          strategy: barrioEncontrado ? "ZONE_WITH_STREET" : "LIVE_MAP",
 
           normalizedAddress: resolved.normalizedAddress,
 
@@ -214,6 +200,9 @@ export class DeliveryService {
         rawAddress: input.rawAddress,
         locations: input.locations,
       });
+
+      console.log("RESOLUTION", resolution);
+
 
       if (!resolution.success || !resolution.data) {
         return {
@@ -256,11 +245,9 @@ export class DeliveryService {
 
       let quotedCost = 0;
 
-      let quotationStatus: DeliveryQuotationStatus =
-        "PENDING";
+      let quotationStatus: DeliveryQuotationStatus = "PENDING";
 
-      let strategy: DeliveryResolutionStrategy =
-        "LIVE_MAP";
+      let strategy: DeliveryResolutionStrategy = "LIVE_MAP";
 
       try {
         quotedCost = await this.provider.quote({
@@ -279,16 +266,14 @@ export class DeliveryService {
         quotationStatus = "ERROR";
 
         strategy =
-          resolved.strategy === "ZONE_WITH_STREET"
-            ? "ZONE_FALLBACK"
-            : "MANUAL";
+          resolved.strategy === "ZONE_WITH_STREET" ? "ZONE_FALLBACK" : "MANUAL";
       }
 
       // =========================================================================
       // RESPUESTA
       // =========================================================================
 
-      return {
+      const result = {
         success: true,
         data: {
           quotationStatus,
@@ -297,8 +282,7 @@ export class DeliveryService {
 
           quotedCost,
 
-          requiresManualPrice:
-            quotationStatus !== "RESOLVED",
+          requiresManualPrice: quotationStatus !== "RESOLVED",
 
           latitude: resolved.latitude,
           longitude: resolved.longitude,
@@ -308,6 +292,10 @@ export class DeliveryService {
           resolvedAddress: resolved.normalizedAddress,
         },
       };
+
+      console.log("QUOTATION RESULT", result);
+
+      return result;
     } catch {
       return {
         success: false,

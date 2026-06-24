@@ -55,7 +55,7 @@ export function useUserDataSync<T extends { id: string }>({
 
     // Obtener el último tiempo de sincronización conocido (sin pasar ID)
     const lastSyncTime = getLastSyncTime();
-    console.log(`[Sync ${entityName}] Iniciando sincronización. (Último: ${lastSyncTime ?? "N/A"})`);
+    // console.log(`[Sync ${entityName}] Iniciando sincronización. (Último: ${lastSyncTime ?? "N/A"})`);
 
     try {
       // 2. Llamar a la API para obtener actualizaciones
@@ -79,11 +79,11 @@ export function useUserDataSync<T extends { id: string }>({
         // 4. Actualizar el Store con la lista fusionada y el nuevo timestamp
         setSyncedItems(mergedArray, latestTimestamp);
 
-        console.log(`[Sync ${entityName}] ${newOrUpdatedItems.length} elementos nuevos/actualizados. Total: ${mergedArray.length}`);
+        // console.log(`[Sync ${entityName}] ${newOrUpdatedItems.length} elementos nuevos/actualizados. Total: ${mergedArray.length}`);
       } else {
         // 5. No hubo cambios: Actualizar SOLO el timestamp
         setSyncedItems(currentItems, latestTimestamp);
-        console.log(`[Sync ${entityName}] Sin cambios. Timestamp actualizado.`);
+        // console.log(`[Sync ${entityName}] Sin cambios. Timestamp actualizado.`);
       }
     } catch (error) {
       // Manejo de errores

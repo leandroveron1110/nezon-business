@@ -14,25 +14,12 @@ export class VoyDeliveryProviderAdapter implements DeliveryProviderPort {
       latitude: input.latitude,
       longitude: input.longitude,
     });
-    const response = await fetch("/api/delivery/calculate", {
-      method: "POST",
 
-      headers: {
-        "Content-Type": "application/json",
-      },
-
-      body: JSON.stringify({
-        latitude: input.latitude,
-        longitude: input.longitude,
-      }),
-    });
-
-    if (!response.ok) {
+    if (!cost) {
       throw new Error("DELIVERY_PROVIDER_ERROR");
     }
 
-    const data = await response.json();
 
-    return data.price;
+    return cost.price;
   }
 }

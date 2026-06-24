@@ -67,9 +67,9 @@ const updateCatalogCache = <T>(
       // -------------------------------------------------------------------
 
       // Ejemplo MÍNIMO y NO-FUNCIONABLE para fines de demostración:
-      console.log(
-        `Actualización optimista para ${updateType} con ID ${itemId}.`
-      );
+      // console.log(
+      //   `Actualización optimista para ${updateType} con ID ${itemId}.`
+      // );
       // Si no se puede hacer la actualización in-place de forma segura,
       // se vuelve al invalidateQueries para garantizar la coherencia de los datos.
       return undefined; // Devolver undefined fuerza el re-fetch (comportamiento de fallback)

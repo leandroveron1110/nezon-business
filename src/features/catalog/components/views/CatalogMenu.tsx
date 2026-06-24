@@ -170,7 +170,7 @@ export default function CatalogMenu({ menuId, ownerId, businessId }: Props) {
               ownerId={ownerId}
               onSave={handleSaveMenu}
               onCancel={() => setShowEditMenuModal(false)}
-              onDelete={() => console.log("Eliminar menú")}
+              onDelete={() =>  console.log("Eliminar menú")}
             />
           </div>
         </div>

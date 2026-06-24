@@ -10,7 +10,7 @@ import { SyncStatus } from "../shcema/orders.schema";
 
 export class DexieOrderRepositoryAdapter implements OrderRepositoryPort {
   async save(input: Order): Promise<void> {
-    console.log("Guardando orden en Dexie:", input.idTemp);
+    // console.log("Guardando orden en Dexie:", input.idTemp);
     await db.orders.add({
       idTemp: input.idTemp,
       businessId: input.businessId,
@@ -37,22 +37,22 @@ export class DexieOrderRepositoryAdapter implements OrderRepositoryPort {
       updatedAt: input.updatedAt,
       syncedDelivery: false,
       syncedPayment: false,
-      syncedStatus: false,
+      syncedStatus: false, 
     }); // Adaptamos la entidad del core a la tabla
   }
 
   async saveOrderEvent(event: CoreOrderStateEvent) {
     // El evento nace en local como pendiente de subir a la nube
-    console.log("Infraestructura procesando y guardando evento en Dexie...");
+    // console.log("Infraestructura procesando y guardando evento en Dexie...");
 
     const id = this.nextUUID();
 
-    console.log(
-      "Evento preparado para guardar en Dexie con id:",
-      id,
-      "y estado:",
-      event.value,
-    );
+    // console.log(
+    //   "Evento preparado para guardar en Dexie con id:",
+    //   id,
+    //   "y estado:",
+    //   event.value,
+    // );
 
     // La infraestructura toma el dato puro del core y le inyecta la tecnología
     await db.orderStateEvents.add({
@@ -73,13 +73,13 @@ export class DexieOrderRepositoryAdapter implements OrderRepositoryPort {
   }
 
   async findByIdTemp(idTemp: string): Promise<Order | null> {
-    console.log("Buscando orden en Dexie por idTemp:", idTemp);
+    // console.log("Buscando orden en Dexie por idTemp:", idTemp);
     const result = await db.orders.where("idTemp").equals(idTemp).first();
     return (result as Order) || null;
   }
 
   async update(order: Order): Promise<void> {
-    console.log("Actualizando orden en Dexie:", order);
+    // console.log("Actualizando orden en Dexie:", order);
     // await db.orders.put(order as LocalOrder);
   }
 

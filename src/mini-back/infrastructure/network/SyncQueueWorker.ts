@@ -47,9 +47,9 @@ class SyncQueueWorker {
   // ... Dentro de la clase SyncQueueWorker ...
 
   async forceManualSyncAll(): Promise<SyncResult> {
-    console.log(
-      "SyncWorker: Sincronización manual forzada iniciada por el usuario.",
-    );
+    // console.log(
+    //   "SyncWorker: Sincronización manual forzada iniciada por el usuario.",
+    // );
     return await this.processQueue({ forceAll: true });
   }
 
@@ -61,9 +61,9 @@ class SyncQueueWorker {
     }
 
     if (connectivityManager.isOffline()) {
-      console.log(
-        "[Sync] Offline mode queueing is paused. Will retry when back online.",
-      );
+      // console.log(
+      //   "[Sync] Offline mode queueing is paused. Will retry when back online.",
+      // );
       return { success: false, status: "OFFLINE" };
     }
 
@@ -281,9 +281,9 @@ class SyncQueueWorker {
           .anyOf(eventIds)
           .modify({ syncStatus: "SYNCED" });
 
-        console.log(
-          `SyncWorker: ${validEventsToSend.length} eventos de historial subidos con éxito.`,
-        );
+        // console.log(
+        //   `SyncWorker: ${validEventsToSend.length} eventos de historial subidos con éxito.`,
+        // );
       }
     } catch (error) {
       console.error(

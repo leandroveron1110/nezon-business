@@ -54,7 +54,7 @@ export const syncCatalogIfNeeded = async (
           },
         );
 
-        console.log("✅ Nezon: DB Local sincronizada.");
+        // console.log("✅ Nezon: DB Local sincronizada.");
         if (onUpdate) onUpdate(catalogData);
       }
     }
@@ -67,7 +67,7 @@ export const syncCatalogIfNeeded = async (
       const lastUpdated = serverInfo.data?.lastUpdated;
 
       if (lastUpdated && lastUpdated === localVersion) {
-        console.log("🚀 Nezon: Ya actualizado.");
+        // console.log("🚀 Nezon: Ya actualizado.");
         return;
       }
 
@@ -98,7 +98,7 @@ export const syncCatalogIfNeeded = async (
           },
         );
 
-        console.log("✅ Nezon: DB Local sincronizada.");
+        // console.log("✅ Nezon: DB Local sincronizada.");
         if (onUpdate) onUpdate(catalogData);
       }
     }

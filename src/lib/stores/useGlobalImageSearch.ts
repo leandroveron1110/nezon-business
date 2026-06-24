@@ -29,12 +29,12 @@ export const useGlobalImageSearch = () => {
                 // 1. HAY BÚSQUEDA: No se envía el lastSyncTime.
                 // Esto fuerza a la API a buscar en todo el catálogo y trae todos los resultados.
                 lastSyncTimeToSend = undefined;
-                console.log(`[Sync Global Images] Búsqueda. Query: ${query}. Enviando lastSyncTime: undefined`);
+                // console.log(`[Sync Global Images] Búsqueda. Query: ${query}. Enviando lastSyncTime: undefined`);
             } else {
                 // 2. SIN BÚSQUEDA (Sync Inicial/Incremental): Se envía el lastSyncTime del store.
                 // Esto permite la sincronización incremental eficiente (solo trae ítems nuevos/modificados).
                 lastSyncTimeToSend = store.getLastSyncTime();
-                console.log(`[Sync Global Images] Sync. Enviando lastSyncTime: ${lastSyncTimeToSend || "undefined"}`);
+                // console.log(`[Sync Global Images] Sync. Enviando lastSyncTime: ${lastSyncTimeToSend || "undefined"}`);
             }
             
             // 2. Llamar a la API con el lastSyncTime condicional y el query

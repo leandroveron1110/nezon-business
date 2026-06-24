@@ -23,7 +23,7 @@ private open() {
 
   // En lugar de setState("OFFLINE"), reportamos la falla transaccional
   connectivityManager.reportHeartbeat(false); 
-  console.log("[CircuitBreaker] OPEN");
+  // console.log("[CircuitBreaker] OPEN");
 }
 
   private close() {
@@ -32,13 +32,13 @@ private open() {
 
     connectivityManager.reportHeartbeat(true);
 
-    console.log("[CircuitBreaker] CLOSED");
+    // console.log("[CircuitBreaker] CLOSED");
   }
 
   private halfOpen() {
     this.state = "HALF_OPEN";
 
-    console.log("[CircuitBreaker] HALF_OPEN");
+    // console.log("[CircuitBreaker] HALF_OPEN");
   }
 
   async execute<T>(fn: () => Promise<T>): Promise<T> {

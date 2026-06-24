@@ -44,7 +44,7 @@ export const createOrderOrchestrator = async (input: CreateOrderInput) => {
         ...input,
 
         totalDeliveryCost: data.quotedCost || 0,
-
+        
         // deliveryZoneId:
         //   data.zoneId || null,
 
@@ -111,9 +111,9 @@ export const createOrderOrchestrator = async (input: CreateOrderInput) => {
     if (order.deliveryProvider === "PLATFORM") {
       // si es pedido por la plataforma, verificamos si ya se assigno el precio o no
       if (order.totalDeliveryCost === 0) {
-        console.log(
-          `Orden ${order.shortCode} requiere delivery por plataforma pero no tiene precio asignado. Forzando sincronización...`,
-        );
+        // console.log(
+        //   `Orden ${order.shortCode} requiere delivery por plataforma pero no tiene precio asignado. Forzando sincronización...`,
+        // );
       }
       // Aquí disparas tu Worker general (el que primero hace el POST de la creación de la orden
       // y luego actualiza sus estados).
@@ -191,9 +191,9 @@ export const updateOrderStatusOrchestrator = async (
   // CASO 2: La orden es LOCAL (sin ID de nube) pero sufrió un cambio crítico
   // =================================================================
   else if (!order.id && esCambioCritico) {
-    console.log(
-      "Orquestador: Cambio crítico detectado en orden local. Forzando cola de sincronización...",
-    );
+    // console.log(
+    //   "Orquestador: Cambio crítico detectado en orden local. Forzando cola de sincronización...",
+    // );
     // Aquí disparas tu Worker general (el que primero hace el POST de la creación de la orden
     // y luego actualiza sus estados).
     // syncQueueWorker.processQueue().catch(...);

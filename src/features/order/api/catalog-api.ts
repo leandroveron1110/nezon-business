@@ -143,7 +143,7 @@ export async function fetchCalculateDeliveryCost({
   longitude: number;
 }) {
   try {
-    const res = await apiPost(`/delivery-zones/calculate-price `, {
+    const res = await apiPost<{price: number, zoneName: string, h3: string}>(`/delivery-zones/calculate-price `, {
       businessId,
       clientLat: latitude,
       clientLng: longitude,

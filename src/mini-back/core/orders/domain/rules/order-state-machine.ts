@@ -48,7 +48,7 @@ export class OrderStateMachine {
     currentOrder: { status: OrderStatus; deliveryStatus: DeliveryStatus },
   ): boolean {
 
-    console.log(`next: ${next}, currents: ${currentOrder}`)
+    // console.log(`next: ${next}, currents: ${currentOrder}`)
     // Regla: No se puede pedir cadete si no está confirmada o en preparación
     if (next === DeliveryStatus.REQUESTED) {
       const allowed = [

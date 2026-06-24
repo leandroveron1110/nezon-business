@@ -75,7 +75,7 @@ const nextStatus = newValue as OrderStatus;
   // 4. Lógica de Sincronización (Solo si tiene userId / es de plataforma)
   if (localOrder.userId || localOrder.id) {
     try {
-      console.log(`🚀 Sincronizando hilo ${thread}...`);
+      // console.log(`🚀 Sincronizando hilo ${thread}...`);
       
       // Aquí llamamos a tu API. Podés tener un endpoint genérico o específicos.
       // Si fetchUpdateOrdersByOrderID solo actualiza 'status', podrías necesitar otros

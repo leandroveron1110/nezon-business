@@ -206,7 +206,7 @@ export class OrderService implements IOrderPublicService {
 
     await this.repository.save(order);
 
-    console.log("Orden creada en Dexie con idTemp:", order.idTemp);
+    // console.log("Orden creada en Dexie con idTemp:", order.idTemp);
 
     const creationEvent: CoreOrderStateEvent = {
       idTemp: order.idTemp,
@@ -219,10 +219,10 @@ export class OrderService implements IOrderPublicService {
 
     await this.repository.saveOrderEvent(creationEvent);
 
-    console.log(
-      "Evento de creación de orden guardado en Dexie para idTemp:",
-      order.idTemp,
-    );
+    // console.log(
+    //   "Evento de creación de orden guardado en Dexie para idTemp:",
+    //   order.idTemp,
+    // );
 
     return {
       success: true,
