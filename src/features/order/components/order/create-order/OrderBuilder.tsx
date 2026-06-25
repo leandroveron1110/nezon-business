@@ -15,6 +15,7 @@ import {
   LocalOrderOptionGroup,
 } from "@/mini-back/infrastructure/dexie/shcema/orders.schema";
 import { LocalProduct } from "@/mini-back/infrastructure/dexie/shcema/products.schema";
+import { OrderSheet } from "./OrderSheet";
 
 export default function OrderBuilder({
   onClose,
@@ -25,16 +26,24 @@ export default function OrderBuilder({
 }) {
   const { products } = useProducts();
   const [items, setItems] = useState<LocalOrderItem[]>([]);
-  const [pendingProduct, setPendingProduct] = useState<LocalProduct | null>(null);
+  const [pendingProduct, setPendingProduct] = useState<LocalProduct | null>(
+    null,
+  );
 
   // Estados de cliente y logística
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerAddress, setCustomerAddress] = useState("");
   const [_zoneId, setZoneId] = useState<string | null>(null);
-  const [deliveryType, setDeliveryType] = useState<"DELIVERY" | "PICKUP">("PICKUP");
-  const [deliveryProvider, setDeliveryProvider] = useState<"PLATFORM" | "INTERNAL">("PLATFORM");
-  const [paymentMethod, setPaymentMethod] = useState<"CASH" | "TRANSFER" | "QR" | "DELIVERY">("CASH");
+  const [deliveryType, setDeliveryType] = useState<"DELIVERY" | "PICKUP">(
+    "PICKUP",
+  );
+  const [deliveryProvider, setDeliveryProvider] = useState<
+    "PLATFORM" | "INTERNAL"
+  >("PLATFORM");
+  const [paymentMethod, setPaymentMethod] = useState<
+    "CASH" | "TRANSFER" | "QR" | "DELIVERY"
+  >("CASH");
   const [deliveryCost, setDeliveryCost] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -46,7 +55,11 @@ export default function OrderBuilder({
     return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
 
-  const addProduct = (product: LocalProduct, options: LocalOrderOptionGroup[] = [], customNotes: string = "") => {
+  const addProduct = (
+    product: LocalProduct,
+    options: LocalOrderOptionGroup[] = [],
+    customNotes: string = "",
+  ) => {
     setItems((prev) => {
       const cleanNotes = customNotes.trim();
 
@@ -55,19 +68,19 @@ export default function OrderBuilder({
           (p) =>
             p.productId === product.id &&
             p.optionGroups.length === 0 &&
-            (!p.notes || p.notes.trim() === "")
+            (!p.notes || p.notes.trim() === ""),
         );
 
         if (existIndex > -1) {
           return prev.map((p, idx) =>
-            idx === existIndex ? { ...p, quantity: p.quantity + 1 } : p
+            idx === existIndex ? { ...p, quantity: p.quantity + 1 } : p,
           );
         }
       }
 
       const extra = options.reduce(
         (a, g) => a + g.options.reduce((b, o) => b + o.priceFinal, 0),
-        0
+        0,
       );
 
       return [
@@ -90,7 +103,7 @@ export default function OrderBuilder({
   // 🔥 ACCIÓN 1: Click normal o Enter -> Va directo al grano (Sin Modales molestos)
   const handleProductClickDirect = useCallback((product: LocalProduct) => {
     // Si obligatoriamente tiene adicionales configurados por el local, se le abre el modal de todos modos
-    if (product.optionGroups?.some(g => g.minQuantity > 0)) {
+    if (product.optionGroups?.some((g) => g.minQuantity > 0)) {
       setPendingProduct(product);
       return;
     }
@@ -106,19 +119,25 @@ export default function OrderBuilder({
   const updateQty = (index: number, delta: number) => {
     setItems((prev) =>
       prev
-        .map((item, i) => (i === index ? { ...item, quantity: item.quantity + delta } : item))
-        .filter((i) => i.quantity > 0)
+        .map((item, i) =>
+          i === index ? { ...item, quantity: item.quantity + delta } : item,
+        )
+        .filter((i) => i.quantity > 0),
     );
   };
 
   const updateItemNote = (index: number, note: string) => {
     setItems((prev) =>
-      prev.map((item, i) => (i === index ? { ...item, notes: note } : item))
+      prev.map((item, i) => (i === index ? { ...item, notes: note } : item)),
     );
   };
 
-  const totalProducts = items.reduce((a, i) => a + i.priceAtPurchase * i.quantity, 0);
-  const total = totalProducts + (deliveryType === "DELIVERY" ? deliveryCost : 0);
+  const totalProducts = items.reduce(
+    (a, i) => a + i.priceAtPurchase * i.quantity,
+    0,
+  );
+  const total =
+    totalProducts + (deliveryType === "DELIVERY" ? deliveryCost : 0);
 
   const createOrder = async (instantPrepare?: boolean) => {
     if (!items.length || isSubmitting) return;
@@ -141,7 +160,9 @@ export default function OrderBuilder({
       createdAt: new Date(),
       updatedAt: new Date(),
       deliveryStatus:
-        deliveryType === "DELIVERY" ? DeliveryStatus.PENDING : DeliveryStatus.NOT_APPLICABLE,
+        deliveryType === "DELIVERY"
+          ? DeliveryStatus.PENDING
+          : DeliveryStatus.NOT_APPLICABLE,
     };
 
     try {
@@ -193,16 +214,16 @@ export default function OrderBuilder({
           </button>
         </header>
 
-        <div className="flex-1 flex overflow-hidden w-full relative">
+        <div className="hidden md:flex md:w-2/5 flex-1 flex overflow-hidden w-full relative">
           <main className="w-3/5 h-full overflow-hidden bg-slate-100">
-            <ProductPanel 
-              products={products} 
+            <ProductPanel
+              products={products}
               onProductClick={handleProductClickDirect} // Click normal
               onProductCustomize={handleProductCustomize} // Click en engranaje/nota
             />
           </main>
 
-          <aside className="w-2/5 h-full bg-white border-l border-slate-200 flex flex-col overflow-hidden z-20">
+          <aside className="hidden md:flex md:w-2/5 h-full bg-white border-l border-slate-200 flex-col overflow-hidden z-20">
             <OrderPanel
               isSubmitting={isSubmitting}
               businessId={businessid}
@@ -228,6 +249,41 @@ export default function OrderBuilder({
               setZoneId={setZoneId}
             />
           </aside>
+
+          {/* MOBILE */}
+        </div>
+        {/* MOBILE */}
+        <div className="flex-1 md:hidden overflow-hidden">
+          <ProductPanel
+            products={products}
+            onProductClick={handleProductClickDirect}
+            onProductCustomize={handleProductCustomize}
+          />
+
+          <OrderSheet
+            businessId={businessid}
+            items={items}
+            isSubmitting={isSubmitting}
+            updateQty={updateQty}
+            total={total}
+            createOrder={createOrder}
+            customerName={customerName}
+            setCustomerName={setCustomerName}
+            customerPhone={customerPhone}
+            setCustomerPhone={setCustomerPhone}
+            customerAddress={customerAddress}
+            setCustomerAddress={setCustomerAddress}
+            deliveryType={deliveryType}
+            setDeliveryType={setDeliveryType}
+            deliveryProvider={deliveryProvider}
+            setDeliveryProvider={setDeliveryProvider}
+            deliveryCost={deliveryCost}
+            setDeliveryCost={setDeliveryCost}
+            paymentMethod={paymentMethod}
+            setPaymentMethod={setPaymentMethod}
+            setZoneId={setZoneId}
+            updateItemNote={updateItemNote}
+          />
         </div>
       </div>
     </div>
