@@ -214,16 +214,19 @@ export default function OrderBuilder({
           </button>
         </header>
 
-        <div className="hidden md:flex md:w-2/5 flex-1 flex overflow-hidden w-full relative">
+        {/* DESKTOP */}
+        <div className="hidden md:flex flex-1 w-full overflow-hidden">
+          {/* Panel de Productos (60% del ancho total) */}
           <main className="w-3/5 h-full overflow-hidden bg-slate-100">
             <ProductPanel
               products={products}
-              onProductClick={handleProductClickDirect} // Click normal
-              onProductCustomize={handleProductCustomize} // Click en engranaje/nota
+              onProductClick={handleProductClickDirect}
+              onProductCustomize={handleProductCustomize}
             />
           </main>
 
-          <aside className="hidden md:flex md:w-2/5 h-full bg-white border-l border-slate-200 flex-col overflow-hidden z-20">
+          {/* Panel de Orden (40% del ancho total) */}
+          <aside className="w-2/5 h-full bg-white border-l border-slate-200 flex flex-col overflow-hidden z-20">
             <OrderPanel
               isSubmitting={isSubmitting}
               businessId={businessid}
@@ -249,8 +252,6 @@ export default function OrderBuilder({
               setZoneId={setZoneId}
             />
           </aside>
-
-          {/* MOBILE */}
         </div>
         {/* MOBILE */}
         <div className="flex-1 md:hidden overflow-hidden">

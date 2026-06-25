@@ -31,9 +31,11 @@ export class DeliveryQuotationPipeline {
     // NIVEL 2
     // BASE DE CADETERÍA
     // =====================================================
-
-    // const base =
-    //   await this.baseService.quote(input);
+    await this.baseService.quote({
+        orderIdTemp: input.businessId,
+        rawAddress: input.rawAddress,
+        businessId: input.businessId,
+      });
 
     // if (
     //   base.success &&
@@ -42,29 +44,5 @@ export class DeliveryQuotationPipeline {
     //   return base;
     // }
 
-    // =====================================================
-    // NIVEL 3
-    // MANUAL
-    // =====================================================
-
-    return {
-      success: true,
-      data: {
-        quotationStatus: "MANUAL",
-
-        resolutionStrategy: "MANUAL",
-
-        quotedCost: null,
-
-        requiresManualPrice: true,
-
-        latitude: undefined,
-        longitude: undefined,
-
-        zoneId: null,
-
-        resolvedAddress: input.rawAddress,
-      },
-    };
   }
 }
