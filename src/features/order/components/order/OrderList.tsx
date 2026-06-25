@@ -81,7 +81,7 @@ export const OrderList = memo(function OrderList({
     order.status !== OrderStatus.REJECTED;
 
   // Supongamos que tu DTO tiene el costo de envío acá (si no viene o es 0, no altera nada)
-  const hasDeliveryFee = !isPickup && order.deliveryFee && order.deliveryFee > 0;
+  const hasDeliveryFee = !isPickup && order.deliveryFee > 0;
 
   // =========================================================
   // DELIVERY INFO & VARIATIONS

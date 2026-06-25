@@ -6,6 +6,9 @@ import { LocalProduct } from "@/mini-back/infrastructure/dexie/shcema/products.s
 import { formatPrice } from "@/features/common/utils/formatPrice";
 import { useConnectivity } from "@/lib/hooks/useConnectivity";
 
+// Flag de UX Configurable según el punto 4 de la auditoría
+const CLEAR_SEARCH_AFTER_ADD = false; 
+
 const ProductCard = memo(function ProductCard({
   product,
   isHighlighted,
@@ -22,17 +25,12 @@ const ProductCard = memo(function ProductCard({
   const cardStyles = isLastAdded
     ? "border-emerald-500 bg-emerald-50 ring-2 ring-emerald-500/20"
     : isHighlighted
-      ? "border-amber-500 bg-amber-50 ring-2 ring-amber-500/30"
+      ? "border-amber-500 bg-amber-50 ring-2 ring-amber-500/40 shadow-md scale-[1.02]"
       : "border-slate-200 bg-white hover:border-slate-300";
 
   return (
     <div
       onClick={() => onClickDirect(product)}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") onClickDirect(product);
-      }}
       className={`
         relative flex flex-col justify-between p-2 text-left h-16
         rounded-xl border transition-all duration-75
@@ -40,15 +38,14 @@ const ProductCard = memo(function ProductCard({
         ${cardStyles}
       `}
     >
-      {/* Botón rápido para abrir notas o adicionales sin agregar directo */}
       <button
         type="button"
         onClick={(e) => {
-          e.stopPropagation(); // Evita que se agregue directo
+          e.stopPropagation();
           onClickCustomize(product);
         }}
         className="absolute top-1 right-1 p-1 rounded-md bg-slate-100 text-slate-500 hover:bg-orange-100 hover:text-orange-600 transition-colors z-10"
-        title="Agregar con nota o adicionales"
+        title="Agregar con nota o adicionales (Shift + Enter / F2)"
       >
         <SlidersHorizontal size={10} />
       </button>
@@ -64,7 +61,7 @@ const ProductCard = memo(function ProductCard({
           {formatPrice(product.finalPrice)}
         </span>
         {isHighlighted && (
-          <span className="flex items-center gap-0.5 rounded bg-amber-500 px-1 py-0.5 text-[7px] font-black text-white">
+          <span className="flex items-center gap-0.5 rounded bg-amber-500 px-1 py-0.5 text-[7px] font-black text-white animate-pulse">
             ENTER <CornerDownLeft size={6} />
           </span>
         )}
@@ -76,16 +73,22 @@ const ProductCard = memo(function ProductCard({
 export function ProductPanel({ 
   products, 
   onProductClick,
-  onProductCustomize 
+  onProductCustomize,
+  onCheckout,
+  isModalOpen = false // 🆕 Clave para pausar los eventos cuando se abre el modal de notas (Punto 8)
 }: { 
   products: LocalProduct[]; 
   onProductClick: (p: LocalProduct) => void;
-  onProductCustomize: (p: LocalProduct) => void; // 🆕 Nueva prop
+  onProductCustomize: (p: LocalProduct) => void;
+  onCheckout?: () => void;
+  isModalOpen?: boolean; 
 }) {
   const [search, setSearch] = useState("");
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const { isOnline } = useConnectivity();
   const [lastAddedId, setLastAddedId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [, startTransition] = useTransition();
   const deferredSearch = useDeferredValue(search);
 
@@ -108,10 +111,27 @@ export function ProductPanel({
       .slice(0, 80);
   }, [products, deferredSearch]);
 
+  // 🆕 Punto 2: Corregir de forma segura desbordes de índices cuando la lista se achica dinámicamente
+  useEffect(() => {
+    if (filteredProducts.length > 0 && selectedIndex >= filteredProducts.length) {
+      setSelectedIndex(filteredProducts.length - 1);
+    } else if (filteredProducts.length === 0) {
+      setSelectedIndex(0);
+    }
+  }, [filteredProducts.length, selectedIndex]);
+
   const handleProductAction = (product: LocalProduct) => {
+    if (!product) return;
     onProductClick(product);
     setLastAddedId(product.id);
-    if (window.innerWidth > 768) {
+    
+    // Punto 4: Limpieza condicional configurable
+    if (CLEAR_SEARCH_AFTER_ADD) {
+      setSearch("");
+    }
+    
+    // Punto 5: Mantener foco inteligente sin forzarlo agresivamente si el usuario cambió de input
+    if (document.activeElement === inputRef.current) {
       inputRef.current?.focus();
     }
   };
@@ -121,19 +141,145 @@ export function ProductPanel({
     inputRef.current?.focus();
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Escape") {
-      e.preventDefault();
-      clearSearch();
+  // Motor Geométrico (Se mantiene encapsulado, performante para los 80 items del visor)
+  const moveVertical = (direction: "UP" | "DOWN") => {
+    if (!containerRef.current) return;
+    const items = containerRef.current.querySelectorAll("[data-product-wrapper]");
+    if (items.length === 0) return;
+
+    const currentRect = items[selectedIndex].getBoundingClientRect();
+    const currentCenterLeft = currentRect.left + currentRect.width / 2;
+
+    let targetIndex = -1;
+    let closestDistance = Infinity;
+
+    for (let i = 0; i < items.length; i++) {
+      if (i === selectedIndex) continue;
+      const rect = items[i].getBoundingClientRect();
+
+      if (direction === "DOWN" && rect.top >= currentRect.bottom - 1) {
+        const verticalDist = rect.top - currentRect.bottom;
+        const horizontalDist = Math.abs((rect.left + rect.width / 2) - currentCenterLeft);
+        const totalDist = verticalDist + horizontalDist * 0.5;
+
+        if (totalDist < closestDistance) {
+          closestDistance = totalDist;
+          targetIndex = i;
+        }
+      } else if (direction === "UP" && rect.bottom <= currentRect.top + 1) {
+        const verticalDist = currentRect.top - rect.bottom;
+        const horizontalDist = Math.abs((rect.left + rect.width / 2) - currentCenterLeft);
+        const totalDist = verticalDist + horizontalDist * 0.5;
+
+        if (totalDist < closestDistance) {
+          closestDistance = totalDist;
+          targetIndex = i;
+        }
+      }
     }
-    if (e.key === "Enter" && filteredProducts.length > 0) {
-      e.preventDefault();
-      handleProductAction(filteredProducts[0]);
+
+    if (targetIndex !== -1) {
+      setSelectedIndex(targetIndex);
     }
   };
 
+  // 🆕 Punto 8: Escucha global real a nivel de Window controlada por estado del POS
+  useEffect(() => {
+    // Si hay un modal abierto, apagamos la escucha del catálogo para no romper la UX al escribir notas
+    if (isModalOpen) return;
+
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const totalItems = filteredProducts.length;
+      const activeProduct = filteredProducts[selectedIndex];
+
+      // Atajos globales absolutos
+      if (e.key === "F4") {
+        e.preventDefault();
+        inputRef.current?.focus();
+        return;
+      }
+
+      if (e.key === "F8") {
+        e.preventDefault();
+        onCheckout?.();
+        return;
+      }
+
+      if (e.key === "Escape") {
+        e.preventDefault();
+        clearSearch();
+        return;
+      }
+
+      // 🆕 Punto 1: Protección total contra undefined si la lista está vacía
+      if ((e.key === "Enter" || e.key === "F2") && !activeProduct) {
+        if (e.key === "Enter" && document.activeElement !== inputRef.current) {
+          // Dejamos pasar el enter nativo sólo si no está interactuando con el panel
+        } else {
+          e.preventDefault();
+        }
+        return;
+      }
+
+      // 🆕 Punto 6: Proteger personalización explícita
+      if ((e.key === "Enter" && e.shiftKey) || e.key === "F2") {
+        e.preventDefault();
+        if (activeProduct) onProductCustomize(activeProduct);
+        return;
+      }
+
+      // Navegación Direccional de la cuadrícula
+      switch (e.key) {
+        case "ArrowRight":
+          if (selectedIndex + 1 < totalItems) {
+            e.preventDefault();
+            setSelectedIndex(selectedIndex + 1);
+          }
+          break;
+
+        case "ArrowLeft":
+          if (selectedIndex - 1 >= 0) {
+            e.preventDefault();
+            setSelectedIndex(selectedIndex - 1);
+          }
+          break;
+
+        case "ArrowDown":
+          e.preventDefault();
+          moveVertical("DOWN");
+          break;
+
+        case "ArrowUp":
+          e.preventDefault();
+          moveVertical("UP");
+          break;
+
+        case "Enter":
+          e.preventDefault();
+          handleProductAction(activeProduct);
+          break;
+      }
+    };
+
+    window.addEventListener("keydown", handleGlobalKeyDown);
+    return () => window.removeEventListener("keydown", handleGlobalKeyDown);
+  }, [filteredProducts, selectedIndex, isModalOpen, onCheckout]);
+
+  // 🆕 Punto 3: Cambiado a scroll instantáneo sin suavizados que retrasen al cajero veterano
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const activeEl = containerRef.current.querySelector("[data-active='true']");
+    if (activeEl) {
+      activeEl.scrollIntoView({ 
+        block: "nearest", 
+        inline: "nearest" 
+      });
+    }
+  }, [selectedIndex]);
+
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-slate-100">
+      {/* BARRA BUSQUEDA */}
       <div className="shrink-0 bg-white border-b p-2">
         <div className="relative">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -141,8 +287,7 @@ export function ProductPanel({
             ref={inputRef}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Escribí para buscar..."
+            placeholder="Buscar... [F4] Foco | [F2] Nota | [F8] Cobrar ⚡"
             autoComplete="off"
             spellCheck={false}
             className="w-full rounded-lg border bg-slate-50 py-1.5 pl-8 pr-20 text-xs font-bold uppercase tracking-wide text-slate-800 outline-none focus:border-emerald-600 focus:bg-white"
@@ -162,7 +307,8 @@ export function ProductPanel({
         </div>
       )}
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-2">
+      {/* GRID DE ALTA DENSIDAD */}
+      <div ref={containerRef} className="min-h-0 flex-1 overflow-y-auto p-2">
         {filteredProducts.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center text-slate-400 py-10">
             <Package size={24} className="opacity-30 mb-1" />
@@ -171,19 +317,25 @@ export function ProductPanel({
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-1.5">
             {filteredProducts.map((product, index) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                isHighlighted={index === 0 && search.trim().length > 0}
-                isLastAdded={lastAddedId === product.id}
-                onClickDirect={handleProductAction}
-                onClickCustomize={onProductCustomize} // 🆕 Pasa la acción del modal custom
-              />
+              <div 
+                key={product.id} 
+                data-product-wrapper
+                data-active={index === selectedIndex}
+              >
+                <ProductCard
+                  product={product}
+                  isHighlighted={index === selectedIndex}
+                  isLastAdded={lastAddedId === product.id}
+                  onClickDirect={handleProductAction}
+                  onClickCustomize={onProductCustomize}
+                />
+              </div>
             ))}
           </div>
         )}
       </div>
 
+      {/* MINI FOOTER */}
       <div className="flex shrink-0 items-center justify-between border-t bg-white px-3 py-1 text-[9px] font-bold text-slate-400 uppercase">
         <span>{filteredProducts.length} items</span>
         <span className="flex items-center gap-1">
