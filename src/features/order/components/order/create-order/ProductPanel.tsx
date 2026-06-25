@@ -1,13 +1,28 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef, useTransition, useDeferredValue, memo } from "react";
-import { Package, CheckCircle2, CornerDownLeft, Search, X, SlidersHorizontal } from "lucide-react";
+import {
+  useState,
+  useMemo,
+  useEffect,
+  useRef,
+  useTransition,
+  useDeferredValue,
+  memo,
+} from "react";
+import {
+  Package,
+  CheckCircle2,
+  CornerDownLeft,
+  Search,
+  X,
+  SlidersHorizontal,
+} from "lucide-react";
 import { LocalProduct } from "@/mini-back/infrastructure/dexie/shcema/products.schema";
 import { formatPrice } from "@/features/common/utils/formatPrice";
 import { useConnectivity } from "@/lib/hooks/useConnectivity";
 
 // Flag de UX Configurable según el punto 4 de la auditoría
-const CLEAR_SEARCH_AFTER_ADD = false; 
+const CLEAR_SEARCH_AFTER_ADD = false;
 
 const ProductCard = memo(function ProductCard({
   product,
@@ -70,18 +85,18 @@ const ProductCard = memo(function ProductCard({
   );
 });
 
-export function ProductPanel({ 
-  products, 
+export function ProductPanel({
+  products,
   onProductClick,
   onProductCustomize,
   onCheckout,
-  isModalOpen = false // 🆕 Clave para pausar los eventos cuando se abre el modal de notas (Punto 8)
-}: { 
-  products: LocalProduct[]; 
+  isModalOpen = false, // 🆕 Clave para pausar los eventos cuando se abre el modal de notas (Punto 8)
+}: {
+  products: LocalProduct[];
   onProductClick: (p: LocalProduct) => void;
   onProductCustomize: (p: LocalProduct) => void;
   onCheckout?: () => void;
-  isModalOpen?: boolean; 
+  isModalOpen?: boolean;
 }) {
   const [search, setSearch] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -98,22 +113,54 @@ export function ProductPanel({
     return () => clearTimeout(timer);
   }, [lastAddedId]);
 
+  const indexedProducts = useMemo(() => {
+    return products.map((product) => ({
+      product,
+      searchString: [product.name, product.description, product.sectionName]
+        .join(" ")
+        .toLowerCase(),
+    }));
+  }, [products]);
+
   const filteredProducts = useMemo(() => {
     const term = deferredSearch.toLowerCase().trim();
-    if (!term) return products.slice(0, 80);
+
+    if (!term) {
+      return indexedProducts.slice(0, 80).map((p) => p.product);
+    }
 
     const keywords = term.split(" ").filter(Boolean);
-    return products
-      .filter((p) => {
-        const name = p.name.toLowerCase();
-        return keywords.every((k) => name.includes(k));
-      })
-      .slice(0, 80);
-  }, [products, deferredSearch]);
+
+    const result: LocalProduct[] = [];
+
+    for (const item of indexedProducts) {
+      let matches = true;
+
+      for (const keyword of keywords) {
+        if (!item.searchString.includes(keyword)) {
+          matches = false;
+          break;
+        }
+      }
+
+      if (matches) {
+        result.push(item.product);
+
+        if (result.length === 80) {
+          break;
+        }
+      }
+    }
+
+    return result;
+  }, [indexedProducts, deferredSearch]);
 
   // 🆕 Punto 2: Corregir de forma segura desbordes de índices cuando la lista se achica dinámicamente
   useEffect(() => {
-    if (filteredProducts.length > 0 && selectedIndex >= filteredProducts.length) {
+    if (
+      filteredProducts.length > 0 &&
+      selectedIndex >= filteredProducts.length
+    ) {
       setSelectedIndex(filteredProducts.length - 1);
     } else if (filteredProducts.length === 0) {
       setSelectedIndex(0);
@@ -124,12 +171,12 @@ export function ProductPanel({
     if (!product) return;
     onProductClick(product);
     setLastAddedId(product.id);
-    
+
     // Punto 4: Limpieza condicional configurable
     if (CLEAR_SEARCH_AFTER_ADD) {
       setSearch("");
     }
-    
+
     // Punto 5: Mantener foco inteligente sin forzarlo agresivamente si el usuario cambió de input
     if (document.activeElement === inputRef.current) {
       inputRef.current?.focus();
@@ -144,7 +191,9 @@ export function ProductPanel({
   // Motor Geométrico (Se mantiene encapsulado, performante para los 80 items del visor)
   const moveVertical = (direction: "UP" | "DOWN") => {
     if (!containerRef.current) return;
-    const items = containerRef.current.querySelectorAll("[data-product-wrapper]");
+    const items = containerRef.current.querySelectorAll(
+      "[data-product-wrapper]",
+    );
     if (items.length === 0) return;
 
     const currentRect = items[selectedIndex].getBoundingClientRect();
@@ -159,7 +208,9 @@ export function ProductPanel({
 
       if (direction === "DOWN" && rect.top >= currentRect.bottom - 1) {
         const verticalDist = rect.top - currentRect.bottom;
-        const horizontalDist = Math.abs((rect.left + rect.width / 2) - currentCenterLeft);
+        const horizontalDist = Math.abs(
+          rect.left + rect.width / 2 - currentCenterLeft,
+        );
         const totalDist = verticalDist + horizontalDist * 0.5;
 
         if (totalDist < closestDistance) {
@@ -168,7 +219,9 @@ export function ProductPanel({
         }
       } else if (direction === "UP" && rect.bottom <= currentRect.top + 1) {
         const verticalDist = currentRect.top - rect.bottom;
-        const horizontalDist = Math.abs((rect.left + rect.width / 2) - currentCenterLeft);
+        const horizontalDist = Math.abs(
+          rect.left + rect.width / 2 - currentCenterLeft,
+        );
         const totalDist = verticalDist + horizontalDist * 0.5;
 
         if (totalDist < closestDistance) {
@@ -270,9 +323,9 @@ export function ProductPanel({
     if (!containerRef.current) return;
     const activeEl = containerRef.current.querySelector("[data-active='true']");
     if (activeEl) {
-      activeEl.scrollIntoView({ 
-        block: "nearest", 
-        inline: "nearest" 
+      activeEl.scrollIntoView({
+        block: "nearest",
+        inline: "nearest",
       });
     }
   }, [selectedIndex]);
@@ -282,7 +335,10 @@ export function ProductPanel({
       {/* BARRA BUSQUEDA */}
       <div className="shrink-0 bg-white border-b p-2">
         <div className="relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search
+            size={14}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+          />
           <input
             ref={inputRef}
             value={search}
@@ -293,7 +349,10 @@ export function ProductPanel({
             className="w-full rounded-lg border bg-slate-50 py-1.5 pl-8 pr-20 text-xs font-bold uppercase tracking-wide text-slate-800 outline-none focus:border-emerald-600 focus:bg-white"
           />
           {search.length > 0 && (
-            <button onClick={clearSearch} className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5 rounded bg-slate-200 px-1.5 py-0.5 text-[8px] font-bold text-slate-600 hover:bg-slate-300">
+            <button
+              onClick={clearSearch}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5 rounded bg-slate-200 px-1.5 py-0.5 text-[8px] font-bold text-slate-600 hover:bg-slate-300"
+            >
               <X size={10} /> Limpiar
             </button>
           )}
@@ -303,7 +362,9 @@ export function ProductPanel({
       {lastAddedId && (
         <div className="pointer-events-none absolute left-1/4 top-16 z-50 flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-white shadow-lg animate-in fade-in slide-in-from-top-1 duration-150">
           <CheckCircle2 size={12} />
-          <span className="text-[9px] font-black uppercase tracking-wider">Agregado</span>
+          <span className="text-[9px] font-black uppercase tracking-wider">
+            Agregado
+          </span>
         </div>
       )}
 
@@ -317,8 +378,8 @@ export function ProductPanel({
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-1.5">
             {filteredProducts.map((product, index) => (
-              <div 
-                key={product.id} 
+              <div
+                key={product.id}
                 data-product-wrapper
                 data-active={index === selectedIndex}
               >
