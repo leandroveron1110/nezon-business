@@ -8,6 +8,7 @@ import {
 import { DexieOrderIdentityAdapter } from "../infrastructure/dexie/repositories/dexie-order-identity.adapter";
 import { DexieOrderRepositoryAdapter } from "../infrastructure/dexie/repositories/dexie-order.repository";
 import { cloudSyncService } from "../infrastructure/network/CloudSyncService";
+import { requestDeliveryDispatch } from "../infrastructure/network/delivery-api";
 import { quoteDeliveryOrchestrator } from "./delivery.orchestrator";
 // import { syncQueueWorker } from "../infrastructure/network/SyncQueueWorker";
 
@@ -20,6 +21,8 @@ export const createOrderOrchestrator = async (input: CreateOrderInput) => {
   const repositoryAdapter = new DexieOrderRepositoryAdapter();
   const identityAdapter = new DexieOrderIdentityAdapter();
 
+  console.log(input.deliveryType, input.deliveryProvider, input.customerAddress, input.totalDeliveryCost, input.deliveryQuotationStatus);
+
   const orderCore = OrderServicePublic({
     repository: repositoryAdapter,
     identity: identityAdapter,
@@ -31,95 +34,54 @@ export const createOrderOrchestrator = async (input: CreateOrderInput) => {
     input.customerAddress &&
     input.totalDeliveryCost === 0
   ) {
-    const quotation = await quoteDeliveryOrchestrator(
-      input.customerAddress,
-      input.businessId,
-      input.deliveryProvider,
-    );
 
-    if (quotation.success && quotation.data) {
-      const data = quotation.data;
-
-      input = {
-        ...input,
-
-        totalDeliveryCost: data.quotedCost || 0,
-        
-        // deliveryZoneId:
-        //   data.zoneId || null,
-
-        // deliveryLatitude:
-        //   data.latitude || null,
-
-        // deliveryLongitude:
-        //   data.longitude || null,
-
-        // deliveryQuotationStatus:
-        //   data.quotationStatus,
-
-        // deliveryResolutionStrategy:
-        //   data.resolutionStrategy,
-
-        // normalizedAddress:
-        //   data.resolvedAddress,
-      };
+    input = {
+      ...input,
+      deliveryQuotationStatus: "PENDING",
     }
   }
 
   // 1. Ejecución soberana del negocio en Local (Dexie)
   let result = await orderCore.createOrder(input);
 
-  if (result.success && result.data) {
-    const order = result.data;
+  // if (result.success && result.data) {
+  //   const order = result.data;
 
-    // 2. Control de Sincronización Inmediata para pedidos HIGH (Síncrono y agresivo)
-    if (order.syncStatus === "SYNC_PENDING" && order.syncPriority === "HIGH") {
-      let attempts = 0;
-      let cloudId: string | null = null;
-      let success = false;
+  //   // 2. Control de Sincronización Inmediata para pedidos HIGH (Síncrono y agresivo)
+  //   if (order.syncStatus === "SYNC_PENDING" && order.syncPriority === "HIGH") {
+  //     let attempts = 0;
+  //     let cloudId: string | null = null;
+  //     let success = false;
 
-      while (attempts < MAX_RETRIES && !success) {
-        try {
-          attempts++;
-          // Enviamos payload completo asegurando idempotencia mediante idTemp
-          cloudId = await cloudSyncService.triggerImmediateSync({
-            ...order,
-          });
-          success = true;
-        } catch (err) {
-          console.warn(
-            `Intento ${attempts} falló para orden ${order.shortCode}. Red inestable.`,
-          );
-          if (attempts < MAX_RETRIES) await delay(RETRY_DELAY_MS);
-        }
-      }
+  //     while (attempts < MAX_RETRIES && !success) {
+  //       try {
+  //         attempts++;
+  //         // Enviamos payload completo asegurando idempotencia mediante idTemp
+  //         cloudId = await cloudSyncService.triggerImmediateSync({
+  //           ...order,
+  //         });
+  //         success = true;
+  //       } catch (err) {
+  //         console.warn(
+  //           `Intento ${attempts} falló para orden ${order.shortCode}. Red inestable.`,
+  //         );
+  //         if (attempts < MAX_RETRIES) await delay(RETRY_DELAY_MS);
+  //       }
+  //     }
 
-      // 3. El Orquestador le comunica el resultado de la infraestructura al Core
-      if (success && cloudId) {
-        // El core impacta el ID remoto, corre el mutateState interno y guarda en Dexie
-        await orderCore.confirmCloudSync(order.idTemp, cloudId);
-      } else {
-        console.error(
-          `Sincronización inmediata fallida tras ${MAX_RETRIES} intentos.`,
-        );
-        // El core pasa la orden a SYNC_ERROR e impacta el historial en Dexie
-        await orderCore.notifySyncError(order.idTemp);
-      }
-    }
-
-    // verificamos si el pedido pide delibery por la plataforma y si es así, lo mandamos a la cola de sincronización aunque no sea HIGH
-    if (order.deliveryProvider === "PLATFORM") {
-      // si es pedido por la plataforma, verificamos si ya se assigno el precio o no
-      if (order.totalDeliveryCost === 0) {
-        // console.log(
-        //   `Orden ${order.shortCode} requiere delivery por plataforma pero no tiene precio asignado. Forzando sincronización...`,
-        // );
-      }
-      // Aquí disparas tu Worker general (el que primero hace el POST de la creación de la orden
-      // y luego actualiza sus estados).
-      // syncQueueWorker.processQueue().catch(...);
-    }
-  }
+  //     // 3. El Orquestador le comunica el resultado de la infraestructura al Core
+  //     if (success && cloudId) {
+  //       // El core impacta el ID remoto, corre el mutateState interno y guarda en Dexie
+  //       await orderCore.confirmCloudSync(order.idTemp, cloudId);
+  //     } else {
+  //       console.error(
+  //         `Sincronización inmediata fallida tras ${MAX_RETRIES} intentos.`,
+  //       );
+  //       // El core pasa la orden a SYNC_ERROR e impacta el historial en Dexie
+  //       await orderCore.notifySyncError(order.idTemp);
+  //     }
+  //   }
+  // }
 
   return result;
 };
@@ -172,6 +134,7 @@ export const updateOrderStatusOrchestrator = async (
           // Confirmamos la sincronización de este hilo en nuestro Dexie local.
           await orderCore.confirmCloudSync(order.idTemp, order.id);
 
+          
           // Adicionalmente, como impactó en caliente con éxito, podés prender
           // las banderas específicas de hilos si tu orderCore lo requiere:
           // await db.orders.update(order.idTemp, { syncedStatus: true, ... });
@@ -198,6 +161,14 @@ export const updateOrderStatusOrchestrator = async (
     // y luego actualiza sus estados).
     // syncQueueWorker.processQueue().catch(...);
   }
+
+  if(input.thread === "DELIVERY" && order.customerAddress) {
+            await requestDeliveryDispatch({
+              businessId: order.businessId,
+              orderId: order.idTemp,
+              customerAddress: order.customerAddress
+            });
+          }
 
   // 🚀 Retornamos el resultado local INMEDIATAMENTE para que el cajero no espere a la red.
   return result;

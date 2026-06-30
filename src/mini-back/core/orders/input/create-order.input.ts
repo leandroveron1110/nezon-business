@@ -1,4 +1,4 @@
-import { DeliveryStatus } from "../domain/order-state-machine";
+import { DeliveryQuotationStatus, DeliveryStatus } from "../domain/order-state-machine";
 import { OrderItem } from "../domain/order.entity";
 
 export interface CreateOrderInput {
@@ -21,6 +21,8 @@ export interface CreateOrderInput {
 
   deliveryType: "DELIVERY" | "PICKUP";
   deliveryStatus: DeliveryStatus;
+
+  deliveryQuotationStatus?: DeliveryQuotationStatus;
 
   deliveryProvider: "PLATFORM" | "INTERNAL";
 

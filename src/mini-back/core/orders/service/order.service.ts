@@ -145,7 +145,7 @@ export class OrderService implements IOrderPublicService {
 
     // 5. Persistencia atómica y coordinada mediante el puerto de repositorio
     await this.repository.updateStatuses(order.idTemp, updates);
-    await this.repository.saveOrderEvent(stateEvent);
+    // await this.repository.saveOrderEvent(stateEvent);
 
     return {
       success: true,
@@ -192,6 +192,7 @@ export class OrderService implements IOrderPublicService {
       status: initialStatus,
       origin: input.origin,
       items: input.items,
+      deliveryQuotationStatus: input.deliveryQuotationStatus,
 
       // Al crearse de cero, todo nace listo para procesar según la urgencia inicial
       syncedStatus: isHighPriority ? false : true,
@@ -217,7 +218,7 @@ export class OrderService implements IOrderPublicService {
       createdAt: order.createdAt,
     };
 
-    await this.repository.saveOrderEvent(creationEvent);
+    // await this.repository.saveOrderEvent(creationEvent);
 
     // console.log(
     //   "Evento de creación de orden guardado en Dexie para idTemp:",

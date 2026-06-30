@@ -1,5 +1,6 @@
 "use client";
 import { getSyncQueueWorker, SyncResult } from "@/mini-back/infrastructure/network/SyncQueueWorker";
+import { initSchedulers } from "@/mini-back/infrastructure/workers/delivery/delivery.worker";
 import { Loader2, CloudUpload, CheckCircle2, AlertTriangle, CloudOff } from "lucide-react";
 import { useState } from "react";
 
@@ -14,22 +15,23 @@ export function SyncIndicator() {
     setErrorMessage("");
 
     try {
-      const result: SyncResult = await getSyncQueueWorker().forceManualSyncAll();
+      // const result: SyncResult = await getSyncQueueWorker().forceManualSyncAll();
+      initSchedulers(); // Reiniciamos los schedulers del DeliveryWorker tras la sincronización
 
-      if (result.success) {
-        setStatus("success");
-        // Volver al estado inicial tras unos segundos de feedback positivo
-        setTimeout(() => setStatus("idle"), 3000);
-      } else {
-        if (result.status === "OFFLINE" || result.status === "SERVER_DOWN") {
-          setStatus("offline");
-          setErrorMessage(result.status === "OFFLINE" ? "Sin conexión a internet" : "Servidor no disponible");
-        } else {
-          setStatus("partial_error");
-          setErrorMessage(`Quedaron ${result.pendingCount ?? 'algunas'} órdenes sin subir.`);
-        }
-        setTimeout(() => setStatus("idle"), 5000); // feedback extendido para el error
-      }
+      // if (result.success) {
+      //   setStatus("success");
+      //   // Volver al estado inicial tras unos segundos de feedback positivo
+      //   setTimeout(() => setStatus("idle"), 3000);
+      // } else {
+      //   if (result.status === "OFFLINE" || result.status === "SERVER_DOWN") {
+      //     setStatus("offline");
+      //     setErrorMessage(result.status === "OFFLINE" ? "Sin conexión a internet" : "Servidor no disponible");
+      //   } else {
+      //     setStatus("partial_error");
+      //     setErrorMessage(`Quedaron ${result.pendingCount ?? 'algunas'} órdenes sin subir.`);
+      //   }
+      //   setTimeout(() => setStatus("idle"), 5000); // feedback extendido para el error
+      // }
     } catch (error) {
       setStatus("partial_error");
       setErrorMessage("Error crítico inesperado en la sincronización.");

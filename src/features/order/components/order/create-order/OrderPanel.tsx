@@ -1,19 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Trash2,
-  Plus,
-  Minus,
-  Zap,
-  Truck,
-  Store,
-  FileText,
-} from "lucide-react";
+import { Trash2, Plus, Minus, Zap, Truck, Store, FileText } from "lucide-react";
 import { useLocationAutocomplete } from "@/features/order/hooks/useLocationAutocomplete";
 import { formatPrice } from "@/features/common/utils/formatPrice";
 import { quoteDeliveryOrchestrator } from "@/mini-back/orchestrator/delivery.orchestrator";
-import { LocalOrderItem } from "@/mini-back/infrastructure/dexie/shcema/orders.schema";
+import { DeliveryQuotationStatus, LocalOrderItem } from "@/mini-back/infrastructure/dexie/shcema/orders.schema";
 import { useConnectivity } from "@/lib/hooks/useConnectivity";
 import { useAlert } from "@/features/common/ui/Alert/Alert";
 
@@ -29,6 +21,8 @@ interface OrderPanelProps {
   setCustomerName: (v: string) => void;
   customerPhone: string;
   setCustomerPhone: (v: string) => void;
+  deliveryQuotationStatus: DeliveryQuotationStatus | undefined;
+  setDeliveryQuotationStatus: (v: DeliveryQuotationStatus | undefined) => void;
   customerAddress: string;
   setCustomerAddress: (v: string) => void;
   deliveryType: "PICKUP" | "DELIVERY";
@@ -65,6 +59,8 @@ export function OrderPanel({
   setPaymentMethod,
   paymentMethod,
   setZoneId,
+  deliveryQuotationStatus,
+  setDeliveryQuotationStatus,
 }: OrderPanelProps) {
   const isDelivery = deliveryType === "DELIVERY";
   const isLocus = deliveryProvider === "PLATFORM";
@@ -102,8 +98,10 @@ export function OrderPanel({
       );
 
       if (!response.success || !response.data) {
+        setDeliveryQuotationStatus("PENDING");
         addAlert({
-          message: "No pudimos procesar la dirección. Revisá la conexión o intentá de nuevo.",
+          message:
+            "No pudimos procesar la dirección. Revisá la conexión o intentá de nuevo.",
           type: "error",
         });
         return;
@@ -120,36 +118,44 @@ export function OrderPanel({
       if (quotation.quotationStatus === "RESOLVED" && quotation.quotedCost) {
         setDeliveryCost(quotation.quotedCost);
         setPendingPriceAutm(false);
+        setDeliveryQuotationStatus("RESOLVED");
         return;
       }
 
       if (quotation.resolutionStrategy === "ZONE_ONLY") {
         addAlert({
-          message: "Dirección identificada (Barrio Interno). Se notificó a la base para cotizar el envío; te avisamos apenas respondan.",
+          message:
+            "Dirección identificada (Barrio Interno). Se notificó a la base para cotizar el envío; te avisamos apenas respondan.",
           type: "info",
         });
+        setDeliveryQuotationStatus("PENDING");
         return;
       }
 
       if (quotation.resolutionStrategy === "ZONE_FALLBACK") {
         addAlert({
-          message: "Ubicamos la zona pero no el costo exacto. El pedido ya fue enviado a base para fijar el precio manualmente.",
+          message:
+            "Ubicamos la zona pero no el costo exacto. El pedido ya fue enviado a base para fijar el precio manualmente.",
           type: "info",
         });
+        setDeliveryQuotationStatus("PENDING");
         return;
       }
 
       if (quotation.resolutionStrategy === "MANUAL") {
         addAlert({
-          message: "No pudimos verificar la altura en el mapa. Despachamos una solicitud de cotización manual a la base para resolverlo.",
+          message:
+            "No pudimos verificar la altura en el mapa. Despachamos una solicitud de cotización manual a la base para resolverlo.",
           type: "info",
         });
+        setDeliveryQuotationStatus("PENDING");
         return;
       }
     } catch (error) {
       console.error("Error en cotización manual:", error);
       addAlert({
-        message: "Ocurrió un inconveniente inesperado. Si persiste, comunicate con soporte.",
+        message:
+          "Ocurrió un inconveniente inesperado. Si persiste, comunicate con soporte.",
         type: "error",
       });
     } finally {
@@ -165,7 +171,9 @@ export function OrderPanel({
           type="button"
           onClick={() => setDeliveryType("PICKUP")}
           className={`flex-1 flex items-center justify-center gap-1.5 text-[10px] font-black transition-colors ${
-            !isDelivery ? "bg-slate-900 text-white" : "bg-slate-50 text-slate-400"
+            !isDelivery
+              ? "bg-slate-900 text-white"
+              : "bg-slate-50 text-slate-400"
           }`}
         >
           <Store className="w-3.5 h-3.5" /> RETIRO
@@ -251,7 +259,8 @@ export function OrderPanel({
                           type="button"
                           onMouseDown={(e) => {
                             e.preventDefault();
-                            const alturaExistente = query.match(/\d+$/)?.[0] || "";
+                            const alturaExistente =
+                              query.match(/\d+$/)?.[0] || "";
                             let newQuery = r.name.includes(" - ")
                               ? `${r.name} ${alturaExistente}`.trim() + " "
                               : r.name + " ";
@@ -270,13 +279,21 @@ export function OrderPanel({
                               : "bg-white hover:bg-slate-700 text-slate-800"
                           } group`}
                         >
-                          <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${isBarrio ? "bg-blue-500" : "bg-slate-300 group-hover:bg-white/50"}`} />
+                          <div
+                            className={`absolute left-0 top-0 bottom-0 w-1.5 ${isBarrio ? "bg-blue-500" : "bg-slate-300 group-hover:bg-white/50"}`}
+                          />
                           <div className="flex flex-col min-w-0 pl-2">
                             <span className="text-[11px] font-black uppercase truncate group-hover:text-white">
                               {r.name}
                             </span>
-                            <span className={`text-[9px] leading-none group-hover:text-white/50 ${isBarrio ? "text-blue-700/50" : "text-slate-400"}`}>
-                              {r.name.includes(" - ") ? "Barrio + Calle" : isBarrio ? "Zona / Barrio" : "Calle"}
+                            <span
+                              className={`text-[9px] leading-none group-hover:text-white/50 ${isBarrio ? "text-blue-700/50" : "text-slate-400"}`}
+                            >
+                              {r.name.includes(" - ")
+                                ? "Barrio + Calle"
+                                : isBarrio
+                                  ? "Zona / Barrio"
+                                  : "Calle"}
                             </span>
                           </div>
                         </button>
@@ -356,12 +373,16 @@ export function OrderPanel({
                 {/* BOTÓN NOTA: Actúa como Switch Manual */}
                 <button
                   type="button"
-                  onClick={() => setOpenNoteIndex(openNoteIndex === i ? null : i)}
+                  onClick={() =>
+                    setOpenNoteIndex(openNoteIndex === i ? null : i)
+                  }
                   className="w-6 h-6 flex items-center justify-center ml-1 rounded hover:bg-slate-100 transition-colors"
                 >
                   <FileText
                     size={11}
-                    className={item.notes ? "text-orange-500" : "text-slate-400"}
+                    className={
+                      item.notes ? "text-orange-500" : "text-slate-400"
+                    }
                   />
                 </button>
               </div>
@@ -418,7 +439,9 @@ export function OrderPanel({
                 type="button"
                 onClick={() => setPaymentMethod(m.key as any)}
                 className={`flex-1 py-1 text-[9px] font-black rounded-lg border text-center transition-all ${
-                  isSelected ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-500 border-slate-200"
+                  isSelected
+                    ? "bg-slate-900 text-white border-slate-900"
+                    : "bg-white text-slate-500 border-slate-200"
                 }`}
               >
                 {m.label}
@@ -434,8 +457,12 @@ export function OrderPanel({
           </div>
 
           <div className="flex justify-between items-center py-1 px-1">
-            <span className="text-[11px] font-black uppercase text-emerald-400 tracking-wider">Total a Cobrar</span>
-            <span className="text-xl font-black text-emerald-400 tracking-tight">{formatPrice(total)}</span>
+            <span className="text-[11px] font-black uppercase text-emerald-400 tracking-wider">
+              Total a Cobrar
+            </span>
+            <span className="text-xl font-black text-emerald-400 tracking-tight">
+              {formatPrice(total)}
+            </span>
           </div>
 
           {!isSubmitting && (

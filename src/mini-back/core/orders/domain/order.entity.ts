@@ -1,5 +1,5 @@
 import { DeliveryStatus, PaymentStatus } from "@/types/order-state-machine";
-import { OrderStatus } from "./order-state-machine";
+import { DeliveryQuotationStatus, OrderStatus } from "./order-state-machine";
 
 export interface OrderOption {
   optionId?: string;
@@ -64,6 +64,8 @@ export interface Order {
   
   // Especificamos quién hace la entrega
   deliveryProvider: DeliveryProvider; 
+
+  deliveryQuotationStatus?: DeliveryQuotationStatus; // Estado de la cotización de envío (si aplica)
 
   // Control de precio
   deliveryPriceMode: 'AUTOMATIC' | 'MANUAL';

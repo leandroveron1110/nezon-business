@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { OrderPanel } from "./OrderPanel";
-import { LocalOrderItem } from "@/mini-back/infrastructure/dexie/shcema/orders.schema";
+import { DeliveryQuotationStatus, LocalOrderItem } from "@/mini-back/infrastructure/dexie/shcema/orders.schema";
 
 interface OrderSheetProps {
   businessId: string;
@@ -29,6 +29,8 @@ interface OrderSheetProps {
   setZoneId: (v: string | null) => void;
 
   updateItemNote: (index: number, note: string) => void;
+  deliveryQuotationStatus: DeliveryQuotationStatus | undefined;
+  setDeliveryQuotationStatus: (v: DeliveryQuotationStatus | undefined) => void;
 }
 export function OrderSheet(props: OrderSheetProps) {
   const [open, setOpen] = useState(false);

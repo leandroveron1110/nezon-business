@@ -24,7 +24,7 @@ export interface OrderRepositoryPort {
 
   nextUUID(): string;
   
-  saveOrderEvent(event: CoreOrderStateEvent): Promise<void>;
+  // saveOrderEvent(event: CoreOrderStateEvent): Promise<void>;
 
   update(order: Order): Promise<void>;
 

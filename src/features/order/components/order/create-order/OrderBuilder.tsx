@@ -11,6 +11,7 @@ import { OrderPanel } from "./OrderPanel";
 import { DeliveryStatus, PaymentStatus } from "@/types/order-state-machine";
 import { createOrderOrchestrator } from "@/mini-back/orchestrator/order.orchestrator";
 import {
+  DeliveryQuotationStatus,
   LocalOrderItem,
   LocalOrderOptionGroup,
 } from "@/mini-back/infrastructure/dexie/shcema/orders.schema";
@@ -46,6 +47,9 @@ export default function OrderBuilder({
   >("CASH");
   const [deliveryCost, setDeliveryCost] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deliveryQuotationStatus, setDeliveryQuotationStatus] = useState<
+    DeliveryQuotationStatus | undefined
+  >(undefined);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -136,8 +140,8 @@ export default function OrderBuilder({
     (a, i) => a + i.priceAtPurchase * i.quantity,
     0,
   );
-  const total =
-    totalProducts + (deliveryType === "DELIVERY" ? deliveryCost : 0);
+
+  const total = totalProducts + (deliveryType === "DELIVERY" ? deliveryCost : 0);
 
   const createOrder = async (instantPrepare?: boolean) => {
     if (!items.length || isSubmitting) return;
@@ -159,6 +163,7 @@ export default function OrderBuilder({
       origin: "BUSINESS" as const,
       createdAt: new Date(),
       updatedAt: new Date(),
+
       deliveryStatus:
         deliveryType === "DELIVERY"
           ? DeliveryStatus.PENDING
@@ -170,6 +175,7 @@ export default function OrderBuilder({
         ...newOrder,
         instantPrepare: !!instantPrepare,
         businessId: businessid,
+        deliveryQuotationStatus: deliveryQuotationStatus,
       });
       setItems([]);
       setCustomerName("");
@@ -231,6 +237,8 @@ export default function OrderBuilder({
               isSubmitting={isSubmitting}
               businessId={businessid}
               items={items}
+              deliveryQuotationStatus={deliveryQuotationStatus}
+              setDeliveryQuotationStatus={setDeliveryQuotationStatus}
               updateQty={updateQty}
               total={total}
               updateItemNote={updateItemNote}
@@ -284,6 +292,8 @@ export default function OrderBuilder({
             setPaymentMethod={setPaymentMethod}
             setZoneId={setZoneId}
             updateItemNote={updateItemNote}
+            deliveryQuotationStatus={deliveryQuotationStatus}
+            setDeliveryQuotationStatus={setDeliveryQuotationStatus}
           />
         </div>
       </div>

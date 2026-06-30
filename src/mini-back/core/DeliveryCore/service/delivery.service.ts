@@ -31,10 +31,6 @@ export class DeliveryService {
     private readonly provider: DeliveryProviderPort,
   ) {}
 
-  // =========================================================================
-  // RESOLVE ADDRESS
-  // =========================================================================
-
   async resolveAddress(
     input: ResolveAddressInput,
   ): Promise<DeliveryServiceResponse<DeliveryAddressResolution>> {
@@ -53,17 +49,9 @@ export class DeliveryService {
 
       const queryLower = query.toLowerCase();
 
-      // =========================================================================
-      // NORMALIZAR DATASET
-      // =========================================================================
-
       const barrios = input.locations.filter(
         (location): location is BarrioSuggestion => location.type === "BARRIO",
       );
-
-      // =========================================================================
-      // REGEX DE ESTRUCTURAS INTERNAS
-      // =========================================================================
 
       const regexInteriorBarrio =
         /\b(mza|mz|m|casa|csa|c|mod|modulo|sec|seccion|s|block|b|lote|l)\b/i;
@@ -71,10 +59,6 @@ export class DeliveryService {
       let barrioEncontrado: BarrioSuggestion | null = null;
 
       let queryParaGeocoding: string | null = null;
-
-      // =========================================================================
-      // FORMATO: "BARRIO - CALLE"
-      // =========================================================================
 
       if (query.includes(" - ")) {
         const partes = query.split(" - ");
@@ -93,9 +77,6 @@ export class DeliveryService {
         }
       }
 
-      // =========================================================================
-      // TEXTO CORRIDO
-      // =========================================================================
       else {
         barrioEncontrado =
           barrios
@@ -117,10 +98,6 @@ export class DeliveryService {
         }
       }
 
-      // =========================================================================
-      // CASO: SOLO BARRIO
-      // =========================================================================
-
       if (barrioEncontrado && !queryParaGeocoding) {
         return {
           success: true,
@@ -138,10 +115,6 @@ export class DeliveryService {
         };
       }
 
-      // =========================================================================
-      // GEOCODING
-      // =========================================================================
-
       const finalAddress = queryParaGeocoding || query;
 
       const resolved = await this.geocoding.resolveAddress(finalAddress);
@@ -155,10 +128,6 @@ export class DeliveryService {
           },
         };
       }
-
-      // =========================================================================
-      // RESPUESTA
-      // =========================================================================
 
       return {
         success: true,
@@ -188,10 +157,6 @@ export class DeliveryService {
     }
   }
 
-  // =========================================================================
-  // QUOTE DELIVERY
-  // =========================================================================
-
   async quoteDelivery(
     input: QuoteDeliveryInput,
   ): Promise<DeliveryServiceResponse<DeliveryQuotation>> {
@@ -216,15 +181,11 @@ export class DeliveryService {
 
       const resolved = resolution.data;
 
-      // =========================================================================
-      // SOLO BARRIO
-      // =========================================================================
-
       if (resolved.strategy === "ZONE_ONLY") {
         return {
           success: true,
           data: {
-            quotationStatus: "MANUAL",
+            quotationStatus: "PENDING",
 
             resolutionStrategy: "ZONE_ONLY",
 
@@ -238,11 +199,6 @@ export class DeliveryService {
           },
         };
       }
-
-      // =========================================================================
-      // COTIZACIÓN
-      // =========================================================================
-
       let quotedCost = 0;
 
       let quotationStatus: DeliveryQuotationStatus = "PENDING";
@@ -268,11 +224,6 @@ export class DeliveryService {
         strategy =
           resolved.strategy === "ZONE_WITH_STREET" ? "ZONE_FALLBACK" : "MANUAL";
       }
-
-      // =========================================================================
-      // RESPUESTA
-      // =========================================================================
-
       const result = {
         success: true,
         data: {

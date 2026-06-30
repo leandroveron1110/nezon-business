@@ -69,13 +69,10 @@ class SyncQueueWorker {
 
     try {
       // 🛑 PRE-CHEQUEO VELOZ
-      const pendingOrdersCount = await this.repository.getPendingCount();
-      const pendingEventsCount = await db.orderStateEvents
-        .where("syncStatus")
-        .equals("PENDING")
-        .count();
+      const pendingOrdersCount = await this.repository.getPendingCount(options);
 
-      if (pendingOrdersCount === 0 && pendingEventsCount === 0) {
+
+      if (pendingOrdersCount === 0) {
         return { success: true, status: "NO_CHANGES" };
       }
 
@@ -212,15 +209,15 @@ class SyncQueueWorker {
       // =================================================================
       // 3. SINCRONIZACIÓN DE HISTORIAL DE EVENTOS
       // =================================================================
-      await this.syncPendingHistoryEvents();
+      // await this.syncPendingHistoryEvents();
 
       // Verificación final post-proceso
       const remainingOrders = await this.repository.getPendingCount();
-      const remainingEvents = await db.orderStateEvents
-        .where("syncStatus")
-        .equals("PENDING")
-        .count();
-      const totalRemaining = remainingOrders + remainingEvents;
+      // const remainingEvents = await db.orderStateEvents
+      //   .where("syncStatus")
+      //   .equals("PENDING")
+      //   .count();
+      const totalRemaining = remainingOrders;
 
       if (totalRemaining === 0) {
         return { success: true, status: "SYNCED_FULLY" };
@@ -242,56 +239,56 @@ class SyncQueueWorker {
     }
   }
 
-  private async syncPendingHistoryEvents() {
-    try {
-      // Traemos únicamente los eventos colgados usando el índice rápido con límite de seguridad
-      const localEvents = await db.orderStateEvents
-        .where("syncStatus")
-        .equals("PENDING")
-        .limit(100)
-        .toArray();
+  // private async syncPendingHistoryEvents() {
+  //   try {
+  //     // Traemos únicamente los eventos colgados usando el índice rápido con límite de seguridad
+  //     const localEvents = await db.orderStateEvents
+  //       .where("syncStatus")
+  //       .equals("PENDING")
+  //       .limit(100)
+  //       .toArray();
 
-      if (localEvents.length === 0) return;
+  //     if (localEvents.length === 0) return;
 
-      const validEventsToSend = [];
+  //     const validEventsToSend = [];
 
-      for (const event of localEvents) {
-        if (event.orderId) {
-          validEventsToSend.push(event);
-        } else {
-          // Si es un evento creado offline, cruzamos rápido contra la orden local a ver si ya tiene ID remoto
-          const localOrder = await db.orders.get(event.idTemp);
-          if (localOrder && localOrder.id) {
-            event.orderId = localOrder.id;
-            validEventsToSend.push(event);
-          }
-        }
-      }
+  //     for (const event of localEvents) {
+  //       if (event.orderId) {
+  //         validEventsToSend.push(event);
+  //       } else {
+  //         // Si es un evento creado offline, cruzamos rápido contra la orden local a ver si ya tiene ID remoto
+  //         const localOrder = await db.orders.get(event.idTemp);
+  //         if (localOrder && localOrder.id) {
+  //           event.orderId = localOrder.id;
+  //           validEventsToSend.push(event);
+  //         }
+  //       }
+  //     }
 
-      if (validEventsToSend.length === 0) return;
+  //     if (validEventsToSend.length === 0) return;
 
-      const success =
-        await cloudSyncService.syncOrderStateEvents(validEventsToSend);
+  //     const success =
+  //       await cloudSyncService.syncOrderStateEvents(validEventsToSend);
 
-      if (success) {
-        // En lugar de hacer toArray() o bulkDelete destructivos, mutamos el syncStatus del evento a 'SYNCED'
-        const eventIds = validEventsToSend.map((e) => e.id);
-        await db.orderStateEvents
-          .where("id")
-          .anyOf(eventIds)
-          .modify({ syncStatus: "SYNCED" });
+  //     if (success) {
+  //       // En lugar de hacer toArray() o bulkDelete destructivos, mutamos el syncStatus del evento a 'SYNCED'
+  //       const eventIds = validEventsToSend.map((e) => e.id);
+  //       await db.orderStateEvents
+  //         .where("id")
+  //         .anyOf(eventIds)
+  //         .modify({ syncStatus: "SYNCED" });
 
-        // console.log(
-        //   `SyncWorker: ${validEventsToSend.length} eventos de historial subidos con éxito.`,
-        // );
-      }
-    } catch (error) {
-      console.error(
-        "SyncWorker: No se pudo completar la sincronización del historial.",
-        error,
-      );
-    }
-  }
+  //       // console.log(
+  //       //   `SyncWorker: ${validEventsToSend.length} eventos de historial subidos con éxito.`,
+  //       // );
+  //     }
+  //   } catch (error) {
+  //     console.error(
+  //       "SyncWorker: No se pudo completar la sincronización del historial.",
+  //       error,
+  //     );
+  //   }
+  // }
 }
 
 let syncQueueWorker: SyncQueueWorker | null = null;

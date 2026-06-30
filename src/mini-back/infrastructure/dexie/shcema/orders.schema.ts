@@ -58,10 +58,11 @@ export type SyncStatus =
 // ============================================================================
 
 export type DeliveryQuotationStatus =
-  | "PENDING" // Esperando resolución (ej: operador Base)
-  | "RESOLVED" // Cotización obtenida exitosamente
-  | "MANUAL" // Precio ingresado manualmente por el negocio
-  | "ERROR"; // No fue posible resolver la cotización
+  | "PENDING"       // El DeliveryWorker todavía debe intentar resolverla
+  | "WAITING_BASE"  // Ya fue enviada a Base
+  | "RESOLVED"      // Precio obtenido automáticamente o desde Base
+  | "MANUAL"        // Precio ingresado manualmente
+  | "ERROR";        // Error definitivo
 
 export type DeliveryResolutionStrategy =
   | "LIVE_MAP" // Resuelto automáticamente mediante geocoding + proveedor
@@ -148,7 +149,6 @@ export interface LocalOrder {
   deliveryResolutionStrategy?: DeliveryResolutionStrategy;
 
   // Identificador remoto de la solicitud enviada a Base.
-  //
   // Se utiliza para consultar posteriormente si el operador
   // ya resolvió la cotización.
   deliveryQuotationId?: string;
@@ -240,4 +240,4 @@ export interface LocalOrder {
 // ============================================================================
 
 export const ORDERS_STORE =
-  "idTemp, id, status, syncStatus, syncedStatus, syncedPayment, syncedDelivery, createdAt";
+  "idTemp, id, status, syncStatus, syncedStatus, syncedPayment, syncedDelivery, deliveryQuotationStatus, createdAt";

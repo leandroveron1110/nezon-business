@@ -5,7 +5,6 @@ import {
   OrderItem,
   OrderOption,
   OrderOptionGroup,
-  OrderThread,
 } from "@/mini-back/core/orders/public";
 
 export const cloudSyncService = {
@@ -138,38 +137,38 @@ export const cloudSyncService = {
     return res.data;
   },
 
-  syncOrderStateEvents: async (events: any[]) => {
-    try {
-      // Mapeamos al formato exacto esperado por el DTO del backend
-      const payload = {
-        events: events.map((e) => ({
-          orderId: e.orderId,
-          stateType: e.stateType, // Ej: "ORDER", "PAYMENT", "DELIVERY"
-          value: e.value,
-          author: e.author || "SYSTEM",
-          createdAt: new Date(e.createdAt).toISOString(),
-        })),
-      };
+  // syncOrderStateEvents: async (events: any[]) => {
+  //   try {
+  //     // Mapeamos al formato exacto esperado por el DTO del backend
+  //     const payload = {
+  //       events: events.map((e) => ({
+  //         orderId: e.orderId,
+  //         stateType: e.stateType, // Ej: "ORDER", "PAYMENT", "DELIVERY"
+  //         value: e.value,
+  //         author: e.author || "SYSTEM",
+  //         createdAt: new Date(e.createdAt).toISOString(),
+  //       })),
+  //     };
 
-      const res = await apiPost<{
-        success: boolean;
-        processed: number;
-        message: string;
-      }>("/orders/events/sync", payload);
+  //     const res = await apiPost<{
+  //       success: boolean;
+  //       processed: number;
+  //       message: string;
+  //     }>("/orders/events/sync", payload);
 
-      if (!res.success || !res.data) {
-        throw new Error(
-          res.error?.contextMessage || "Error en sincronización masiva",
-        );
-      }
+  //     if (!res.success || !res.data) {
+  //       throw new Error(
+  //         res.error?.contextMessage || "Error en sincronización masiva",
+  //       );
+  //     }
 
-      // Retorna el array con [{ idTemp, cloudId }, ...]
-      return res.data;
-    } catch (error) {
-      console.error("Error de red enviando eventos al servidor:", error);
-      return false;
-    }
-  },
+  //     // Retorna el array con [{ idTemp, cloudId }, ...]
+  //     return res.data;
+  //   } catch (error) {
+  //     console.error("Error de red enviando eventos al servidor:", error);
+  //     return false;
+  //   }
+  // },
 
   // updateOrder: async (
   //   orderId: string,

@@ -27,6 +27,7 @@ export class DexieOrderRepositoryAdapter implements OrderRepositoryPort {
       totalDeliveryCost: input.totalDeliveryCost,
       orderPaymentMethod: input.orderPaymentMethod,
       paymentStatus: input.paymentStatus,
+      deliveryQuotationStatus: input.deliveryQuotationStatus,
       deliveryStatus: input.deliveryStatus,
       status: input.status,
       origin: input.origin,
@@ -41,31 +42,31 @@ export class DexieOrderRepositoryAdapter implements OrderRepositoryPort {
     }); // Adaptamos la entidad del core a la tabla
   }
 
-  async saveOrderEvent(event: CoreOrderStateEvent) {
-    // El evento nace en local como pendiente de subir a la nube
-    // console.log("Infraestructura procesando y guardando evento en Dexie...");
+  // async saveOrderEvent(event: CoreOrderStateEvent) {
+  //   // El evento nace en local como pendiente de subir a la nube
+  //   // console.log("Infraestructura procesando y guardando evento en Dexie...");
 
-    const id = this.nextUUID();
+  //   const id = this.nextUUID();
 
-    // console.log(
-    //   "Evento preparado para guardar en Dexie con id:",
-    //   id,
-    //   "y estado:",
-    //   event.value,
-    // );
+  //   // console.log(
+  //   //   "Evento preparado para guardar en Dexie con id:",
+  //   //   id,
+  //   //   "y estado:",
+  //   //   event.value,
+  //   // );
 
-    // La infraestructura toma el dato puro del core y le inyecta la tecnología
-    await db.orderStateEvents.add({
-      id: id,
-      idTemp: event.idTemp,
-      orderId: event.orderId,
-      stateType: event.stateType,
-      value: event.value,
-      author: event.author,
-      createdAt: event.createdAt,
-      syncStatus: "PENDING", // Control exclusivo del motor de sincronización offline
-    });
-  }
+  //   // La infraestructura toma el dato puro del core y le inyecta la tecnología
+  //   await db.orderStateEvents.add({
+  //     id: id,
+  //     idTemp: event.idTemp,
+  //     orderId: event.orderId,
+  //     stateType: event.stateType,
+  //     value: event.value,
+  //     author: event.author,
+  //     createdAt: event.createdAt,
+  //     syncStatus: "PENDING", // Control exclusivo del motor de sincronización offline
+  //   });
+  // }
 
   nextUUID(): string {
     // Generamos un UUID simple para identificar eventos localmente
@@ -124,10 +125,16 @@ export class DexieOrderRepositoryAdapter implements OrderRepositoryPort {
   /**
    * ⚡ Cuenta órdenes pendientes reales en 0ms sin traerlas a memoria
    */
-  async getPendingCount(): Promise<number> {
+  async getPendingCount(options?: { forceAll?: boolean }): Promise<number> {
+    const targetStatuses: SyncStatus[] = ["SYNC_PENDING", "SYNC_ERROR"];
+
+    if (options?.forceAll) {
+      targetStatuses.push("LOCAL_ONLY");
+    }
+
     return await db.orders
       .where("syncStatus")
-      .anyOf(["SYNC_PENDING", "SYNC_ERROR"])
+      .anyOf(targetStatuses)
       .count();
   }
 }

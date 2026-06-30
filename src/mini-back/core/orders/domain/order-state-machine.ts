@@ -28,6 +28,13 @@ export enum DeliveryStatus {
   CANCELLED = 'CANCELLED',
 }
 
+export type DeliveryQuotationStatus =
+  | "PENDING"       // El DeliveryWorker todavía debe intentar resolverla
+  | "WAITING_BASE"  // Ya fue enviada a Base
+  | "RESOLVED"      // Precio obtenido automáticamente o desde Base
+  | "MANUAL"        // Precio ingresado manualmente
+  | "ERROR";        // Error definitivo
+
 // --- MÁQUINAS DE ESTADOS ---
 
 export const ORDER_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
