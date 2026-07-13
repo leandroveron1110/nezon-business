@@ -8,14 +8,12 @@ import { useAlert } from "@/features/common/ui/Alert/Alert";
 import { useEffect } from "react";
 import { getDisplayErrorMessage } from "@/lib/uiErrors";
 import { useInitialNotificationLoad } from "../hooks/useInitialNotificationLoad";
-
-const DynamicSearchBusinessList = withSkeleton(
-  () => import("./SearchBusinessList"),
-  SearchBusinessListSkeleton
-);
+import { useRouter } from "next/navigation";
+import SearchBusinessList from "./SearchBusinessList";
 
 export default function SearchPage() {
   const { user } = useAuthStore();
+  const router = useRouter();
 
   const businessIds = user?.businesses?.map((b) => b.id) || [];
   const { data, isLoading, isError, error } = useBusinesses(businessIds);
@@ -33,59 +31,49 @@ export default function SearchPage() {
     }
   }, [isError, error, addAlert]);
 
+  // 🚀 REDIRECCIÓN AUTOMÁTICA AL POS SI TIENE SOLO 1 NEGOCIO
+  // useEffect(() => {
+  //   if (data?.data && data.data.length === 1) {
+  //     const singleBusinessId = data.data[0].id;
+  //     router.replace(`/business/${singleBusinessId}/orders`);
+  //   }
+  // }, [data, router]);
 
-  // La lógica de `isLoading` y `isError` se mantiene igual.
-
-  if (isLoading) {
+  if (isLoading || (data?.data && data.data.length === 1)) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-gray-600">Cargando negocios...</p>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
+        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-sm font-medium text-gray-500">
+          {data?.data?.length === 1 ? "Redirigiendo a tu local..." : "Cargando negocios..."}
+        </p>
       </div>
     );
   }
 
   if (isError) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-red-500">Error cargando negocios</p>
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <p className="text-red-500 font-medium">Error al cargar las unidades de negocio</p>
       </div>
     );
   }
 
-  // **3. Eliminar el bloque de "No tienes negocios asociados"
-  //    porque la redirección ya se maneja en el `useEffect` de arriba
-  //    para que ocurra tan pronto como se determine la ausencia de negocios.**
-  
-
-  // Comentado/Eliminado porque el useEffect se encarga de la redirección
   if (!data || data.data.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-gray-400">No tienes negocios asociados</p>
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-2">
+        <p className="text-gray-500 text-lg font-medium">No tenés negocios asociados</p>
+        <p className="text-gray-400 text-sm">Contactá al administrador si creés que es un error.</p>
       </div>
     );
   }
-
-  
-  // Como el `useEffect` ya ha empujado al `/login` si no hay datos, si el flujo llega aquí,
-  // sabemos que `data` existe y tiene elementos.
-  if (!data || data.data.length === 0) {
-    // Retornar null o un indicador temporal mientras el router hace la redirección
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-gray-400">Redirigiendo...</p>
-      </div>
-    );
-  }
-
-
-  // ---
 
   return (
-    <div className="mx-auto max-w-7xl">
-      <div className="mt-6">
-        <DynamicSearchBusinessList businesses={data.data} />
+    <div className="mx-auto max-w-5xl px-4 py-8">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Tus Negocios</h1>
+        <p className="text-sm text-gray-500">Seleccioná un local para gestionar el POS, productos o configuración.</p>
       </div>
+      <SearchBusinessList businesses={data.data} />
     </div>
   );
 }
