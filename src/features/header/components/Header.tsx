@@ -1,171 +1,174 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useParams } from "next/navigation";
-import { 
-  ShoppingBag, 
-  Store,  
-  Menu as MenuIconLucide, 
-  X, 
-  LucideProps,
-  Package,
-  Users,  
-  Settings 
-} from "lucide-react"; 
+import { useParams, usePathname } from "next/navigation";
+import Image from "next/image";
 import React, { useState } from "react";
-import Image from "next/image"; 
-import img from "../../../app/Nezon.svg" 
+import {
+  Menu,
+  X,
+  ShoppingBag,
+  Store,
+  Package,
+  Users,
+  Settings,
+  LucideProps,
+} from "lucide-react";
+
+import logo from "../../../app/Nezon.svg";
 
 interface ILinks {
-  // La URL es una función que toma el businessId y devuelve la ruta
-  href: (businessId: string) => string; 
+  href: (businessId: string) => string;
   label: string;
-  icon: React.ForwardRefExoticComponent<Omit<LucideProps, "ref"> & React.RefAttributes<SVGSVGElement>>;
+  icon: React.ForwardRefExoticComponent<
+    Omit<LucideProps, "ref"> &
+      React.RefAttributes<SVGSVGElement>
+  >;
 }
 
 export default function Header() {
   const pathname = usePathname();
-  // Obtiene el businessId del segmento dinámico [businessId] de la URL
-  const params = useParams<{ businessId?: string }>(); 
-  const businessId = params.businessId; 
+
+  const { businessId } = useParams<{
+    businessId?: string;
+  }>();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // 🔗 DEFINICIÓN DE LOS ENLACES USANDO EL businessId
   const links: ILinks[] = [
-    // 1. Negocios (Vuelve al listado o raíz)
-    { href: () => `/`, label: "Negocios", icon: Store }, 
-    // 2. Órdenes
-    { href: (id) => `/business/${id}/orders`, label: "Órdenes", icon: ShoppingBag },
-    // 3. Productos
-    { href: (id) => `/business/${id}/products`, label: "Productos", icon: Package },
-    // 4. Personal
-    { href: (id) => `/business/${id}/employees`, label: "Personal", icon: Users },
-    // 5. Ajustes del Perfil del Negocio
-    { href: (id) => `/business/${id}/profile`, label: "Ajustes", icon: Settings },
+    {
+      href: () => "/",
+      label: "Negocios",
+      icon: Store,
+    },
+    {
+      href: (id) => `/business/${id}/orders`,
+      label: "Órdenes",
+      icon: ShoppingBag,
+    },
+    {
+      href: (id) => `/business/${id}/products`,
+      label: "Productos",
+      icon: Package,
+    },
+    // {
+    //   href: (id) => `/business/${id}/employees`,
+    //   label: "Personal",
+    //   icon: Users,
+    // },
+    {
+      href: (id) => `/business/${id}/profile`,
+      label: "Ajustes",
+      icon: Settings,
+    },
   ];
-  
-  // Condición para mostrar los enlaces: Solo si existe un businessId
-  const isBusinessContext = !!businessId;
 
-  // 🎯 Función auxiliar para determinar si un link está activo
-  const checkIsActive = (linkHref: string) => {
-    // Si el link es la raíz, solo es activo si el pathname es exactamente '/'
-    if (linkHref === '/') {
-      return pathname === '/';
-    }
-    // Para las rutas de negocio, verifica si el pathname comienza con el linkHref
-    return pathname.startsWith(linkHref);
-  }
+  const isBusinessContext = Boolean(businessId);
+
+  const isActive = (href: string) => {
+    if (href === "/") return pathname === "/";
+    return pathname.startsWith(href);
+  };
 
   return (
-    <header className="bg-white">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between relative">
-        
-        {/* Lado izquierdo: Logo y botón de menú móvil */}
-        <div className="flex items-center gap-2 md:gap-4">
-          
-          {/* Menú hamburguesa móvil: Solo si estamos en contexto de negocio */}
-          {isBusinessContext && (
-            <button
-              className="md:hidden p-2 rounded-md hover:bg-gray-100 transition"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label="Abrir menú móvil"
-            >
-              {mobileMenuOpen ? <X size={28} /> : <MenuIconLucide size={28} />}
-            </button>
-          )}
+    <>
+      <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/90 backdrop-blur">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
 
           {/* Logo */}
-          <Link href="/" className="flex-shrink-0">
-            <Image 
-              src={img} 
-              alt="Nezon Logo" 
-              width={100} 
-              height={32} 
-              // Se recomienda agregar el 'priority' si es un logo clave para el LCP
-              // priority 
-              className="h-8 w-auto" 
-            />
-          </Link>
+          <div className="flex items-center gap-3">
+
+            {isBusinessContext && (
+              <button
+                onClick={() => setMobileMenuOpen((v) => !v)}
+                className="rounded-xl p-2 transition hover:bg-gray-100 md:hidden"
+              >
+                {mobileMenuOpen ? (
+                  <X className="h-6 w-6" />
+                ) : (
+                  <Menu className="h-6 w-6" />
+                )}
+              </button>
+            )}
+
+            <Link href="/">
+              <Image
+                src={logo}
+                alt="Nezon"
+                width={110}
+                height={34}
+                className="h-8 w-auto"
+                priority
+              />
+            </Link>
+          </div>
+
+          {/* Desktop */}
+          {isBusinessContext && businessId && (
+            <nav className="hidden md:block">
+              <ul className="flex items-center gap-2 rounded-2xl border border-gray-200 bg-gray-50 p-1">
+
+                {links.map((link) => {
+                  const href = link.href(businessId);
+                  const active = isActive(href);
+
+                  return (
+                    <li key={href}>
+                      <Link
+                        href={href}
+                        className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all
+                        ${
+                          active
+                            ? "bg-white text-gray-900 shadow-sm"
+                            : "text-gray-500 hover:bg-white hover:text-gray-900"
+                        }`}
+                      >
+                        <link.icon className="h-4 w-4" />
+                        {link.label}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </nav>
+          )}
         </div>
+      </header>
 
-        {/* Menú de navegación escritorio (SOLO si estamos en contexto de negocio) */}
-        {isBusinessContext && businessId && (
-          <nav className="hidden md:flex flex-1 justify-center">
-            <ul className="flex gap-10">
+      {/* Mobile Menu */}
+
+      {mobileMenuOpen && isBusinessContext && businessId && (
+        <div className="border-b border-gray-200 bg-white shadow-lg md:hidden">
+          <nav className="mx-auto max-w-7xl px-4 py-4">
+            <ul className="space-y-2">
+
               {links.map((link) => {
-                const linkHref = link.href(businessId);
-                const isActive = checkIsActive(linkHref);
-                
-                return (
-                  <li key={linkHref}>
-                    <Link
-                      href={linkHref}
-                      className={`flex flex-col items-center justify-center gap-1
-                        text-sm font-medium transition-colors duration-200 group
-                        ${
-                          isActive
-                            ? "text-blue-600"
-                            : "text-gray-500 hover:text-gray-700"
-                        }`}
-                    >
-                      <link.icon
-                        size={24}
-                        strokeWidth={isActive ? 2 : 1.5}
-                        className="transition-transform duration-200 group-hover:scale-110"
-                      />
-                      <span>{link.label}</span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </nav>
-        )}
+                const href = link.href(businessId);
+                const active = isActive(href);
 
-      </div>
-
-      {mobileMenuOpen && (
-        <div 
-          className="
-            md:hidden 
-            absolute top-full left-0 right-0 
-            bg-white 
-            shadow-lg 
-            border-t border-gray-200 
-            z-40 
-            max-h-[80vh] overflow-y-auto 
-          "
-        >
-          <ul className="flex flex-col gap-4 p-4">
-            {/* Solo mostramos los enlaces de negocio si estamos en contexto de negocio */}
-            {isBusinessContext && businessId && links.map((link) => {
-                const linkHref = link.href(businessId);
-                const isActive = checkIsActive(linkHref);
-                
                 return (
-                  <li key={linkHref}>
+                  <li key={href}>
                     <Link
-                      href={linkHref}
-                      className={`flex items-center gap-3 text-base font-medium
-                        ${
-                          isActive
-                            ? "text-blue-600"
-                            : "text-gray-600 hover:text-gray-800"
-                        }`}
+                      href={href}
                       onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-3 rounded-xl px-4 py-3 transition
+                      ${
+                        active
+                          ? "bg-gray-900 text-white"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
                     >
-                      <link.icon size={20} />
+                      <link.icon className="h-5 w-5" />
                       {link.label}
                     </Link>
                   </li>
                 );
-            })}
-             
-          </ul>
+              })}
+
+            </ul>
+          </nav>
         </div>
       )}
-    </header>
+    </>
   );
 }

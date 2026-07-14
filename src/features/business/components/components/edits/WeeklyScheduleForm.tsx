@@ -104,39 +104,36 @@ export default function WeeklyScheduleForm({
   };
 
   return (
-    <form
-      onSubmit={handleSubmit(onSubmit)}
-      className="flex flex-col gap-6 max-w-3xl mx-auto p-4"
+<form
+  onSubmit={handleSubmit(onSubmit)}
+  className="space-y-6"
+>
+  {daysOfWeek.map((day) => (
+    <DayScheduleField
+      key={day}
+      control={control}
+      day={day}
+      label={daysInSpanish[day]}
+      isDisabled={updateSchedule.isPending}
+    />
+  ))}
+
+  <div className="border-t border-gray-200 pt-6 flex justify-end">
+    <button
+      type="submit"
+      disabled={updateSchedule.isPending}
+      className="inline-flex items-center gap-2 rounded-xl bg-gray-900 px-6 py-3 font-medium text-white transition hover:bg-black disabled:opacity-50"
     >
-      {daysOfWeek.map((day) => (
-        <DayScheduleField
-          key={day}
-          control={control}
-          day={day}
-          label={daysInSpanish[day]}
-          isDisabled={updateSchedule.isPending}
-        />
-      ))}
-
-      <div className="flex justify-end mt-4">
-        <button
-          type="submit"
-          disabled={updateSchedule.isPending}
-          className="px-6 py-3 rounded-2xl bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2 shadow-md transition"
-        >
-          {updateSchedule.isPending && (
-            <Loader2 className="animate-spin" size={18} />
-          )}
-          {updateSchedule.isPending ? "Guardando..." : "Guardar Horario"}
-        </button>
-      </div>
-
-      {success && (
-        <p className="text-green-600 text-center font-medium">
-          ✅ Horario actualizado correctamente
-        </p>
+      {updateSchedule.isPending && (
+        <Loader2 className="h-4 w-4 animate-spin" />
       )}
-    </form>
+
+      {updateSchedule.isPending
+        ? "Guardando..."
+        : "Guardar cambios"}
+    </button>
+  </div>
+</form>
   );
 }
 
@@ -147,92 +144,126 @@ interface DayProps {
   isDisabled?: boolean;
 }
 
-function DayScheduleField({ control, day, label, isDisabled }: DayProps) {
+function DayScheduleField({
+  control,
+  day,
+  label,
+  isDisabled,
+}: DayProps) {
   const { fields, append, remove } = useFieldArray({
     control,
     name: `schedule.${day}`,
   });
 
   return (
-    <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition">
-      <h3 className="font-semibold text-lg mb-4">{label}</h3>
-
-      <div className="flex flex-col gap-3">
-        {fields.length === 0 && (
-          <p className="text-gray-400 italic">No hay horarios para este día.</p>
-        )}
-
-        {fields.map((field, index) => (
-          <div
-            key={field.id}
-            className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-200 relative group"
-          >
-            <Controller
-              control={control}
-              name={`schedule.${day}.${index}.start`}
-              render={({ field, fieldState }) => (
-                <div className="flex flex-col">
-                  <input
-                    type="time"
-                    {...field}
-                    disabled={isDisabled}
-                    className={`border rounded-lg p-2 w-28 focus:outline-none focus:ring-2 ${
-                      fieldState.error
-                        ? "border-red-500 focus:ring-red-300"
-                        : "border-gray-300 focus:ring-blue-300"
-                    }`}
-                  />
-                  {fieldState.error && (
-                    <span className="text-xs text-red-500 mt-1">
-                      {fieldState.error.message}
-                    </span>
-                  )}
-                </div>
-              )}
-            />
-            <span className="font-medium">a</span>
-            <Controller
-              control={control}
-              name={`schedule.${day}.${index}.end`}
-              render={({ field, fieldState }) => (
-                <div className="flex flex-col">
-                  <input
-                    type="time"
-                    {...field}
-                    disabled={isDisabled}
-                    className={`border rounded-lg p-2 w-28 focus:outline-none focus:ring-2 ${
-                      fieldState.error
-                        ? "border-red-500 focus:ring-red-300"
-                        : "border-gray-300 focus:ring-blue-300"
-                    }`}
-                  />
-                  {fieldState.error && (
-                    <span className="text-xs text-red-500 mt-1">
-                      {fieldState.error.message}
-                    </span>
-                  )}
-                </div>
-              )}
-            />
-            <button
-              type="button"
-              disabled={isDisabled}
-              onClick={() => remove(index)}
-              className="text-red-500 hover:text-red-700 ml-auto opacity-70 hover:opacity-100 transition"
-            >
-              <Trash size={18} />
-            </button>
-          </div>
-        ))}
+    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+      {/* Header */}
+      <div className="flex flex-col gap-4 border-b border-gray-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <h3 className="text-lg font-semibold text-gray-900">{label}</h3>
 
         <button
           type="button"
           disabled={isDisabled}
           onClick={() => append({ start: "09:00", end: "17:00" })}
-          className="flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-300 hover:bg-gray-100 text-sm w-fit mt-2 transition shadow-sm"
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium transition hover:bg-gray-50 disabled:opacity-50"
         >
-          <Plus size={16} /> Agregar rango
+          <Plus className="h-4 w-4" />
+          Agregar horario
         </button>
+      </div>
+
+      {/* Body */}
+      <div className="space-y-4 p-5">
+        {fields.length === 0 && (
+          <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 py-8 text-center text-sm text-gray-500">
+            Sin horarios configurados.
+          </div>
+        )}
+
+        {fields.map((field, index) => (
+          <div
+            key={field.id}
+            className="rounded-xl border border-gray-200 bg-gray-50 p-4"
+          >
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+              {/* Hora inicio */}
+              <div className="flex-1">
+                <label className="mb-1 block text-xs font-medium text-gray-500">
+                  Desde
+                </label>
+
+                <Controller
+                  control={control}
+                  name={`schedule.${day}.${index}.start`}
+                  render={({ field, fieldState }) => (
+                    <>
+                      <input
+                        type="time"
+                        {...field}
+                        disabled={isDisabled}
+                        className={`w-full rounded-xl border px-3 py-2 transition focus:outline-none focus:ring-2 ${
+                          fieldState.error
+                            ? "border-red-400 focus:ring-red-200"
+                            : "border-gray-300 focus:ring-blue-200"
+                        }`}
+                      />
+
+                      {fieldState.error && (
+                        <p className="mt-1 text-xs text-red-500">
+                          {fieldState.error.message}
+                        </p>
+                      )}
+                    </>
+                  )}
+                />
+              </div>
+
+              {/* Hora fin */}
+              <div className="flex-1">
+                <label className="mb-1 block text-xs font-medium text-gray-500">
+                  Hasta
+                </label>
+
+                <Controller
+                  control={control}
+                  name={`schedule.${day}.${index}.end`}
+                  render={({ field, fieldState }) => (
+                    <>
+                      <input
+                        type="time"
+                        {...field}
+                        disabled={isDisabled}
+                        className={`w-full rounded-xl border px-3 py-2 transition focus:outline-none focus:ring-2 ${
+                          fieldState.error
+                            ? "border-red-400 focus:ring-red-200"
+                            : "border-gray-300 focus:ring-blue-200"
+                        }`}
+                      />
+
+                      {fieldState.error && (
+                        <p className="mt-1 text-xs text-red-500">
+                          {fieldState.error.message}
+                        </p>
+                      )}
+                    </>
+                  )}
+                />
+              </div>
+
+              {/* Botón eliminar */}
+              <div className="flex justify-end lg:justify-center">
+                <button
+                  type="button"
+                  disabled={isDisabled}
+                  onClick={() => remove(index)}
+                  className="rounded-xl p-3 text-red-500 transition hover:bg-red-50 disabled:opacity-50"
+                >
+                  <Trash className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

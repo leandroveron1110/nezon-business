@@ -97,58 +97,78 @@ export default function BusinessContact({
 
   if (contacts.length === 0) return null;
 
-  return (
-    <section aria-labelledby="contact-heading" className="mt-8 relative">
+return (
+  <section className="rounded-2xl border border-gray-200 bg-white">
+    {/* Header */}
+    <div className="flex flex-col gap-4 border-b border-gray-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h2 className="text-lg font-semibold text-gray-900">
+          Información de contacto
+        </h2>
+
+        <p className="mt-1 text-sm text-gray-500">
+          Datos visibles para los clientes.
+        </p>
+      </div>
+
       {onEdit && (
         <button
           onClick={onEdit}
-          className="absolute top-0 right-0 px-3 py-1 bg-gray-100 text-gray-700 rounded-lg shadow hover:bg-gray-200"
+          className="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
         >
-          Editar
+          Editar información
         </button>
       )}
+    </div>
 
-      <h2 id="contact-heading" className="text-xl font-semibold text-gray-800 mb-4">
-        Contacto
-      </h2>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {contacts.map((contact, idx) => (
-
+    {/* Contenido */}
+    <div className="divide-y divide-gray-100">
+      {contacts.map(
+        (contact, idx) =>
           contact && (
-                      <div
-            key={idx}
-            className="flex items-start gap-4 p-4 bg-white shadow-sm rounded-lg hover:shadow-md transition"
-          >
-            <div className="flex-shrink-0">{contact.icon}</div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-gray-500 text-sm">{contact.label}</span>
-              {contact.link ? (
-                <a
-                  href={contact.link}
-                  target={contact.external ? "_blank" : "_self"}
-                  rel={contact.external ? "noopener noreferrer" : undefined}
-                  className="text-gray-800 font-medium hover:text-blue-600 transition truncate"
-                  title={
-                    typeof contact.value === "string" ? contact.value : undefined
-                  }
-                >
-                  {contact.value}
-                </a>
-              ) : (
-                <span
-                  className="text-gray-800 font-medium truncate"
-                  title={typeof contact.value === "string" ? contact.value : undefined}
-                >
-                  {contact.value}
-                </span>
-              )}
-            </div>
-          </div>
-          )
+            <div
+              key={idx}
+              className="flex flex-col gap-4 px-6 py-5 sm:flex-row sm:items-start"
+            >
+              {/* Icono */}
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gray-100">
+                {contact.icon}
+              </div>
 
-        ))}
-      </div>
-    </section>
-  );
+              {/* Información */}
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-gray-500">
+                  {contact.label}
+                </p>
+
+                {contact.link ? (
+                  <a
+                    href={contact.link}
+                    target={contact.external ? "_blank" : "_self"}
+                    rel={
+                      contact.external
+                        ? "noopener noreferrer"
+                        : undefined
+                    }
+                    className="mt-1 block break-all text-base font-medium text-gray-900 transition hover:text-blue-600"
+                    title={
+                      typeof contact.value === "string"
+                        ? contact.value
+                        : undefined
+                    }
+                  >
+                    {contact.value}
+                  </a>
+                ) : (
+                  <div className="mt-1 break-words text-base font-medium text-gray-900">
+                    {contact.value}
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+      )}
+    </div>
+  </section>
+);
 }

@@ -79,88 +79,179 @@ export default function BusinessContactEditor({
     ? `${addressData.street} ${addressData.number || ""}, ${addressData.city}`
     : address;
 
-  return (
-    <>
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white rounded-2xl shadow-md p-6 sm:p-10 space-y-4 border border-gray-100 relative z-10"
-      >
-        {/* Dirección */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Dirección</label>
-          <div className="flex gap-2 items-center mt-1">
-            <span
-              className="flex-1 truncate text-gray-800"
-              title={resolvedAddress}
-            >
-              {resolvedAddress}
-            </span>
-            <button
-              type="button"
-              onClick={() => setEditingAddress(true)}
-              className="px-3 py-1 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 whitespace-nowrap"
-            >
-              Editar dirección
-            </button>
-          </div>
+return (
+  <>
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-8"
+    >
+      {/* Dirección */}
+      <section className="rounded-2xl border border-gray-200 bg-white">
+        <div className="border-b border-gray-200 px-6 py-4">
+          <h3 className="font-semibold text-gray-900">
+            Dirección
+          </h3>
+          <p className="mt-1 text-sm text-gray-500">
+            Ubicación física del negocio.
+          </p>
         </div>
 
-        {/* Campos de contacto */}
-        {[
-          { label: "Teléfono", name: "phone", type: "text" },
-          { label: "WhatsApp", name: "whatsapp", type: "text" },
-          { label: "Email", name: "email", type: "email" },
-          { label: "Website", name: "websiteUrl", type: "text" },
-          { label: "Facebook", name: "facebookUrl", type: "text" },
-          { label: "Instagram", name: "instagramUrl", type: "text" },
-        ].map((field) => (
-          <div key={field.name}>
-            <label className="block text-sm font-medium text-gray-700">
-              {field.label}
+        <div className="space-y-5 p-6">
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700">
+              Dirección actual
             </label>
-            <input
-              type={field.type}
-              name={field.name}
-              value={formData[field.name as keyof typeof formData] || ""}
-              onChange={handleChange}
-              className="mt-1 block w-full p-2 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
-              placeholder={`Ingrese ${field.label.toLowerCase()}`}
-            />
+
+            <div className="flex flex-col gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 md:flex-row md:items-center md:justify-between">
+              <div className="min-w-0 flex-1">
+                <p
+                  className="truncate text-gray-900"
+                  title={resolvedAddress}
+                >
+                  {resolvedAddress}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setEditingAddress(true)}
+                className="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+              >
+                Cambiar ubicación
+              </button>
+            </div>
           </div>
-        ))}
-
-        {/* Botones */}
-        <div className="flex justify-end gap-3 mt-6">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
-          >
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-          >
-            Guardar
-          </button>
         </div>
-      </form>
+      </section>
 
-      {/* Modal mapa */}
-      {editingAddress && (
-        <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="w-full h-full bg-white rounded-xl shadow-lg relative">
+      {/* Información de contacto */}
+      <section className="rounded-2xl border border-gray-200 bg-white">
+        <div className="border-b border-gray-200 px-6 py-4">
+          <h3 className="font-semibold text-gray-900">
+            Información de contacto
+          </h3>
+
+          <p className="mt-1 text-sm text-gray-500">
+            Datos visibles para los clientes.
+          </p>
+        </div>
+
+        <div className="grid gap-5 p-6 md:grid-cols-2">
+          {[
+            {
+              label: "Teléfono",
+              name: "phone",
+              type: "text",
+              placeholder: "Ej: +54 3442 123456",
+            },
+            {
+              label: "WhatsApp",
+              name: "whatsapp",
+              type: "text",
+              placeholder: "Ej: +54 3442 123456",
+            },
+            {
+              label: "Email",
+              name: "email",
+              type: "email",
+              placeholder: "Ej: contacto@empresa.com",
+            },
+            {
+              label: "Sitio web",
+              name: "websiteUrl",
+              type: "text",
+              placeholder: "https://...",
+            },
+            {
+              label: "Facebook",
+              name: "facebookUrl",
+              type: "text",
+              placeholder: "https://facebook.com/...",
+            },
+            {
+              label: "Instagram",
+              name: "instagramUrl",
+              type: "text",
+              placeholder: "https://instagram.com/...",
+            },
+          ].map((field) => (
+            <div
+              key={field.name}
+              className="space-y-2"
+            >
+              <label className="block text-sm font-medium text-gray-700">
+                {field.label}
+              </label>
+
+              <input
+                type={field.type}
+                name={field.name}
+                value={formData[field.name as keyof typeof formData] || ""}
+                onChange={handleChange}
+                placeholder={field.placeholder}
+                className="
+                  w-full rounded-xl border border-gray-300
+                  px-4 py-3
+                  text-sm
+                  transition
+                  focus:border-gray-900
+                  focus:outline-none
+                  focus:ring-2
+                  focus:ring-gray-900/10
+                "
+              />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Acciones */}
+      <div className="flex flex-col-reverse gap-3 border-t border-gray-200 pt-6 sm:flex-row sm:justify-end">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-xl border border-gray-300 bg-white px-5 py-3 font-medium text-gray-700 transition hover:bg-gray-50"
+        >
+          Cancelar
+        </button>
+
+        <button
+          type="submit"
+          className="rounded-xl bg-gray-900 px-5 py-3 font-medium text-white transition hover:bg-black"
+        >
+          Guardar cambios
+        </button>
+      </div>
+    </form>
+
+    {editingAddress && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6 backdrop-blur-md">
+        <div className="relative flex h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
+          <div className="flex items-center justify-between border-b border-gray-200 px-6 py-5">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">
+                Seleccionar dirección
+              </h2>
+
+              <p className="mt-1 text-sm text-gray-500">
+                Busca una dirección o mueve el marcador en el mapa.
+              </p>
+            </div>
+
             <button
-              className="absolute top-4 right-4 px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 z-50"
               onClick={() => setEditingAddress(false)}
+              className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium transition hover:bg-gray-50"
             >
               Cancelar
             </button>
+          </div>
+
+          <div className="flex-1 overflow-hidden">
             <MapClientWrapper onSave={handleMapSave} />
           </div>
         </div>
-      )}
-    </>
-  );
+      </div>
+    )}
+  </>
+);
 }

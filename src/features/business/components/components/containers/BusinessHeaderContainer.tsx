@@ -24,7 +24,7 @@ export default function BusinessHeaderContainer({
   shortDescription,
   fullDescription,
 }: BusinessHeaderContainerProps) {
-  const [isEditing, setIsEditing] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
   const [businessData, setBusinessData] = useState<BusinessHeaderData>({
     logoUrl,
     name,
