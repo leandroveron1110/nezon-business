@@ -22,7 +22,7 @@ export default function CatalogMenu({ menuId, ownerId, businessId }: Props) {
   const [showEditMenuModal, setShowEditMenuModal] = useState(false);
 
   const menu = useMenuStore((state) =>
-    state.menus.find((m) => m.id === menuId)
+    state.menus.find((m) => m.id === menuId),
   );
 
   const updateMenuStore = useMenuStore((state) => state.updateMenu);
@@ -92,20 +92,19 @@ export default function CatalogMenu({ menuId, ownerId, businessId }: Props) {
 
     addSection({ menuId: menu.id }, optimisticSection);
     try {
-      const createdSection = await createSectionMutation.mutateAsync(
-        newSection
-      );
+      const createdSection =
+        await createSectionMutation.mutateAsync(newSection);
       if (createdSection) {
         replaceTempId(
           "section",
           { menuId: menu.id },
           tempId,
-          createdSection.id
+          createdSection.id,
         );
 
         updateSection(
           { menuId: menuId, sectionId: createdSection.id },
-          createdSection
+          createdSection,
         );
       } else {
         throw new Error(`No se pudo agrecar la seccion`);
@@ -122,59 +121,111 @@ export default function CatalogMenu({ menuId, ownerId, businessId }: Props) {
   if (!menu) return null;
 
   return (
-    <div className="bg-gray-50 ">
-      <div className="bg-white">
-        {/* Header con botón e ícono */}
-        <header className="p-8 border-b border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-          <div className="flex items-center gap-4">
-            <h2 className="text-xl md:text-2xl font-semibold text-gray-900 leading-tight">
+    <>
+      <section className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
+        {/* Header */}
+        <header className="flex flex-col gap-6 border-b border-gray-200 px-6 py-6 md:flex-row md:items-center md:justify-between">
+          <div>
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
+              Menú
+            </span>
+
+            <h2 className="mt-1 text-3xl font-bold tracking-tight text-gray-900">
               {menu.name}
             </h2>
-            <button
-              onClick={() => setShowEditMenuModal(true)}
-              className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
-              aria-label="Editar Menú"
-            >
-              <Pencil className="w-5 h-5" />
-            </button>
+
+            <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-gray-500">
+              <span>
+                <strong className="font-semibold text-gray-800">
+                  {sortedSections.length}
+                </strong>{" "}
+                secciones
+              </span>
+
+              <span className="h-1 w-1 rounded-full bg-gray-300" />
+
+              <span>
+                <strong className="font-semibold text-gray-800">
+                  {sortedSections.reduce(
+                    (total, section) => total + section.products.length,
+                    0,
+                  )}
+                </strong>{" "}
+                productos
+              </span>
+            </div>
           </div>
+
+          <button
+            onClick={() => setShowEditMenuModal(true)}
+            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-gray-300 hover:bg-gray-50"
+          >
+            <Pencil className="h-4 w-4" />
+            Editar menú
+          </button>
         </header>
 
-        {/* Contenedor de Secciones */}
-        <div className="p-3 space-y-8">
-          {sortedSections.map((section) => (
-            <CatalogSection
-              key={section.id}
-              sectionId={section.id}
-              businessId={businessId}
-              ownerId={ownerId}
-              menuId={menu.id}
-            />
-          ))}
+        {/* Contenido */}
+        <div className="space-y-10 p-6 md:p-8">
+          {sortedSections.length > 0 ? (
+            <>
+              {sortedSections.map((section) => (
+                <CatalogSection
+                  key={section.id}
+                  sectionId={section.id}
+                  businessId={businessId}
+                  ownerId={ownerId}
+                  menuId={menu.id}
+                />
+              ))}
 
-          <NewCatalogSection
-            businessId={businessId}
-            menuId={menu.id}
-            ownerId={ownerId}
-            onAddSection={handleAddSection}
-            currentIndex={menu.sections?.length || 1}
-          />
+              <div className="border-t border-dashed border-gray-300 pt-8">
+                <NewCatalogSection
+                  businessId={businessId}
+                  menuId={menu.id}
+                  ownerId={ownerId}
+                  onAddSection={handleAddSection}
+                  currentIndex={menu.sections?.length || 1}
+                />
+              </div>
+            </>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-8 py-16 text-center">
+              <h3 className="text-xl font-semibold text-gray-900">
+                Este menú todavía no tiene secciones
+              </h3>
+
+              <p className="mt-2 text-gray-500">
+                Crea la primera sección para comenzar a organizar tus productos.
+              </p>
+
+              <div className="mt-8 flex justify-center">
+                <NewCatalogSection
+                  businessId={businessId}
+                  menuId={menu.id}
+                  ownerId={ownerId}
+                  onAddSection={handleAddSection}
+                  currentIndex={1}
+                />
+              </div>
+            </div>
+          )}
         </div>
-      </div>
+      </section>
 
       {showEditMenuModal && (
-        <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-lg max-w-md w-full p-6 relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+          <div className="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
             <EditCatalogMenu
               name={menu.name}
               ownerId={ownerId}
               onSave={handleSaveMenu}
               onCancel={() => setShowEditMenuModal(false)}
-              onDelete={() =>  console.log("Eliminar menú")}
+              onDelete={() => console.log("Eliminar menú")}
             />
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

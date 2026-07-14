@@ -1,7 +1,8 @@
 "use client";
+
 import React, { useState } from "react";
 import { MenuCreate } from "../../types/catlog";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Check } from "lucide-react";
 
 interface Props {
   businessId: string;
@@ -9,62 +10,102 @@ interface Props {
   onAddMenu: (menu: MenuCreate) => void;
 }
 
-export default function NewCatalogMenu({ businessId, ownerId, onAddMenu }: Props) {
+export default function NewCatalogMenu({
+  businessId,
+  ownerId,
+  onAddMenu,
+}: Props) {
   const [name, setName] = useState("");
-  const [isAdding, setIsAdding] = useState(false); // Nuevo estado para controlar si se está agregando un menú
+  const [isAdding, setIsAdding] = useState(false);
 
   const handleSubmit = () => {
-    if (!name.toUpperCase().trim()) return;
+    if (!name.trim()) return;
 
-    const newMenu: MenuCreate = { name, businessId, ownerId };
+    onAddMenu({
+      name: name.trim().toUpperCase(),
+      businessId,
+      ownerId,
+    });
 
-    onAddMenu(newMenu);
     setName("");
-    setIsAdding(false); // Cerrar el formulario después de la creación
+    setIsAdding(false);
   };
 
   if (isAdding) {
     return (
-      <div className="bg-gray-50 p-6 rounded-2xl shadow-md border border-gray-200">
-        <h3 className="text-xl font-semibold text-gray-800 mb-4">Nuevo Menú</h3>
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            placeholder="Nombre del menú (ej. Desayunos, Almuerzos)"
-            value={name}
-            onChange={(e) => setName(e.target.value.toLocaleUpperCase())}
-            className="flex-1 p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-          />
-          <button
-            onClick={handleSubmit}
-            className="bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-400"
-            disabled={!name.trim()}
-            aria-label="Crear Menú"
-          >
-            Crear
-          </button>
-          <button
-            onClick={() => setIsAdding(false)}
-            className="text-gray-500 hover:text-gray-800 transition-colors"
-            aria-label="Cancelar"
-          >
-            <X className="w-6 h-6" />
-          </button>
+      <section className="rounded-3xl border border-gray-200 bg-white shadow-sm">
+        <div className="border-b border-gray-200 px-6 py-5">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Crear nuevo menú
+          </h3>
+
+          <p className="mt-1 text-sm text-gray-500">
+            Los menús agrupan las diferentes secciones de tu catálogo.
+          </p>
         </div>
-      </div>
+
+        <div className="space-y-5 p-6">
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700">
+              Nombre del menú
+            </label>
+
+            <input
+              autoFocus
+              type="text"
+              placeholder="Ej. DESAYUNOS"
+              value={name}
+              onChange={(e) => setName(e.target.value.toUpperCase())}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSubmit();
+              }}
+              className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+            />
+          </div>
+
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => {
+                setName("");
+                setIsAdding(false);
+              }}
+              className="inline-flex items-center gap-2 rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+            >
+              <X className="h-4 w-4" />
+              Cancelar
+            </button>
+
+            <button
+              onClick={handleSubmit}
+              disabled={!name.trim()}
+              className="inline-flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Check className="h-4 w-4" />
+              Crear menú
+            </button>
+          </div>
+        </div>
+      </section>
     );
   }
 
   return (
     <button
       onClick={() => setIsAdding(true)}
-      className="w-full flex justify-center items-center p-8 sm:p-12 border-2 border-dashed border-gray-300 rounded-2xl cursor-pointer hover:bg-gray-100 transition-colors group"
-      aria-label="Agregar un nuevo menú"
+      className="group flex w-full flex-col items-center justify-center rounded-3xl border-2 border-dashed border-gray-300 bg-white px-8 py-14 transition hover:border-gray-400 hover:bg-gray-50"
     >
-      <div className="flex flex-col items-center justify-center text-gray-500 group-hover:text-green-600 transition-colors">
-        <Plus className="w-10 h-10 mb-2 transition-transform group-hover:rotate-90" />
-        <span className="text-lg font-semibold">Agregar Menú</span>
+      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 transition group-hover:scale-110 group-hover:bg-gray-200">
+        <Plus className="h-8 w-8 text-gray-700" />
       </div>
+
+      <h3 className="mt-5 text-lg font-semibold text-gray-900">
+        Crear nuevo menú
+      </h3>
+
+      <p className="mt-2 max-w-sm text-center text-sm text-gray-500">
+        Crea un menú para organizar productos como desayunos, almuerzos,
+        bebidas o promociones.
+      </p>
     </button>
   );
 }

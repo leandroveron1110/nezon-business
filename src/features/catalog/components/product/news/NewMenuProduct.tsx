@@ -167,134 +167,176 @@ export default function NewMenuProduct({
     }
   };
 
-  return (
-    <div className="p-6 bg-white rounded-xl shadow-lg w-full max-w-xl mx-auto space-y-6">
-      <div className="flex flex-col gap-2">
-        {/* Nombre */}
-        <div className="flex flex-col">
-          <label className="text-xs font-medium text-gray-700 mb-0.5">
-            Nombre
-          </label>
-          <input
-            ref={nameInputRef}
-            type="text"
-            value={name}
-            placeholder="Ej: Pizza Napolitana"
-            onChange={(e) => setName(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-          />
-        </div>
+return (
+  <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
 
-        {/* Descripción */}
-        <div className="flex flex-col">
-          <label className="text-xs font-medium text-gray-700 mb-0.5">
-            Descripción
-          </label>
-          <textarea
-            value={description}
-            placeholder="Agrega una breve descripción del producto"
-            onChange={(e) => setDescription(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
-            rows={2}
-          />
-        </div>
-      </div>
+    {/* Contenido */}
+    <div className="space-y-8 p-6">
+      {/* Información básica */}
+      <section>
+        <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">
+          Información general
+        </h3>
 
-      {/* --- Precios --- */}
-      <div className="border-t border-gray-200 pt-4">
+        <div className="space-y-5">
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700">
+              Nombre
+            </label>
+
+            <input
+              ref={nameInputRef}
+              type="text"
+              value={name}
+              placeholder="Ej. Pizza Napolitana"
+              onChange={(e) => setName(e.target.value)}
+              className="w-full rounded-xl border border-gray-300 px-4 py-3 transition focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-100"
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700">
+              Descripción
+            </label>
+
+            <textarea
+              rows={4}
+              value={description}
+              placeholder="Describe brevemente el producto..."
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full resize-none rounded-xl border border-gray-300 px-4 py-3 transition focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-100"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Precio */}
+      <section className="border-t border-gray-200 pt-8">
+        <h3 className="mb-5 text-sm font-semibold uppercase tracking-wide text-gray-500">
+          Precio
+        </h3>
+
         <MenuProductPrice
           finalPrice={prices.finalPrice}
           discountPercentage={prices.discountPercentage}
           originalPrice={prices.originalPrice}
           onUpdate={(data) =>
             setPrices({
-              discountPercentage: `${data.discountPercentage}`,
               finalPrice: `${data.finalPrice}`,
               originalPrice: `${data.originalPrice}`,
+              discountPercentage: `${data.discountPercentage}`,
             })
           }
         />
-      </div>
+      </section>
 
-      {/* --- Stock y Flags --- */}
-      <div className="border-t border-gray-200 pt-4 space-y-4">
-        <MenuProductStock
-          stock={stock}
-          available={available}
-          preparationTime={0}
-          onUpdate={(data) => {
-            if (data.stock !== undefined) setStock(data.stock);
-            if (data.available !== undefined) setAvailable(data.available);
-          }}
-        />
+      {/* Disponibilidad */}
+      <section className="border-t border-gray-200 pt-8">
+        <h3 className="mb-5 text-sm font-semibold uppercase tracking-wide text-gray-500">
+          Disponibilidad
+        </h3>
+
+        <div className="space-y-6">
+          <MenuProductStock
+            stock={stock}
+            available={available}
+            preparationTime={0}
+            onUpdate={(data) => {
+              if (data.stock !== undefined) setStock(data.stock);
+              if (data.available !== undefined)
+                setAvailable(data.available);
+            }}
+          />
+
+          <EnabledSwitch
+            enabled={enabled}
+            onChange={setEnabled}
+            label="Visible en la carta"
+            hint="Los clientes podrán visualizar este producto."
+          />
+        </div>
+      </section>
+
+      {/* Destacados */}
+      <section className="border-t border-gray-200 pt-8">
+        <h3 className="mb-5 text-sm font-semibold uppercase tracking-wide text-gray-500">
+          Destacados
+        </h3>
 
         <MenuProductFlags
           isMostOrdered={flags.isMostOrdered}
           isRecommended={flags.isRecommended}
           onUpdate={(data) => setFlags(data)}
         />
+      </section>
 
-        <EnabledSwitch
-          enabled={enabled}
-          onChange={setEnabled}
-          label="Visible en la carta"
-          hint="Controla si el producto aparece o no para los clientes."
-        />
-      </div>
+      {/* Métodos de pago */}
+      <section className="border-t border-gray-200 pt-8">
+        <h3 className="mb-5 text-sm font-semibold uppercase tracking-wide text-gray-500">
+          Métodos de pago
+        </h3>
 
-      {/* 🆕 MÉTODOS DE PAGO DEL PRODUCTO */}
-      <div className="p-4 border border-gray-200 rounded-xl bg-white">
-        <h4 className="font-semibold text-gray-800 mb-3">
-          Métodos de pago del producto
-        </h4>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid gap-4 md:grid-cols-3">
           <EnabledSwitch
             enabled={paymentMethods.acceptsCash}
             onChange={(v) =>
-              setPaymentMethods((p) => ({ ...p, acceptsCash: v }))
+              setPaymentMethods((p) => ({
+                ...p,
+                acceptsCash: v,
+              }))
             }
             label="Efectivo"
-            hint="Permite pagar este producto en efectivo."
+            hint="Aceptar efectivo."
           />
 
           <EnabledSwitch
             enabled={paymentMethods.acceptsTransfer}
             onChange={(v) =>
-              setPaymentMethods((p) => ({ ...p, acceptsTransfer: v }))
+              setPaymentMethods((p) => ({
+                ...p,
+                acceptsTransfer: v,
+              }))
             }
             label="Transferencia"
-            hint="Permite pagar con transferencia bancaria."
+            hint="Aceptar transferencias."
           />
 
           <EnabledSwitch
             enabled={paymentMethods.acceptsQr}
             onChange={(v) =>
-              setPaymentMethods((p) => ({ ...p, acceptsQr: v }))
+              setPaymentMethods((p) => ({
+                ...p,
+                acceptsQr: v,
+              }))
             }
-            label="QR / billeteras"
-            hint="Permite pagar con QR o billeteras digitales."
+            label="QR / Billeteras"
+            hint="Aceptar Mercado Pago u otras billeteras."
           />
         </div>
-      </div>
-
-      {/* Acciones */}
-      <div className="border-t border-gray-200 pt-4 flex flex-col sm:flex-row justify-end gap-3">
-        <button
-          onClick={onClose}
-          className="flex-1 sm:flex-none px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-        >
-          Cancelar
-        </button>
-
-        <button
-          onClick={handleCreate}
-          disabled={saving || !name.trim() || Number(prices.finalPrice) <= 0}
-          className="flex-1 sm:flex-none px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
-        >
-          {saving ? "Creando..." : "Crear Producto"}
-        </button>
-      </div>
+      </section>
     </div>
-  );
+
+    {/* Footer */}
+    <div className="flex flex-col gap-3 border-t border-gray-200 bg-gray-50 px-6 py-5 sm:flex-row sm:justify-end">
+      <button
+        onClick={onClose}
+        className="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-5 py-2.5 font-medium text-gray-700 transition hover:bg-gray-100"
+      >
+        Cancelar
+      </button>
+
+      <button
+        onClick={handleCreate}
+        disabled={
+          saving ||
+          !name.trim() ||
+          Number(prices.finalPrice) <= 0
+        }
+        className="inline-flex items-center justify-center rounded-xl bg-gray-900 px-6 py-2.5 font-medium text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {saving ? "Creando..." : "Crear producto"}
+      </button>
+    </div>
+  </div>
+);
 }

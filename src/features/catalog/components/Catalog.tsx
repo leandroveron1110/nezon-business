@@ -94,38 +94,60 @@ export default function Catalog({ businessId }: Props) {
     );
   }
 
-  return (
-    <div className="pb-25">
-      <div className="flex flex-col lg:flex-row gap-8">
-        <div className="flex-1 space-y-16">
-          {menus && menus.length > 0 ? (
-            <>
-              {menus.map((menu) => (
-                <CatalogMenu
-                  key={menu.id}
-                  businessId={businessId}
-                  menuId={menu.id}
-                  ownerId={user?.id || ""}
-                />
-              ))}
-              <NewCatalogMenu
-                businessId={businessId}
-                ownerId={user?.id || ""}
-                onAddMenu={handleAddMenu}
-              />
-            </>
-          ) : (
-            <div className="text-center py-20 text-gray-600">
-              <p className="mb-4">No hay catálogos disponibles.</p>
-              <NewCatalogMenu
-                businessId={businessId}
-                ownerId={user?.id || ""}
-                onAddMenu={handleAddMenu}
-              />
-            </div>
-          )}
+return (
+  <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    {/* Header */}
+    <header className="border-b border-gray-200 pb-6">
+      <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+        Catálogo
+      </h1>
+
+      <p className="mt-2 text-gray-500 max-w-2xl">
+        Organiza tus menús, secciones y productos. Los cambios se sincronizan
+        automáticamente entre todos tus dispositivos.
+      </p>
+    </header>
+
+    {/* Contenido */}
+    {menus.length > 0 ? (
+      <div className="space-y-10">
+        {menus.map((menu) => (
+          <CatalogMenu
+            key={menu.id}
+            businessId={businessId}
+            menuId={menu.id}
+            ownerId={user?.id || ""}
+          />
+        ))}
+
+        <div className="pt-2">
+          <NewCatalogMenu
+            businessId={businessId}
+            ownerId={user?.id || ""}
+            onAddMenu={handleAddMenu}
+          />
         </div>
       </div>
-    </div>
-  );
+    ) : (
+      <div className="rounded-2xl border border-dashed border-gray-300 bg-white py-20 px-6 text-center">
+        <h2 className="text-xl font-semibold text-gray-900">
+          Todavía no tienes menús
+        </h2>
+
+        <p className="mt-2 text-gray-500 max-w-md mx-auto">
+          Crea tu primer menú para comenzar a organizar las secciones y
+          productos de tu negocio.
+        </p>
+
+        <div className="mt-8 flex justify-center">
+          <NewCatalogMenu
+            businessId={businessId}
+            ownerId={user?.id || ""}
+            onAddMenu={handleAddMenu}
+          />
+        </div>
+      </div>
+    )}
+  </div>
+);
 }

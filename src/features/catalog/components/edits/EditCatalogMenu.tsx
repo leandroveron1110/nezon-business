@@ -1,6 +1,7 @@
 "use client";
+
 import React, { useState } from "react";
-import { Check, X, Trash, AlertCircle } from "lucide-react";
+import { AlertCircle, Check, Trash2, X } from "lucide-react";
 
 interface Props {
   name: string;
@@ -20,15 +21,16 @@ export default function EditCatalogMenu({
   const [tempName, setTempName] = useState(name);
   const [error, setError] = useState<string | null>(null);
 
-  if (!ownerId) return null; // solo el dueño puede editar
+  if (!ownerId) return null;
 
   const handleSave = () => {
     if (!tempName.trim()) {
-      setError("El nombre no puede estar vacío");
+      setError("El nombre del menú es obligatorio.");
       return;
     }
-    onSave(tempName.trim());
+
     setError(null);
+    onSave(tempName.trim());
   };
 
   const handleCancel = () => {
@@ -38,50 +40,78 @@ export default function EditCatalogMenu({
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-md p-6 space-y-4 w-full max-w-md">
-      {/* Input */}
-      <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium text-gray-700">
-          Nombre del menú
-        </label>
-        <input
-          type="text"
-          value={tempName}
-          onChange={(e) => setTempName(e.target.value)}
-          placeholder="Nombre del menú"
-          className="border border-gray-300 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-        />
+    <div className="w-full">
+      {/* Header */}
+      <div className="border-b border-gray-200 pb-5">
+        <h2 className="text-2xl font-bold text-gray-900">
+          Editar menú
+        </h2>
+
+        <p className="mt-2 text-sm text-gray-500">
+          Cambia el nombre del menú o elimínalo si ya no lo necesitas.
+        </p>
       </div>
 
-      {/* Error */}
-      {error && (
-        <div className="flex items-center gap-2 bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-xl text-sm">
-          <AlertCircle size={18} /> {error}
+      {/* Formulario */}
+      <div className="mt-6 space-y-6">
+        <div>
+          <label className="mb-2 block text-sm font-medium text-gray-700">
+            Nombre del menú
+          </label>
+
+          <input
+            autoFocus
+            type="text"
+            value={tempName}
+            onChange={(e) => setTempName(e.target.value)}
+            placeholder="Ej. MENÚ PRINCIPAL"
+            className="w-full rounded-xl border border-gray-300 px-4 py-3 transition focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-100"
+          />
         </div>
-      )}
 
-      {/* Botones */}
-      <div className="flex flex-wrap justify-end gap-3 pt-2">
-        <button
-          onClick={handleSave}
-          className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2 rounded-xl font-medium hover:bg-blue-700 transition-all"
-        >
-          <Check size={18} /> Guardar
-        </button>
+        {error && (
+          <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4">
+            <AlertCircle className="mt-0.5 h-5 w-5 text-red-600" />
 
-        <button
-          onClick={handleCancel}
-          className="flex items-center gap-2 bg-gray-100 text-gray-800 px-5 py-2 rounded-xl font-medium hover:bg-gray-200 transition-all"
-        >
-          <X size={18} /> Cancelar
-        </button>
+            <div>
+              <p className="font-medium text-red-700">
+                No se pudo guardar
+              </p>
 
-        <button
-          onClick={onDelete}
-          className="flex items-center gap-2 text-red-600 bg-red-50 px-5 py-2 rounded-xl font-medium hover:bg-red-100 transition-all"
-        >
-          <Trash size={18} /> Eliminar
-        </button>
+              <p className="text-sm text-red-600">
+                {error}
+              </p>
+            </div>
+          </div>
+        )}
+
+        <div className="border-t border-gray-200 pt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
+          <button
+            onClick={onDelete}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 font-medium text-red-600 transition hover:bg-red-100"
+          >
+            <Trash2 className="h-4 w-4" />
+            Eliminar menú
+          </button>
+
+          <div className="flex gap-3">
+            <button
+              onClick={handleCancel}
+              className="inline-flex items-center gap-2 rounded-xl border border-gray-300 px-4 py-2.5 font-medium text-gray-700 transition hover:bg-gray-100"
+            >
+              <X className="h-4 w-4" />
+              Cancelar
+            </button>
+
+            <button
+              onClick={handleSave}
+              className="inline-flex items-center gap-2 rounded-xl bg-gray-900 px-5 py-2.5 font-medium text-white transition hover:bg-black"
+            >
+              <Check className="h-4 w-4" />
+              Guardar cambios
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
