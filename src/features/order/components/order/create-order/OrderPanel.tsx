@@ -5,7 +5,10 @@ import { Trash2, Plus, Minus, Zap, Truck, Store, FileText } from "lucide-react";
 import { useLocationAutocomplete } from "@/features/order/hooks/useLocationAutocomplete";
 import { formatPrice } from "@/features/common/utils/formatPrice";
 import { quoteDeliveryOrchestrator } from "@/mini-back/orchestrator/delivery.orchestrator";
-import { DeliveryQuotationStatus, LocalOrderItem } from "@/mini-back/infrastructure/dexie/shcema/orders.schema";
+import {
+  DeliveryQuotationStatus,
+  LocalOrderItem,
+} from "@/mini-back/infrastructure/dexie/shcema/orders.schema";
 import { useConnectivity } from "@/lib/hooks/useConnectivity";
 import { useAlert } from "@/features/common/ui/Alert/Alert";
 
@@ -108,17 +111,20 @@ export function OrderPanel({
       }
 
       const quotation = response.data;
-      setCustomerAddress(quotation.resolvedAddress);
+      const add = quotation.resolvedAddress || query;
 
       if (quotation.zoneId) {
         setZoneId(quotation.zoneId);
         setSelectedZoneIdLocal(quotation.zoneId);
+        setCustomerAddress(add);
       }
 
       if (quotation.quotationStatus === "RESOLVED" && quotation.quotedCost) {
         setDeliveryCost(quotation.quotedCost);
         setPendingPriceAutm(false);
         setDeliveryQuotationStatus("RESOLVED");
+        setCustomerAddress(add);
+
         return;
       }
 
@@ -128,6 +134,7 @@ export function OrderPanel({
             "Dirección identificada (Barrio Interno). Se notificó a la base para cotizar el envío; te avisamos apenas respondan.",
           type: "info",
         });
+        setCustomerAddress(customerAddress);
         setDeliveryQuotationStatus("PENDING");
         return;
       }
@@ -139,6 +146,8 @@ export function OrderPanel({
           type: "info",
         });
         setDeliveryQuotationStatus("PENDING");
+        setCustomerAddress(customerAddress);
+
         return;
       }
 
@@ -149,6 +158,8 @@ export function OrderPanel({
           type: "info",
         });
         setDeliveryQuotationStatus("PENDING");
+        setCustomerAddress(customerAddress);
+
         return;
       }
     } catch (error) {

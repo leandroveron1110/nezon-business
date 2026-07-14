@@ -5,6 +5,7 @@ import {
   OrderServicePublic,
   UpdateOrderStatusInput,
 } from "../core/orders/public";
+import { BusinessLocalRepository } from "../infrastructure/dexie/repositories/dexie-business.repository";
 import { DexieOrderIdentityAdapter } from "../infrastructure/dexie/repositories/dexie-order-identity.adapter";
 import { DexieOrderRepositoryAdapter } from "../infrastructure/dexie/repositories/dexie-order.repository";
 import { cloudSyncService } from "../infrastructure/network/CloudSyncService";
@@ -21,8 +22,6 @@ export const createOrderOrchestrator = async (input: CreateOrderInput) => {
   const repositoryAdapter = new DexieOrderRepositoryAdapter();
   const identityAdapter = new DexieOrderIdentityAdapter();
 
-  console.log(input.deliveryType, input.deliveryProvider, input.customerAddress, input.totalDeliveryCost, input.deliveryQuotationStatus);
-
   const orderCore = OrderServicePublic({
     repository: repositoryAdapter,
     identity: identityAdapter,
@@ -34,11 +33,10 @@ export const createOrderOrchestrator = async (input: CreateOrderInput) => {
     input.customerAddress &&
     input.totalDeliveryCost === 0
   ) {
-
     input = {
       ...input,
       deliveryQuotationStatus: "PENDING",
-    }
+    };
   }
 
   // 1. Ejecución soberana del negocio en Local (Dexie)
@@ -134,7 +132,6 @@ export const updateOrderStatusOrchestrator = async (
           // Confirmamos la sincronización de este hilo en nuestro Dexie local.
           await orderCore.confirmCloudSync(order.idTemp, order.id);
 
-          
           // Adicionalmente, como impactó en caliente con éxito, podés prender
           // las banderas específicas de hilos si tu orderCore lo requiere:
           // await db.orders.update(order.idTemp, { syncedStatus: true, ... });
@@ -162,13 +159,19 @@ export const updateOrderStatusOrchestrator = async (
     // syncQueueWorker.processQueue().catch(...);
   }
 
-  if(input.thread === "DELIVERY" && order.customerAddress) {
-            await requestDeliveryDispatch({
-              businessId: order.businessId,
-              orderId: order.idTemp,
-              customerAddress: order.customerAddress
-            });
-          }
+  if (input.thread === "DELIVERY" && order.customerAddress) {
+    const businessDiex = new BusinessLocalRepository();
+    const business = await businessDiex.getCurrentBusiness();
+    await requestDeliveryDispatch({
+      businessId: order.businessId,
+      orderId: order.idTemp,
+      customerAddress: order.customerAddress,
+      originName: business?.name || "",
+      originAddress: business?.address || "",
+      originLatitude: business?.latitude,
+      originLongitude: business?.longitude,
+    });
+  }
 
   // 🚀 Retornamos el resultado local INMEDIATAMENTE para que el cajero no espere a la red.
   return result;

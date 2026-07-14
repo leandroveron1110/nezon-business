@@ -17,6 +17,7 @@ import {
 } from "@/mini-back/infrastructure/dexie/shcema/orders.schema";
 import { LocalProduct } from "@/mini-back/infrastructure/dexie/shcema/products.schema";
 import { OrderSheet } from "./OrderSheet";
+import { initSchedulers } from "@/mini-back/infrastructure/workers/delivery/delivery.worker";
 
 export default function OrderBuilder({
   onClose,
@@ -177,6 +178,7 @@ export default function OrderBuilder({
         businessId: businessid,
         deliveryQuotationStatus: deliveryQuotationStatus,
       });
+      initSchedulers();
       setItems([]);
       setCustomerName("");
       setCustomerPhone("");

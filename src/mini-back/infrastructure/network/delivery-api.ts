@@ -6,6 +6,11 @@ export interface RequestDeliveryQuotationInput {
 
   orderId: string;
 
+  originName: string;
+  originAddress: string;
+  originLatitude?: number;
+  originLongitude?: number;
+
   customerAddress: string;
 
   latitude?: number;
@@ -36,12 +41,18 @@ export async function requestDeliveryQuotation(
   input: RequestDeliveryQuotationInput,
 ): Promise<boolean> {
   try {
+    console.log(input)
     const res = await apiPost<void>(
       "/delivery-commands",
       {
         businessId: input.businessId,
 
         orderId: input.orderId,
+
+        originName: input.originName,
+        originAddress: input.originAddress,
+        originLatitude: input.originLatitude,
+        originLongitude: input.originLongitude,
 
         command: "QUOTE",
 
@@ -70,6 +81,7 @@ export async function requestDeliveryDispatch(
   input: RequestDeliveryQuotationInput,
 ): Promise<boolean> {
   try {
+    console.log(input)
     const res = await apiPost<void>(
       "/delivery-commands",
       {
@@ -78,6 +90,10 @@ export async function requestDeliveryDispatch(
         orderId: input.orderId,
 
         command: "DISPATCH",
+        originName: input.originName,
+        originAddress: input.originAddress,
+        originLatitude: input.originLatitude,
+        originLongitude: input.originLongitude,
 
         destinationAddress: input.customerAddress,
 

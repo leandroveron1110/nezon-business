@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { NotificationsBell } from "@/features/common/ui/NotificationsBell/NotificationsBell";
 import { useBusinessNotificationsSocket } from "@/features/common/hooks/useBusinessNotificationsSocket";
+import { useLocalBusiness } from "@/features/search/hooks/useLocalBusiness";
 
 interface BusinessCardProps {
   business: SearchResultBusiness;
@@ -14,6 +15,20 @@ interface BusinessCardProps {
 export const SearchBusinessCard = ({ business }: BusinessCardProps) => {
   const router = useRouter();
   useBusinessNotificationsSocket(business.id);
+
+  const { saveBusiness } = useLocalBusiness();
+
+
+  const openBusiness = async (
+    path:string
+  ) => {
+
+    await saveBusiness(business);
+
+    router.push(path);
+
+  };
+  
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col overflow-hidden relative">
@@ -98,7 +113,7 @@ export const SearchBusinessCard = ({ business }: BusinessCardProps) => {
       {/* Botones de Navegación Rápida */}
       <div className="grid grid-cols-4 border-t border-gray-100 bg-gray-50/50 p-1">
         <button
-          onClick={() => router.push(`/business/${business.id}/orders`)}
+          onClick={() => openBusiness(`/business/${business.id}/orders`)}
           className="flex flex-col items-center justify-center py-2.5 px-1 text-blue-600 hover:bg-blue-50/80 rounded-lg transition-colors gap-1"
           title="POS / Órdenes"
         >
@@ -107,7 +122,7 @@ export const SearchBusinessCard = ({ business }: BusinessCardProps) => {
         </button>
 
         <button
-          onClick={() => router.push(`/business/${business.id}/products`)}
+          onClick={() => openBusiness(`/business/${business.id}/products`)}
           className="flex flex-col items-center justify-center py-2.5 px-1 text-gray-600 hover:bg-gray-100/80 rounded-lg transition-colors gap-1"
           title="Productos"
         >
@@ -116,7 +131,7 @@ export const SearchBusinessCard = ({ business }: BusinessCardProps) => {
         </button>
 
         <button
-          onClick={() => router.push(`/business/${business.id}/employees`)}
+          onClick={() => openBusiness(`/business/${business.id}/employees`)}
           className="flex flex-col items-center justify-center py-2.5 px-1 text-gray-600 hover:bg-gray-100/80 rounded-lg transition-colors gap-1"
           title="Personal"
         >
@@ -125,7 +140,7 @@ export const SearchBusinessCard = ({ business }: BusinessCardProps) => {
         </button>
 
         <button
-          onClick={() => router.push(`/business/${business.id}/profile`)}
+          onClick={() => openBusiness(`/business/${business.id}/profile`)}
           className="flex flex-col items-center justify-center py-2.5 px-1 text-gray-600 hover:bg-gray-100/80 rounded-lg transition-colors gap-1"
           title="Ajustes"
         >

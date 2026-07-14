@@ -9,6 +9,7 @@ import { DexieDeliveryWorkerRepository } from "../../dexie/repositories/dexie-de
 import { LocalOrder } from "../../dexie/shcema/orders.schema";
 import { requestDeliveryQuotation } from "../../network/delivery-api";
 import { getDeliveryQuotationSyncWorker } from "./delivery-quotation-sync.worker";
+import { BusinessLocalRepository } from "../../dexie/repositories/dexie-business.repository";
 
 export class DeliveryWorker {
   constructor(
@@ -104,8 +105,15 @@ export class DeliveryWorker {
     console.log(
       `[DeliveryWorker] Enviando solicitud de cotización a Base para orden ${order.idTemp} con dirección: ${order.customerAddress}`,
     );
+    const businessDiex = new BusinessLocalRepository()
+    const business = await businessDiex.getCurrentBusiness();
     const response = await requestDeliveryQuotation({
       businessId: order.businessId,
+
+      originName: business?.name || "",
+      originAddress: business?.address || "",
+      originLatitude: business?.latitude,
+      originLongitude: business?.longitude,
 
       orderId: order.idTemp,
 
