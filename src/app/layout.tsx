@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Nezon",
+  title: "Hunay",
   description: "la plataforma de tu ciudad",
   manifest: "/manifest.json",
   icons: {

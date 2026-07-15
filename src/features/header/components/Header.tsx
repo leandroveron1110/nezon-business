@@ -99,7 +99,7 @@ export default function Header() {
             <Link href="/">
               <Image
                 src={logo}
-                alt="Nezon"
+                alt="Hunay"
                 width={110}
                 height={34}
                 className="h-8 w-auto"

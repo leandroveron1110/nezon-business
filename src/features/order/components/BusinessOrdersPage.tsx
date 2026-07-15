@@ -263,7 +263,7 @@ export default function BusinessOrdersPage({ businessId }: Props) {
   if (isLoading)
     return (
       <p className="p-6 text-center text-gray-500 animate-pulse">
-        Sincronizando con Nezon...
+        Sincronizando con Hunay...
       </p>
     );
 

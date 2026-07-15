@@ -7,7 +7,7 @@ export class OrderUiMapper {
   static toUI(local: LocalOrder): UIOrder {
     return {
       // 1. Identificadores y Sync (UIOrder)
-      id: local.id || local.idTemp, // El modal usa 'id' para todo, pero Nezon sabe cuál es cuál
+      id: local.id || local.idTemp, // El modal usa 'id' para todo, pero Hunay sabe cuál es cuál
       idTemp: local.idTemp,
       syncStatus: local.syncStatus === "SYNCED" ? "synced" : "pending",
 

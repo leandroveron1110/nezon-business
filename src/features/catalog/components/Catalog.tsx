@@ -88,7 +88,7 @@ export default function Catalog({ businessId }: Props) {
     return (
       <div className="flex justify-center items-center py-20">
         <p className="text-gray-500 text-lg font-medium animate-pulse">
-          Accediendo a Nezon...
+          Accediendo a Hunay...
         </p>
       </div>
     );

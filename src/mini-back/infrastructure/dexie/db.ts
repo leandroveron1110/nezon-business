@@ -6,7 +6,7 @@ import { DELIVERY_STORE, LocalConfigRecord } from './shcema/delivery.schema';
 import { ORDER_STATE_EVENTS_STORE } from './shcema/orderStateEvents';
 import { BUSINESS_STORE, LocalBusiness } from './shcema/business.schema';
 
-export class NezonDB extends Dexie {
+export class HunayDB extends Dexie {
   business!: Table<LocalBusiness>;
   products!: Table<LocalProduct>;
   orders!: Table<LocalOrder>;
@@ -15,7 +15,7 @@ export class NezonDB extends Dexie {
   metadata!: Table<{ id: string; value: string }>;
 
   constructor() {
-    super('NezonBusinessDB');
+    super('HunayBusinessDB');
     
     this.version(3).stores({
       business: BUSINESS_STORE,
@@ -28,11 +28,11 @@ export class NezonDB extends Dexie {
   }
 }
 
-let dbInstance: NezonDB | null = null;
+let dbInstance: HunayDB | null = null;
 
 export function getDb() {
   if (!dbInstance) {
-    dbInstance = new NezonDB();
+    dbInstance = new HunayDB();
   }
 
   return dbInstance;

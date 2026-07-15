@@ -209,7 +209,7 @@ export default function OrderBuilder({
               <LayoutPanelLeft size={14} />
             </div>
             <h2 className="text-xs font-black uppercase tracking-wider text-slate-800">
-              Nezon <span className="text-emerald-600">POS</span>
+              Hunay <span className="text-emerald-600">POS</span>
             </h2>
           </div>
 
