@@ -94,7 +94,7 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
   }, [safeOrder]);
 
   // ===================================
-  // HANDLERS LOGÍSTICOS (CON TU ENUM)
+  // HANDLERS LOGÍSTICOS
   // ===================================
   const handleSolicitarCadete = async () => {
     if (!safeOrder || loading) return;
@@ -215,6 +215,18 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
     )
       return;
     try {
+      const result = await updateOrderStatusOrchestrator({
+        idTemp: safeOrder.idTemp,
+        thread: "STATUS",
+        nextValue: targetStatus, // Siempre pasa a CANCELLED
+      });
+      if (!result.success) {
+        addAlert({
+          message: result.error?.message || "Error al cancelar",
+          type: "error",
+        });
+        return;
+      }
       setLoading(true);
       addAlert({ message: "Pedido cancelado", type: "info" });
       onClose();
@@ -238,9 +250,30 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
 
   if (isLoading || !safeOrder) return null;
 
+  const canShowActions = (): boolean => {
+    return (
+      safeOrder.status !== OrderStatus.CANCELLED &&
+      safeOrder.status !== OrderStatus.REJECTED
+    );
+  };
+
+  const canShowMinutes = (): boolean => {
+    return (
+      safeOrder.status !== OrderStatus.CANCELLED &&
+      safeOrder.status !== OrderStatus.REJECTED &&
+      safeOrder.status !== OrderStatus.COMPLETED
+    );
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex justify-end">
-      <div className="bg-white w-full max-w-md h-full flex flex-col shadow-2xl animate-in slide-in-from-right duration-200">
+    <div
+      className="fixed inset-0 bg-black/60 z-50 flex justify-end"
+      onClick={onClose} // 👈 1. Cierra al tocar la parte negra de afuera
+    >
+      <div
+        className="bg-white w-full max-w-md h-full flex flex-col shadow-2xl animate-in slide-in-from-right duration-200"
+        onClick={(e) => e.stopPropagation()} // 👈 2. Evita que se cierre al tocar dentro del panel
+      >
         {safeOrder && (
           <div
             style={{
@@ -258,6 +291,7 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
           </div>
         )}
 
+        {/* HEADER PANEL */}
         <div className="px-4 py-3 border-b flex justify-between items-center bg-slate-50 shrink-0">
           <div className="flex items-center gap-2">
             <span className="font-black text-xl tracking-tighter italic text-slate-800">
@@ -292,107 +326,104 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
           <span className="flex items-center gap-1 text-slate-600">
             <Package size={13} /> {safeOrder.deliveryType}
           </span>
-          <span
-            className={`flex items-center gap-1 ${minutes > 15 ? "text-red-600" : "text-orange-600"}`}
-          >
-            <Clock size={13} /> {minutes}m
-          </span>
+          {canShowMinutes() && (
+            <span
+              className={`flex items-center gap-1 ${minutes > 15 ? "text-red-600" : "text-orange-600"}`}
+            >
+              <Clock size={13} /> {minutes}m
+            </span>
+          )}
         </div>
 
         {/* ========================================================= */}
-{/* LOGÍSTICA DE ENVÍO                                        */}
-{/* ========================================================= */}
-{safeOrder.deliveryType === DeliveryType.DELIVERY && (
-  <>
-    {/* ===================================================== */}
-    {/* REPARTO INTERNO DEL LOCAL                             */}
-    {/* ===================================================== */}
-    {safeOrder.deliveryProvider === "INTERNAL" && (
-      <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2 shrink-0">
-        <div className="flex items-center gap-2">
-          <Bike size={16} className="text-slate-400" />
-
-          <div className="flex flex-col">
-            <span className="text-[10px] font-black tracking-wider text-slate-400 uppercase leading-none">
-              Reparto
-            </span>
-
-            <span className="text-xs font-bold text-slate-700">
-              Entrega realizada por el local
-            </span>
-          </div>
-        </div>
-
-        <button
-          onClick={handleSolicitarCadete}
-          disabled={loading || safeOrder.status === OrderStatus.PENDING}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-black shadow-sm transition-all flex items-center gap-1.5 disabled:opacity-50"
-        >
-          <Send size={12} />
-          ASIGNAR A PLATAFORMA
-        </button>
-      </div>
-    )}
-  </>
-)}
-
+        {/* LOGÍSTICA DE ENVÍO - REPARTO INTERNO                      */}
         {/* ========================================================= */}
-        {/* NUEVO BLOQUE: CONTROL LOGÍSTICO EXCLUSIVO PARA CAJERO     */}
-        {/* ========================================================= */}
-        {(safeOrder.deliveryType === DeliveryType.DELIVERY && safeOrder.deliveryProvider === "PLATFORM") && (
-          <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2 shrink-0">
-            <div className="flex items-center gap-2">
-              <Bike
-                size={16}
-                className={
-                  safeOrder.deliveryStatus === DeliveryStatus.REQUESTED
-                    ? "text-amber-500 animate-pulse"
-                    : safeOrder.deliveryStatus === DeliveryStatus.SHIPPED
-                      ? "text-blue-500"
-                      : safeOrder.deliveryStatus === DeliveryStatus.COMPLETED
-                        ? "text-emerald-600"
-                        : "text-slate-400"
-                }
-              />
-              <div className="flex flex-col">
-                <span className="text-[10px] font-black tracking-wider text-slate-400 uppercase leading-none">
-                  Logística de Envío
-                </span>
-                <span className="text-xs font-bold text-slate-700">
-                  {safeOrder.deliveryStatus === DeliveryStatus.PENDING &&
-                    "Local Retiene (No enviado)"}
-                  {safeOrder.deliveryStatus === DeliveryStatus.REQUESTED &&
-                    "Esperando Asignación de Base..."}
-                  {safeOrder.deliveryStatus === DeliveryStatus.SHIPPED &&
-                    "En Viaje de Reparto"}
-                  {safeOrder.deliveryStatus === DeliveryStatus.COMPLETED &&
-                    "Entregado por Cadete"}
-                  {safeOrder.deliveryStatus === DeliveryStatus.CANCELLED &&
-                    "Cancelado"}
-                </span>
+        {canShowActions() &&
+          safeOrder.deliveryType === DeliveryType.DELIVERY &&
+          safeOrder.deliveryProvider === "INTERNAL" && (
+            <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2 shrink-0">
+              <div className="flex items-center gap-2">
+                <Bike size={16} className="text-slate-400" />
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-black tracking-wider text-slate-400 uppercase leading-none">
+                    Reparto
+                  </span>
+                  <span className="text-xs font-bold text-slate-700">
+                    Entrega realizada por el local
+                  </span>
+                </div>
               </div>
-            </div>
-            {safeOrder.deliveryStatus === DeliveryStatus.PENDING && (
+
               <button
                 onClick={handleSolicitarCadete}
                 disabled={loading || safeOrder.status === OrderStatus.PENDING}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-black shadow-sm transition-all flex items-center gap-1.5 disabled:opacity-50"
               >
-                <Send size={12} /> ENVIAR A BASE
+                <Send size={12} />
+                ASIGNAR A PLATAFORMA
               </button>
-            )}
+            </div>
+          )}
 
-            {safeOrder.deliveryStatus === DeliveryStatus.REQUESTED && (
-              <button
-                onClick={handleCancelarCadete}
-                disabled={loading}
-                className="flex items-center gap-1 bg-white hover:bg-red-50 text-red-600 border border-red-200 px-2.5 py-1.5 rounded-lg text-xs font-black shadow-sm transition-all"
-              >
-                <Undo2 size={13} /> RETIRAR DE BASE
-              </button>
-            )}
-          </div>
-        )}
+        {/* ========================================================= */}
+        {/* CONTROL LOGÍSTICO EXCLUSIVO PARA CAJERO - PLATAFORMA      */}
+        {/* ========================================================= */}
+        {canShowActions() &&
+          safeOrder.deliveryType === DeliveryType.DELIVERY &&
+          safeOrder.deliveryProvider === "PLATFORM" && (
+            <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2 shrink-0">
+              <div className="flex items-center gap-2">
+                <Bike
+                  size={16}
+                  className={
+                    safeOrder.deliveryStatus === DeliveryStatus.REQUESTED
+                      ? "text-amber-500 animate-pulse"
+                      : safeOrder.deliveryStatus === DeliveryStatus.SHIPPED
+                        ? "text-blue-500"
+                        : safeOrder.deliveryStatus === DeliveryStatus.COMPLETED
+                          ? "text-emerald-600"
+                          : "text-slate-400"
+                  }
+                />
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-black tracking-wider text-slate-400 uppercase leading-none">
+                    Logística de Envío
+                  </span>
+                  <span className="text-xs font-bold text-slate-700">
+                    {safeOrder.deliveryStatus === DeliveryStatus.PENDING &&
+                      "Local Retiene (No enviado)"}
+                    {safeOrder.deliveryStatus === DeliveryStatus.REQUESTED &&
+                      "Esperando Asignación de Base..."}
+                    {safeOrder.deliveryStatus === DeliveryStatus.SHIPPED &&
+                      "En Viaje de Reparto"}
+                    {safeOrder.deliveryStatus === DeliveryStatus.COMPLETED &&
+                      "Entregado por Cadete"}
+                    {safeOrder.deliveryStatus === DeliveryStatus.CANCELLED &&
+                      "Cancelado"}
+                  </span>
+                </div>
+              </div>
+              {safeOrder.deliveryStatus === DeliveryStatus.PENDING && (
+                <button
+                  onClick={handleSolicitarCadete}
+                  disabled={loading || safeOrder.status === OrderStatus.PENDING}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-black shadow-sm transition-all flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <Send size={12} /> ENVIAR A BASE
+                </button>
+              )}
+
+              {safeOrder.deliveryStatus === DeliveryStatus.REQUESTED && (
+                <button
+                  onClick={handleCancelarCadete}
+                  disabled={loading}
+                  className="flex items-center gap-1 bg-white hover:bg-red-50 text-red-600 border border-red-200 px-2.5 py-1.5 rounded-lg text-xs font-black shadow-sm transition-all"
+                >
+                  <Undo2 size={13} /> RETIRAR DE BASE
+                </button>
+              )}
+            </div>
+          )}
 
         {/* ITEMS */}
         <div className="flex-1 overflow-y-auto bg-white">
@@ -432,8 +463,9 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
             </div>
           ))}
         </div>
+
+        {/* FOOTER DESGLOSE */}
         <div className="p-4 border-t bg-slate-50 space-y-4 shrink-0 shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
-          {/* Desglose de Dinero (Solución Problema 1) */}
           <div className="border-b border-slate-200/60 pb-2 space-y-1">
             <div className="flex justify-between text-xs font-medium text-slate-500">
               <span>Subtotal Productos:</span>
@@ -491,60 +523,64 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
           </div>
 
           {/* Botonera de acciones */}
-          <div className="flex gap-2">
-            <button
-              onClick={handleTogglePayment}
-              disabled={loading}
-              className={`px-4 py-3 rounded-xl font-black text-xs border-2 transition-all ${
-                isPaid
-                  ? "bg-white text-slate-300 border-slate-100"
-                  : "bg-emerald-600 text-white border-emerald-600 active:scale-95"
-              }`}
-            >
-              {isPaid ? "COBRADO" : "COBRAR"}
-            </button>
-
-            {action && (
-              <button
-                onClick={handleAdvance}
-                disabled={loading}
-                className={`flex-1 min-w-0 ${action.color} text-white py-3 px-4 rounded-xl font-black text-sm flex items-center justify-center gap-2 active:scale-95`}
-              >
-                {loading ? (
-                  <Loader2 className="animate-spin" size={18} />
-                ) : (
-                  <span className="truncate">{action.label}</span>
-                )}
-              </button>
-            )}
-          </div>
-
-          {/* Danger Zone */}
-          <div className="pt-2 border-t border-slate-200">
-            {!showDangerZone ? (
-              <button
-                onClick={() => setShowDangerZone(true)}
-                className="w-full text-center text-[11px] font-bold text-red-500 transition-colors"
-              >
-                Gestionar pedido / Rechazar
-              </button>
-            ) : (
-              <div className="space-y-2 animate-in fade-in">
-                <OrderCancellationActions
-                  status={safeOrder.status}
-                  deliveryStatus={safeOrder.deliveryStatus}
-                  onCancel={handleCancelOrder}
-                  loading={loading}
-                />
+          {canShowActions() && (
+            <>
+              <div className="flex gap-2">
                 <button
-                  onClick={() => setShowDangerZone(false)}
-                  className="w-full text-center text-[11px] text-slate-400"
+                  onClick={handleTogglePayment}
+                  disabled={loading}
+                  className={`px-4 py-3 rounded-xl font-black text-xs border-2 transition-all ${
+                    isPaid
+                      ? "bg-white text-slate-300 border-slate-100"
+                      : "bg-emerald-600 text-white border-emerald-600 active:scale-95"
+                  }`}
                 >
-                  Volver atrás
+                  {isPaid ? "COBRADO" : "COBRAR"}
                 </button>
+
+                {action && (
+                  <button
+                    onClick={handleAdvance}
+                    disabled={loading}
+                    className={`flex-1 min-w-0 ${action.color} text-white py-3 px-4 rounded-xl font-black text-sm flex items-center justify-center gap-2 active:scale-95`}
+                  >
+                    {loading ? (
+                      <Loader2 className="animate-spin" size={18} />
+                    ) : (
+                      <span className="truncate">{action.label}</span>
+                    )}
+                  </button>
+                )}
               </div>
-            )}
-          </div>
+
+              {/* Danger Zone */}
+              <div className="pt-2 border-t border-slate-200">
+                {!showDangerZone ? (
+                  <button
+                    onClick={() => setShowDangerZone(true)}
+                    className="w-full text-center text-[11px] font-bold text-red-500 transition-colors"
+                  >
+                    Gestionar pedido / Rechazar
+                  </button>
+                ) : (
+                  <div className="space-y-2 animate-in fade-in">
+                    <OrderCancellationActions
+                      status={safeOrder.status}
+                      deliveryStatus={safeOrder.deliveryStatus}
+                      onCancel={handleCancelOrder}
+                      loading={loading}
+                    />
+                    <button
+                      onClick={() => setShowDangerZone(false)}
+                      className="w-full text-center text-[11px] text-slate-400"
+                    >
+                      Volver atrás
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -25,11 +25,6 @@ export default function BusinessCatalog() {
   return (
     <div className="relative">
       <Header />
-      {/* Botón absoluto y circular */}
-      <div className="absolute top-2 left-4 z-20">
-        <BackButton />
-      </div>
-
       <Order businessId={businessId} />
     </div>
   );

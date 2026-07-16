@@ -184,7 +184,7 @@ export default function BusinessOrdersPage({ businessId }: Props) {
   // Buscamos la orden para renderizar en el Modal de comanda en pantalla
   const orderToView = useMemo(() => {
     if (!viewTicketOrderId || !orders) return null;
-    return orders.find((o) => (o.idTemp) === viewTicketOrderId) || null;
+    return orders.find((o) => o.idTemp === viewTicketOrderId) || null;
   }, [viewTicketOrderId, orders]);
 
   const normalizedOrders = useMemo(() => {
@@ -422,10 +422,10 @@ export default function BusinessOrdersPage({ businessId }: Props) {
                     showViewTicketButton={businessSettings.allowDigitalTicket}
                     onClick={() => setSelectedOrderId(order.id)}
                     onPrintDirect={handlePrintRequest}
-                    onViewTicket={(id) =>{
+                    onViewTicket={(id) => {
                       // console.log(`id de la orden:${id}`)
-                      setViewTicketOrderId(id)
-                    } }
+                      setViewTicketOrderId(id);
+                    }}
                   />
                 ))
               )}

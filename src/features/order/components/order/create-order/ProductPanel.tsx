@@ -26,22 +26,18 @@ const CLEAR_SEARCH_AFTER_ADD = false;
 
 const ProductCard = memo(function ProductCard({
   product,
-  isHighlighted,
   isLastAdded,
   onClickDirect,
   onClickCustomize,
 }: {
   product: LocalProduct;
-  isHighlighted: boolean;
   isLastAdded: boolean;
   onClickDirect: (p: LocalProduct) => void;
   onClickCustomize: (p: LocalProduct) => void;
 }) {
   const cardStyles = isLastAdded
     ? "border-emerald-500 bg-emerald-50 ring-2 ring-emerald-500/20"
-    : isHighlighted
-      ? "border-amber-500 bg-amber-50 ring-2 ring-amber-500/40 shadow-md scale-[1.02]"
-      : "border-slate-200 bg-white hover:border-slate-300";
+    : "border-slate-200 bg-white hover:border-slate-300";
 
   return (
     <div
@@ -75,11 +71,6 @@ const ProductCard = memo(function ProductCard({
         <span className="text-xs font-black tracking-tight text-slate-900">
           {formatPrice(product.finalPrice)}
         </span>
-        {isHighlighted && (
-          <span className="flex items-center gap-0.5 rounded bg-amber-500 px-1 py-0.5 text-[7px] font-black text-white animate-pulse">
-            ENTER <CornerDownLeft size={6} />
-          </span>
-        )}
       </div>
     </div>
   );
@@ -188,147 +179,147 @@ export function ProductPanel({
     inputRef.current?.focus();
   };
 
-  // Motor Geométrico (Se mantiene encapsulado, performante para los 80 items del visor)
-  const moveVertical = (direction: "UP" | "DOWN") => {
-    if (!containerRef.current) return;
-    const items = containerRef.current.querySelectorAll(
-      "[data-product-wrapper]",
-    );
-    if (items.length === 0) return;
+  // // Motor Geométrico (Se mantiene encapsulado, performante para los 80 items del visor)
+  // const moveVertical = (direction: "UP" | "DOWN") => {
+  //   if (!containerRef.current) return;
+  //   const items = containerRef.current.querySelectorAll(
+  //     "[data-product-wrapper]",
+  //   );
+  //   if (items.length === 0) return;
 
-    const currentRect = items[selectedIndex].getBoundingClientRect();
-    const currentCenterLeft = currentRect.left + currentRect.width / 2;
+  //   const currentRect = items[selectedIndex].getBoundingClientRect();
+  //   const currentCenterLeft = currentRect.left + currentRect.width / 2;
 
-    let targetIndex = -1;
-    let closestDistance = Infinity;
+  //   let targetIndex = -1;
+  //   let closestDistance = Infinity;
 
-    for (let i = 0; i < items.length; i++) {
-      if (i === selectedIndex) continue;
-      const rect = items[i].getBoundingClientRect();
+  //   for (let i = 0; i < items.length; i++) {
+  //     if (i === selectedIndex) continue;
+  //     const rect = items[i].getBoundingClientRect();
 
-      if (direction === "DOWN" && rect.top >= currentRect.bottom - 1) {
-        const verticalDist = rect.top - currentRect.bottom;
-        const horizontalDist = Math.abs(
-          rect.left + rect.width / 2 - currentCenterLeft,
-        );
-        const totalDist = verticalDist + horizontalDist * 0.5;
+  //     if (direction === "DOWN" && rect.top >= currentRect.bottom - 1) {
+  //       const verticalDist = rect.top - currentRect.bottom;
+  //       const horizontalDist = Math.abs(
+  //         rect.left + rect.width / 2 - currentCenterLeft,
+  //       );
+  //       const totalDist = verticalDist + horizontalDist * 0.5;
 
-        if (totalDist < closestDistance) {
-          closestDistance = totalDist;
-          targetIndex = i;
-        }
-      } else if (direction === "UP" && rect.bottom <= currentRect.top + 1) {
-        const verticalDist = currentRect.top - rect.bottom;
-        const horizontalDist = Math.abs(
-          rect.left + rect.width / 2 - currentCenterLeft,
-        );
-        const totalDist = verticalDist + horizontalDist * 0.5;
+  //       if (totalDist < closestDistance) {
+  //         closestDistance = totalDist;
+  //         targetIndex = i;
+  //       }
+  //     } else if (direction === "UP" && rect.bottom <= currentRect.top + 1) {
+  //       const verticalDist = currentRect.top - rect.bottom;
+  //       const horizontalDist = Math.abs(
+  //         rect.left + rect.width / 2 - currentCenterLeft,
+  //       );
+  //       const totalDist = verticalDist + horizontalDist * 0.5;
 
-        if (totalDist < closestDistance) {
-          closestDistance = totalDist;
-          targetIndex = i;
-        }
-      }
-    }
+  //       if (totalDist < closestDistance) {
+  //         closestDistance = totalDist;
+  //         targetIndex = i;
+  //       }
+  //     }
+  //   }
 
-    if (targetIndex !== -1) {
-      setSelectedIndex(targetIndex);
-    }
-  };
+  //   if (targetIndex !== -1) {
+  //     setSelectedIndex(targetIndex);
+  //   }
+  // };
 
-  // 🆕 Punto 8: Escucha global real a nivel de Window controlada por estado del POS
-  useEffect(() => {
-    // Si hay un modal abierto, apagamos la escucha del catálogo para no romper la UX al escribir notas
-    if (isModalOpen) return;
+  // // 🆕 Punto 8: Escucha global real a nivel de Window controlada por estado del POS
+  // useEffect(() => {
+  //   // Si hay un modal abierto, apagamos la escucha del catálogo para no romper la UX al escribir notas
+  //   if (isModalOpen) return;
 
-    const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      const totalItems = filteredProducts.length;
-      const activeProduct = filteredProducts[selectedIndex];
+  //   const handleGlobalKeyDown = (e: KeyboardEvent) => {
+  //     const totalItems = filteredProducts.length;
+  //     const activeProduct = filteredProducts[selectedIndex];
 
-      // Atajos globales absolutos
-      if (e.key === "F4") {
-        e.preventDefault();
-        inputRef.current?.focus();
-        return;
-      }
+  //     // Atajos globales absolutos
+  //     if (e.key === "F4") {
+  //       e.preventDefault();
+  //       inputRef.current?.focus();
+  //       return;
+  //     }
 
-      if (e.key === "F8") {
-        e.preventDefault();
-        onCheckout?.();
-        return;
-      }
+  //     if (e.key === "F8") {
+  //       e.preventDefault();
+  //       onCheckout?.();
+  //       return;
+  //     }
 
-      if (e.key === "Escape") {
-        e.preventDefault();
-        clearSearch();
-        return;
-      }
+  //     if (e.key === "Escape") {
+  //       e.preventDefault();
+  //       clearSearch();
+  //       return;
+  //     }
 
-      // 🆕 Punto 1: Protección total contra undefined si la lista está vacía
-      if ((e.key === "Enter" || e.key === "F2") && !activeProduct) {
-        if (e.key === "Enter" && document.activeElement !== inputRef.current) {
-          // Dejamos pasar el enter nativo sólo si no está interactuando con el panel
-        } else {
-          e.preventDefault();
-        }
-        return;
-      }
+  //     // 🆕 Punto 1: Protección total contra undefined si la lista está vacía
+  //     if ((e.key === "Enter" || e.key === "F2") && !activeProduct) {
+  //       if (e.key === "Enter" && document.activeElement !== inputRef.current) {
+  //         // Dejamos pasar el enter nativo sólo si no está interactuando con el panel
+  //       } else {
+  //         e.preventDefault();
+  //       }
+  //       return;
+  //     }
 
-      // 🆕 Punto 6: Proteger personalización explícita
-      if ((e.key === "Enter" && e.shiftKey) || e.key === "F2") {
-        e.preventDefault();
-        if (activeProduct) onProductCustomize(activeProduct);
-        return;
-      }
+  //     // 🆕 Punto 6: Proteger personalización explícita
+  //     if ((e.key === "Enter" && e.shiftKey) || e.key === "F2") {
+  //       e.preventDefault();
+  //       if (activeProduct) onProductCustomize(activeProduct);
+  //       return;
+  //     }
 
-      // Navegación Direccional de la cuadrícula
-      switch (e.key) {
-        case "ArrowRight":
-          if (selectedIndex + 1 < totalItems) {
-            e.preventDefault();
-            setSelectedIndex(selectedIndex + 1);
-          }
-          break;
+  //     // Navegación Direccional de la cuadrícula
+  //     switch (e.key) {
+  //       case "ArrowRight":
+  //         if (selectedIndex + 1 < totalItems) {
+  //           e.preventDefault();
+  //           setSelectedIndex(selectedIndex + 1);
+  //         }
+  //         break;
 
-        case "ArrowLeft":
-          if (selectedIndex - 1 >= 0) {
-            e.preventDefault();
-            setSelectedIndex(selectedIndex - 1);
-          }
-          break;
+  //       case "ArrowLeft":
+  //         if (selectedIndex - 1 >= 0) {
+  //           e.preventDefault();
+  //           setSelectedIndex(selectedIndex - 1);
+  //         }
+  //         break;
 
-        case "ArrowDown":
-          e.preventDefault();
-          moveVertical("DOWN");
-          break;
+  //       case "ArrowDown":
+  //         e.preventDefault();
+  //         moveVertical("DOWN");
+  //         break;
 
-        case "ArrowUp":
-          e.preventDefault();
-          moveVertical("UP");
-          break;
+  //       case "ArrowUp":
+  //         e.preventDefault();
+  //         moveVertical("UP");
+  //         break;
 
-        case "Enter":
-          e.preventDefault();
-          handleProductAction(activeProduct);
-          break;
-      }
-    };
+  //       case "Enter":
+  //         e.preventDefault();
+  //         handleProductAction(activeProduct);
+  //         break;
+  //     }
+  //   };
 
-    window.addEventListener("keydown", handleGlobalKeyDown);
-    return () => window.removeEventListener("keydown", handleGlobalKeyDown);
-  }, [filteredProducts, selectedIndex, isModalOpen, onCheckout]);
+  //   window.addEventListener("keydown", handleGlobalKeyDown);
+  //   return () => window.removeEventListener("keydown", handleGlobalKeyDown);
+  // }, [filteredProducts, selectedIndex, isModalOpen, onCheckout]);
 
-  // 🆕 Punto 3: Cambiado a scroll instantáneo sin suavizados que retrasen al cajero veterano
-  useEffect(() => {
-    if (!containerRef.current) return;
-    const activeEl = containerRef.current.querySelector("[data-active='true']");
-    if (activeEl) {
-      activeEl.scrollIntoView({
-        block: "nearest",
-        inline: "nearest",
-      });
-    }
-  }, [selectedIndex]);
+  // // 🆕 Punto 3: Cambiado a scroll instantáneo sin suavizados que retrasen al cajero veterano
+  // useEffect(() => {
+  //   if (!containerRef.current) return;
+  //   const activeEl = containerRef.current.querySelector("[data-active='true']");
+  //   if (activeEl) {
+  //     activeEl.scrollIntoView({
+  //       block: "nearest",
+  //       inline: "nearest",
+  //     });
+  //   }
+  // }, [selectedIndex]);
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-slate-100">
@@ -343,7 +334,7 @@ export function ProductPanel({
             ref={inputRef}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar... [F4] Foco | [F2] Nota | [F8] Cobrar ⚡"
+            placeholder="Buscar..."
             autoComplete="off"
             spellCheck={false}
             className="w-full rounded-lg border bg-slate-50 py-1.5 pl-8 pr-20 text-xs font-bold uppercase tracking-wide text-slate-800 outline-none focus:border-emerald-600 focus:bg-white"
@@ -385,7 +376,6 @@ export function ProductPanel({
               >
                 <ProductCard
                   product={product}
-                  isHighlighted={index === selectedIndex}
                   isLastAdded={lastAddedId === product.id}
                   onClickDirect={handleProductAction}
                   onClickCustomize={onProductCustomize}

@@ -10,13 +10,22 @@ interface Props {
   loading: boolean;
 }
 
-export function OrderCancellationActions({ status, deliveryStatus, onCancel, loading }: Props) {
+export function OrderCancellationActions({
+  status,
+  deliveryStatus,
+  onCancel,
+  loading,
+}: Props) {
   // --- LÓGICA DE NEGOCIO ---
   // Un negocio puede cancelar/rechazar siempre y cuando la orden no esté COMPLETED o CANCELLED.
-  // Pero si el hilo de delivery ya está en SHIPPED (el cadete ya tiene la comida), 
+  // Pero si el hilo de delivery ya está en SHIPPED (el cadete ya tiene la comida),
   // la cancelación debería requerir una confirmación extra o gestionarse distinto.
-  
-  const isFinalState = [OrderStatus.COMPLETED, OrderStatus.CANCELLED, OrderStatus.REJECTED].includes(status);
+
+  const isFinalState = [
+    OrderStatus.COMPLETED,
+    OrderStatus.CANCELLED,
+    OrderStatus.REJECTED,
+  ].includes(status);
   const isAlreadyOnStreet = deliveryStatus === DeliveryStatus.SHIPPED;
 
   // Si ya terminó o ya está en la calle, no mostramos acciones rápidas de cancelación
@@ -38,17 +47,25 @@ export function OrderCancellationActions({ status, deliveryStatus, onCancel, loa
           onClick={() => onCancel(OrderStatus.REJECTED)}
           className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-red-50 text-red-600 border border-red-100 text-[11px] font-black hover:bg-red-100 transition-all disabled:opacity-50"
         >
-          {loading ? <Loader2 size={14} className="animate-spin" /> : <Ban size={14} />}
+          {loading ? (
+            <Loader2 size={14} className="animate-spin" />
+          ) : (
+            <Ban size={14} />
+          )}
           RECHAZAR
         </button>
-        
+
         {/* CANCELAR: Para órdenes CONFIRMED o PREPARING que surgieron problemas */}
         <button
           disabled={loading}
           onClick={() => onCancel(OrderStatus.CANCELLED)}
           className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-slate-100 text-slate-600 border border-slate-200 text-[11px] font-black hover:bg-slate-200 transition-all disabled:opacity-50"
         >
-          {loading ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
+          {loading ? (
+            <Loader2 size={14} className="animate-spin" />
+          ) : (
+            <XCircle size={14} />
+          )}
           CANCELAR
         </button>
       </div>

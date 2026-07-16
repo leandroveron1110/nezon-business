@@ -36,10 +36,7 @@ export const simplifiedFilters: ISimplifiedFilter[] = [
       o.deliveryType === DeliveryType.DELIVERY &&
       o.status !== OrderStatus.CANCELLED &&
       o.status !== OrderStatus.REJECTED &&
-      (
-        o.status !== OrderStatus.COMPLETED ||
-        !isPaid(o)
-      ),
+      (o.status !== OrderStatus.COMPLETED || !isPaid(o)),
   },
 
   {
@@ -49,10 +46,7 @@ export const simplifiedFilters: ISimplifiedFilter[] = [
       o.deliveryType === DeliveryType.PICKUP &&
       o.status !== OrderStatus.CANCELLED &&
       o.status !== OrderStatus.REJECTED &&
-      (
-        o.status !== OrderStatus.COMPLETED ||
-        !isPaid(o)
-      ),
+      (o.status !== OrderStatus.COMPLETED || !isPaid(o)),
   },
 
   {
@@ -67,12 +61,13 @@ export const simplifiedFilters: ISimplifiedFilter[] = [
   {
     label: "Cerrados",
 
+    condition: (o) => o.status === OrderStatus.COMPLETED && isPaid(o),
+  },
+
+  {
+    label: "Cancelados / Rechazados",
+
     condition: (o) =>
-      (
-        o.status === OrderStatus.COMPLETED &&
-        isPaid(o)
-      ) ||
-      o.status === OrderStatus.CANCELLED ||
-      o.status === OrderStatus.REJECTED,
+      o.status === OrderStatus.CANCELLED || o.status === OrderStatus.REJECTED,
   },
 ];
