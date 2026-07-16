@@ -5,20 +5,20 @@ import { useLiveQuery } from "dexie-react-hooks";
 
 export function useOrdersView(businessId: string) {
   const orders = useLiveQuery(async () => {
-    // Inicio del día local
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
+    if (!businessId) return [];
 
-    // Fin del día local
-    const endOfDay = new Date();
-    endOfDay.setHours(23, 59, 59, 999);
+    const now = new Date();
+    // Solo mostramos órdenes de las últimas 26 horas
+    const timeLimit = new Date(now.getTime() - 26 * 60 * 60 * 1000);
 
+    // Filtramos por rango de tiempo Y por el ID del negocio para asegurar consistencia multi-tenant
     return await db.orders
       .where("createdAt")
-      .between(startOfDay, endOfDay, true, true)
+      .aboveOrEqual(timeLimit)
+      .filter(order => order.businessId === businessId) // 👈 Filtro de seguridad por negocio
       .reverse()
       .toArray();
-  }, []);
+  }, [businessId]);
 
   return {
     orders: orders ?? [],

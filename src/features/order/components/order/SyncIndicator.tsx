@@ -1,10 +1,24 @@
 "use client";
-import { getSyncQueueWorker, SyncResult } from "@/mini-back/infrastructure/network/SyncQueueWorker";
+import {
+  getSyncQueueWorker,
+  SyncResult,
+} from "@/mini-back/infrastructure/network/SyncQueueWorker";
 import { initSchedulers } from "@/mini-back/infrastructure/workers/delivery/delivery.worker";
-import { Loader2, CloudUpload, CheckCircle2, AlertTriangle, CloudOff } from "lucide-react";
+import {
+  Loader2,
+  CloudUpload,
+  CheckCircle2,
+  AlertTriangle,
+  CloudOff,
+} from "lucide-react";
 import { useState } from "react";
 
-type SyncUIStatus = "idle" | "syncing" | "success" | "partial_error" | "offline";
+type SyncUIStatus =
+  | "idle"
+  | "syncing"
+  | "success"
+  | "partial_error"
+  | "offline";
 
 export function SyncIndicator() {
   const [status, setStatus] = useState<SyncUIStatus>("idle");
@@ -15,37 +29,44 @@ export function SyncIndicator() {
     setErrorMessage("");
 
     try {
-      // const result: SyncResult = await getSyncQueueWorker().forceManualSyncAll();
+      const result: SyncResult =
+        await getSyncQueueWorker().forceManualSyncAll();
       initSchedulers(); // Reiniciamos los schedulers del DeliveryWorker tras la sincronización
 
+      if (result.success) {
+        // Volver al estado inicial tras unos segundos de feedback positivo
         setTimeout(() => setStatus("idle"), 3000);
-    //   if (result.success) {
-    //     // Volver al estado inicial tras unos segundos de feedback positivo
-    //     setTimeout(() => setStatus("idle"), 3000);
-    //   } else {
-    //     if (result.status === "OFFLINE" || result.status === "SERVER_DOWN") {
-    //       setStatus("offline");
-    //       setErrorMessage(result.status === "OFFLINE" ? "Sin conexión a internet" : "Servidor no disponible");
-    //     } else {
-    //       setStatus("partial_error");
-    //       setErrorMessage(`Quedaron ${result.pendingCount ?? 'algunas'} órdenes sin subir.`);
-    //     }
-    //     setTimeout(() => setStatus("idle"), 5000); // feedback extendido para el error
-    //   }
-    // } catch (error) {
-    //   setStatus("partial_error");
-    //   setErrorMessage("Error crítico inesperado en la sincronización.");
-    //   setTimeout(() => setStatus("idle"), 4000);
-    } catch (error) {}
+      } else {
+        if (result.status === "OFFLINE" || result.status === "SERVER_DOWN") {
+          setStatus("offline");
+          setErrorMessage(
+            result.status === "OFFLINE"
+              ? "Sin conexión a internet"
+              : "Servidor no disponible",
+          );
+        } else {
+          setStatus("partial_error");
+          setErrorMessage(
+            `Quedaron ${result.pendingCount ?? "algunas"} órdenes sin subir.`,
+          );
+        }
+        setTimeout(() => setStatus("idle"), 5000); // feedback extendido para el error
+      }
+    } catch (error) {
+      setStatus("partial_error");
+      setErrorMessage("Error crítico inesperado en la sincronización.");
+      setTimeout(() => setStatus("idle"), 4000);
+    }
   };
 
   // Mapeo dinámico de estilos Tailwind según el estado real
   const buttonStyles = {
     idle: "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800 shadow-sm active:scale-98",
-    syncing: "bg-blue-50 border-blue-200 text-blue-600 shadow-inner animate-pulse",
+    syncing:
+      "bg-blue-50 border-blue-200 text-blue-600 shadow-inner animate-pulse",
     success: "bg-emerald-50 border-emerald-200 text-emerald-600",
     partial_error: "bg-amber-50 border-amber-200 text-amber-700 font-medium",
-    offline: "bg-rose-50 border-rose-200 text-rose-600 cursor-not-allowed"
+    offline: "bg-rose-50 border-rose-200 text-rose-600 cursor-not-allowed",
   };
 
   return (
@@ -68,7 +89,7 @@ export function SyncIndicator() {
             <span>Sincronizando...</span>
           </>
         )}
-        
+
         {status === "success" && (
           <>
             <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
