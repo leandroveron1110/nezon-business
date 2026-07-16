@@ -94,6 +94,8 @@ export function OrderPanel({
 
     try {
       setIsSearching(true);
+      setDeliveryQuotationStatus("PENDING");
+
       const response = await quoteDeliveryOrchestrator(
         query,
         businessId,

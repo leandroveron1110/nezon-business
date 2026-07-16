@@ -6,7 +6,7 @@ type ConnectivityListener = (state: ConnectionState) => void;
 class ConnectivityManager {
   private state: ConnectionState = "CHECKING";
   private listeners: Set<ConnectivityListener> = new Set();
-  
+
   // Control de tiempo para la desconexión prolongada
   private lastTimeOnline: number = Date.now();
   private readonly gracePeriod = 15000; // 15 segundos de tolerancia para microcortes
@@ -33,7 +33,7 @@ class ConnectivityManager {
     } else {
       // Si falla, verificamos si ya se consumió el tiempo de gracia tolerado
       const timeSinceLastOnline = now - this.lastTimeOnline;
-      
+
       if (timeSinceLastOnline >= this.gracePeriod) {
         this.updateState("OFFLINE");
       } else {
@@ -49,17 +49,17 @@ class ConnectivityManager {
   forceState(state: ConnectionState) {
     if (state === "OFFLINE") {
       // Si es forzado por hardware, matamos el tiempo de gracia de inmediato
-      this.lastTimeOnline = 0; 
+      this.lastTimeOnline = 0;
     }
     this.updateState(state);
   }
 
   private updateState(newState: ConnectionState) {
     if (this.state === newState) return;
-    
+
     this.state = newState;
     // console.log("[Connectivity Consolidado]", newState);
-    
+
     // Notificar a todos los componentes React suscritos
     this.listeners.forEach((listener) => listener(newState));
   }

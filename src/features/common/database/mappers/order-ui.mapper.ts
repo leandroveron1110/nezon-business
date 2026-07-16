@@ -28,7 +28,7 @@ export class OrderUiMapper {
       orderPaymentMethod: local.orderPaymentMethod as PaymentMethodType,
       paymentStatus: local.paymentStatus,
       deliveryStatus: local.deliveryStatus,
-
+      
       // 3. Reconstrucción de Objetos Anidados para la UI
       user: {
         id: "",

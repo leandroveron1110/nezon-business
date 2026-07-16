@@ -105,7 +105,7 @@ export class DeliveryWorker {
     console.log(
       `[DeliveryWorker] Enviando solicitud de cotización a Base para orden ${order.idTemp} con dirección: ${order.customerAddress}`,
     );
-    const businessDiex = new BusinessLocalRepository()
+    const businessDiex = new BusinessLocalRepository();
     const business = await businessDiex.getCurrentBusiness();
     const response = await requestDeliveryQuotation({
       businessId: order.businessId,
@@ -163,30 +163,14 @@ export class DeliveryWorkerScheduler {
   private running = false;
 
   start() {
-    console.log(
-      "[DeliveryWorkerScheduler] Iniciando scheduler de DeliveryWorker...",
-    );
-    console.log(
-      typeof window === "undefined" ? "Entorno Node.js" : "Entorno Browser",
-    );
     if (typeof window === "undefined") return;
 
-    console.log(
-      "[DeliveryWorkerScheduler] Dispositivo en línea:",
-      navigator.onLine,
-    );
     window.addEventListener("online", () => {
-      console.log(
-        "[DeliveryWorkerScheduler] Dispositivo en línea. Ejecutando DeliveryWorker...",
-      );
       this.running = true;
       this.run();
     });
 
     this.intervalId = window.setInterval(() => {
-      console.log(
-        "[DeliveryWorkerScheduler] Intervalo de ejecución del DeliveryWorker...",
-      );
       this.run();
     }, 30000);
   }

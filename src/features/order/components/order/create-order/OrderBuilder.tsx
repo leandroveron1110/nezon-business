@@ -148,6 +148,8 @@ export default function OrderBuilder({
     if (!items.length || isSubmitting) return;
     setIsSubmitting(true);
 
+    console.log(`deliveryQuotationStatus: ${deliveryQuotationStatus}`);
+
     const newOrder = {
       idTemp: uuid(),
       id: null,

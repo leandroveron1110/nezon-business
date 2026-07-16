@@ -22,6 +22,9 @@ export class DeliveryQuotationSyncWorker {
     // Todas las órdenes pertenecen al mismo negocio.
     const businessId = waitingOrders[0].businessId;
 
+    console.log("''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''");
+    console.log(waitingOrders);
+
     console.log(
       `[DeliveryQuotationSyncWorker] Buscando cotizaciones resueltas para ${waitingOrders.length} órdenes...`,
     );

@@ -74,7 +74,7 @@ export class DexieDeliveryWorkerRepository implements DeliveryWorkerRepository {
   async findPendingQuotation(): Promise<LocalOrder[]> {
     return db.orders
       .where("deliveryQuotationStatus")
-      .equals("PENDING")
+      .anyOf(["PENDING", "WAITING_BASE"])
       .toArray();
   }
 
@@ -135,10 +135,11 @@ export class DexieDeliveryWorkerRepository implements DeliveryWorkerRepository {
   }
 
   async findWaitingBaseQuotation(): Promise<LocalOrder[]> {
-    return db.orders
+    const result = await db.orders
       .where("deliveryQuotationStatus")
-      .equals("WAITING_BASE")
+      .anyOf(["PENDING", "WAITING_BASE"])
       .toArray();
+    return result;
   }
 
   async completeManualQuotation(input: {
