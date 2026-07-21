@@ -1,6 +1,6 @@
 // src/data/location-aliases.ts
 
-import { BarrioSuggestion } from "@/mini-back/core/DeliveryCore/public";
+import { BarrioSuggestion } from "@/mini-back/core/delivery-core/public";
 
 export const LOCATION_ALIASES: BarrioSuggestion[] = [
   // --- BARRIOS PRIVADOS Y SEMIPRIVADOS ---

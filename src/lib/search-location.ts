@@ -1,7 +1,7 @@
 // src/utils/search-location.ts
 
 import { LOCATION_DATA } from "@/data/location-search-data";
-import { BarrioSuggestion, CalleSuggestion, LocationSuggestion } from "@/mini-back/core/DeliveryCore/public";
+import { BarrioSuggestion, CalleSuggestion, LocationSuggestion } from "@/mini-back/core/delivery-core/public";
 
 /* ============================================================================
  * NORMALIZER

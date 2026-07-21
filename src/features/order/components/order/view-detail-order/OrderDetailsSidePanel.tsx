@@ -27,7 +27,7 @@ import { OrderTicket } from "../ticket-order/OrderTicket";
 import { usePrintTicket } from "@/features/order/hooks/usePrintTicket";
 import { OrderStatus, PaymentStatus } from "@/types/order-state-machine";
 import { updateOrderStatusOrchestrator } from "@/mini-back/orchestrator/order.orchestrator";
-import { DeliveryStatus } from "@/mini-back/core/orders/domain/order-state-machine";
+import { DeliveryStatus } from "@/mini-back/core/orders-core/domain/order-state-machine";
 
 interface Props {
   orderId: string;

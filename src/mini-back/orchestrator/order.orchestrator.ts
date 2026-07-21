@@ -4,7 +4,7 @@ import {
   CreateOrderInput,
   OrderServicePublic,
   UpdateOrderStatusInput,
-} from "../core/orders/public";
+} from "../core/orders-core/public";
 import { BusinessLocalRepository } from "../infrastructure/dexie/repositories/dexie-business.repository";
 import { DexieOrderIdentityAdapter } from "../infrastructure/dexie/repositories/dexie-order-identity.adapter";
 import { DexieOrderRepositoryAdapter } from "../infrastructure/dexie/repositories/dexie-order.repository";

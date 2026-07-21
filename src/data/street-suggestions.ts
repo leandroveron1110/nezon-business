@@ -1,6 +1,6 @@
 // src/data/street-suggestions.ts
 
-import { BaseSuggestion, CalleSuggestion } from "@/mini-back/core/DeliveryCore/public";
+import { BaseSuggestion, CalleSuggestion } from "@/mini-back/core/delivery-core/public";
 
 const STREET: BaseSuggestion[] = [
   // --- CALLES NORTE (Columna Izquierda) ---

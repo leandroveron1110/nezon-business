@@ -5,7 +5,7 @@ import {
   OrderItem,
   OrderOption,
   OrderOptionGroup,
-} from "@/mini-back/core/orders/public";
+} from "@/mini-back/core/orders-core/public";
 
 export const cloudSyncService = {
   // Ahora recibe la orden completa (Entity/DTO)

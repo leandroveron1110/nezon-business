@@ -1,0 +1,14 @@
+import { PaymentMethodTypeFinancial } from "../domain/financial-movement-status.enum";
+
+export interface RefundRegisteredSignal {
+  readonly type: 'REFUND_REGISTERED';
+  readonly payload: {
+    movementId: string;
+    cashRegisterId: string;
+    businessId: string;
+    orderId: string;
+    amount: number;
+    paymentMethod: PaymentMethodTypeFinancial;
+    date: Date;
+  };
+}

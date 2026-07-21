@@ -2,7 +2,7 @@
 
 import {
   OrderIdentityPort,
-} from "@/mini-back/core/orders/public";
+} from "@/mini-back/core/orders-core/public";
 import { db } from "../db";
 
 export class DexieOrderIdentityAdapter implements OrderIdentityPort {

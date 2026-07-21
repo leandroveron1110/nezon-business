@@ -4,7 +4,7 @@ import { LOCATION_DATA } from "@/data/location-search-data";
 
 import { createDeliveryService } from "../../factories/create-delivery-service";
 
-import { DeliveryQuotation } from "@/mini-back/core/DeliveryCore/signal/delivery-quotation";
+import { DeliveryQuotation } from "@/mini-back/core/delivery-core/signal/delivery-quotation";
 import { DexieDeliveryWorkerRepository } from "../../dexie/repositories/dexie-delivery-worker.repository";
 import { LocalOrder } from "../../dexie/shcema/orders.schema";
 import { requestDeliveryQuotation } from "../../network/delivery-api";

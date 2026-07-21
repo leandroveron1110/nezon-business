@@ -1,6 +1,7 @@
+//src/mini-back/core/public/index.ts
 import { OrderIdentityPort } from "../ports/order-identity.port";
 import { OrderRepositoryPort } from "../ports/order-repository.port";
-import { IOrderPublicService } from "../public/order-service.interface";
+import { IOrderPublicService } from "./order-service.interface";
 import { OrderService } from "../service/order.service";
 
 export interface OrderCoreDependencies {
@@ -27,4 +28,4 @@ export * from "../ports/order-repository.port";
 export * from "../ports/order-identity.port";
 export * from "../ports/order-repository.port";
 export * from "../ports/order-identity.port";
-export * from "../public/order-service.interface";
+export * from "./order-service.interface";

@@ -1,7 +1,7 @@
 // infrastructure/adapters/VoyDeliveryProviderAdapter.ts
 
 import { fetchCalculateDeliveryCost } from "@/features/order/api/catalog-api";
-import { DeliveryProviderPort } from "@/mini-back/core/DeliveryCore/ports/delivery-provider.port";
+import { DeliveryProviderPort } from "@/mini-back/core/delivery-core/ports/delivery-provider.port";
 
 export class VoyDeliveryProviderAdapter implements DeliveryProviderPort {
   async quote(input: {

@@ -1,6 +1,6 @@
     // src/features/orders/types/ui-order.ts
 
-    import { DeliveryProvider } from "@/mini-back/core/orders/public";
+    import { DeliveryProvider } from "@/mini-back/core/orders-core/public";
 import { IOrder } from "./order";
 
 

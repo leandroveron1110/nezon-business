@@ -1,6 +1,6 @@
 // src/features/order/orchestrators/quote-delivery.orchestrator.ts
 
-import { DeliveryServicePublic } from "@/mini-back/core/DeliveryCore/public";
+import { DeliveryServicePublic } from "@/mini-back/core/delivery-core/public";
 import { LOCATION_DATA } from "@/data/location-search-data";
 import { ArcgisGeocodingAdapter } from "../infrastructure/adapters/arcgis-geocoding-adapter";
 import { VoyDeliveryProviderAdapter } from "../infrastructure/adapters/voy-delivery-provider-adapter";

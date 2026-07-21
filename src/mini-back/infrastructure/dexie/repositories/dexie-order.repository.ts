@@ -4,7 +4,7 @@ import {
   CoreOrderStateEvent,
   Order,
   OrderRepositoryPort,
-} from "@/mini-back/core/orders/public";
+} from "@/mini-back/core/orders-core/public";
 import { db } from "../db";
 import { SyncStatus } from "../shcema/orders.schema";
 

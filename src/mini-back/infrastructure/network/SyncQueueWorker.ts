@@ -1,6 +1,6 @@
 // src/infrastructure/network/SyncQueueWorker.ts
 import { DexieOrderRepositoryAdapter } from "../dexie/repositories/dexie-order.repository";
-import { OrderServicePublic } from "../../core/orders/public";
+import { OrderServicePublic } from "../../core/orders-core/public";
 import { DexieOrderIdentityAdapter } from "../dexie/repositories/dexie-order-identity.adapter";
 import { cloudSyncService } from "./CloudSyncService";
 import { db } from "../dexie/db";
