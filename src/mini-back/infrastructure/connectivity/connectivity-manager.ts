@@ -1,3 +1,5 @@
+import { circuitBreaker } from "./circuit-breaker";
+
 // connectivity-manager.ts
 type ConnectionState = "ONLINE" | "OFFLINE" | "CHECKING";
 
@@ -29,6 +31,7 @@ class ConnectivityManager {
 
     if (isAlive) {
       this.lastTimeOnline = now;
+      circuitBreaker.reset();
       this.updateState("ONLINE");
     } else {
       // Si falla, verificamos si ya se consumió el tiempo de gracia tolerado

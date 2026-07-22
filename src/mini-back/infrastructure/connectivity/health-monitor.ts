@@ -4,9 +4,9 @@ import { connectivityManager } from "./connectivity-manager";
 export async function checkServerHealth() {
   if (typeof window === "undefined") return false;
 
-  // Si el navegador DICE con certeza que no hay red, no gastamos batería haciendo pings
+  // Si el navegador DICE con certeza que no hay red, no gastamos batería
   if (!navigator.onLine) {
-    connectivityManager.forceState("OFFLINE"); // Forzado inmediato sin período de gracia
+    connectivityManager.forceState("OFFLINE");
     return false;
   }
 
@@ -25,16 +25,14 @@ export async function checkServerHealth() {
     clearTimeout(timeout);
 
     if (response.ok) {
-      connectivityManager.reportHeartbeat(true); // Servidor vivo e internet funcionando
+      connectivityManager.reportHeartbeat(true);
       return true;
     } else {
-      // El servidor respondió pero con error (ej: 502, 500, 503)
       connectivityManager.reportHeartbeat(false);
       return false;
     }
   } catch {
     clearTimeout(timeout);
-    // Error de red o timeout total
     connectivityManager.reportHeartbeat(false);
     return false;
   }
@@ -43,9 +41,19 @@ export async function checkServerHealth() {
 export function startHealthMonitor() {
   if (typeof window === "undefined") return;
 
-  // Escuchar eventos nativos del navegador para reaccionar al instante
+  const triggerImmediateCheck = () => {
+    // Si la pantalla se enciende o la PWA pasa a primer plano en el celu
+    if (document.visibilityState === "visible") {
+      // Si estábamos OFFLINE, ponemos CHECKING para feedback visual rápido y probamos salud
+      if (connectivityManager.isOffline()) {
+        connectivityManager.forceState("CHECKING");
+      }
+      checkServerHealth();
+    }
+  };
+
+  // 1. Escuchar eventos nativos de red
   window.addEventListener("online", () => {
-    // Si vuelve el cable/wifi, pasamos a CHECKING y forzamos un ping inmediato
     connectivityManager.forceState("CHECKING");
     checkServerHealth();
   });
@@ -54,7 +62,11 @@ export function startHealthMonitor() {
     connectivityManager.forceState("OFFLINE");
   });
 
-  // Ejecución inicial y loop
+  // 2. CLAVE PARA MÓVILES Y PWA: Escuchar cuando el usuario enciende la pantalla o vuelve a la App
+  document.addEventListener("visibilitychange", triggerImmediateCheck);
+  window.addEventListener("focus", triggerImmediateCheck);
+
+  // 3. Ejecución inicial y loop
   checkServerHealth();
   setInterval(checkServerHealth, 5000);
 }

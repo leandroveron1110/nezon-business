@@ -34,6 +34,12 @@ class CircuitBreaker {
     // console.log("[CircuitBreaker] CLOSED");
   }
 
+  public reset() {
+    this.failures = 0;
+    this.state = "CLOSED";
+    this.nextAttempt = 0;
+  }
+
   private halfOpen() {
     this.state = "HALF_OPEN";
 

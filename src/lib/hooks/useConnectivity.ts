@@ -5,7 +5,9 @@ import { useSyncExternalStore } from "react";
 export function useConnectivity() {
   const state = useSyncExternalStore(
     (callback) => connectivityManager.subscribe(callback),
-    () => connectivityManager.getState()
+    () => connectivityManager.getState(),
+    // Fallback de Server-Side Rendering (Next.js / SSR) para evitar hydration mismatch
+    () => "ONLINE"
   );
 
   return {
