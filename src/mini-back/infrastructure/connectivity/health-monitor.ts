@@ -21,7 +21,8 @@ export async function checkServerHealth() {
     const response = await fetch(url, {
       method: "GET",
       // 'cors' es estricto en celulares. 'no-store' evita cache.
-      cache: "no-store",
+      cache: "no-store",       // Evita que el navegador o Workbox devuelvan una respuesta cacheada
+      credentials: "omit",     // Salta la interceptación estricta de Workbox/Brave,
       signal: controller.signal,
       headers: {
         "Accept": "application/json",
