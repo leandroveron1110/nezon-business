@@ -6,7 +6,7 @@ import {
   OrderRepositoryPort,
 } from "@/mini-back/core/orders-core/public";
 import { db } from "../db";
-import { SyncStatus } from "../shcema/orders.schema";
+import { SyncStatus } from "@/mini-back/shared/types/sync-status.type";
 
 export class DexieOrderRepositoryAdapter implements OrderRepositoryPort {
   async save(input: Order): Promise<void> {
