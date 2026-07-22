@@ -332,108 +332,151 @@ export function OrderPanel({
       {/* 3. LISTA DE PRODUCTOS */}
       <div className="flex-1 overflow-y-auto bg-white z-10 divide-y divide-slate-100">
         {items.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-slate-300 opacity-40 py-20">
+          <div className="h-full flex flex-col items-center justify-center text-slate-300 opacity-40 py-20 select-none">
             <Store className="w-8 h-8 mb-1" />
             <p className="text-[9px] font-black uppercase tracking-tighter">
               Esperando pedido...
             </p>
           </div>
         ) : (
-          items.map((item, i) => (
-            <div
-              key={i}
-              className="px-2 py-1.5 flex flex-col hover:bg-slate-50/60 transition-colors"
-            >
-              {/* FILA PRINCIPAL */}
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-black uppercase truncate leading-tight">
-                    {item.productName}
-                  </p>
-                  <p className="text-[9px] text-blue-600 font-bold">
-                    {formatPrice(item.priceAtPurchase)}{" "}
-                    <span className="text-slate-400 font-normal">x unid.</span>
-                  </p>
-                </div>
+          items.map((item, i) => {
+            const isNoteOpen = openNoteIndex === i;
+            const hasNote = Boolean(item.notes);
 
-                {/* CONTROLES CANTIDAD */}
-                <div className="flex items-center bg-slate-100 rounded-md p-0.5 border select-none">
-                  <button
-                    type="button"
-                    onClick={() => updateQty(i, -1)}
-                    className="w-6 h-6 flex items-center justify-center hover:bg-white rounded transition-colors"
-                  >
-                    {item.quantity === 1 ? (
-                      <Trash2 size={12} className="text-red-500" />
-                    ) : (
-                      <Minus size={12} />
-                    )}
-                  </button>
-
-                  <span className="text-[10px] font-black w-5 text-center">
-                    {item.quantity}
-                  </span>
-
-                  <button
-                    type="button"
-                    onClick={() => updateQty(i, 1)}
-                    className="w-6 h-6 flex items-center justify-center hover:bg-white rounded transition-colors"
-                  >
-                    <Plus size={12} />
-                  </button>
-                </div>
-
-                {/* BOTÓN NOTA: Actúa como Switch Manual */}
-                <button
-                  type="button"
-                  onClick={() =>
-                    setOpenNoteIndex(openNoteIndex === i ? null : i)
+            return (
+              <div
+                key={i}
+                /* Atajo: Ctrl + Click o Cmd + Click abre/cierra la nota */
+                onClick={(e) => {
+                  if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    setOpenNoteIndex(isNoteOpen ? null : i);
                   }
-                  className="w-6 h-6 flex items-center justify-center ml-1 rounded hover:bg-slate-100 transition-colors"
-                >
-                  <FileText
-                    size={11}
-                    className={
-                      item.notes ? "text-orange-500" : "text-slate-400"
-                    }
-                  />
-                </button>
-              </div>
+                }}
+                className={`px-2.5 py-1.5 flex flex-col transition-colors cursor-pointer select-none ${
+                  isNoteOpen
+                    ? "bg-amber-50/80 border-l-2 border-orange-500"
+                    : hasNote
+                      ? "bg-amber-50/30 hover:bg-amber-50/60"
+                      : "hover:bg-slate-50/80"
+                }`}
+                title="Ctrl + Click para agregar nota de cocina"
+              >
+                {/* FILA PRINCIPAL */}
+                <div className="flex items-center justify-between gap-2">
+                  {/* Información del Producto */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-black uppercase truncate leading-tight text-slate-800">
+                      {item.productName}
+                    </p>
+                    <p className="text-[9px] text-blue-600 font-bold leading-tight">
+                      {formatPrice(item.priceAtPurchase)}{" "}
+                      <span className="text-slate-400 font-normal">
+                        x unid.
+                      </span>
+                    </p>
+                  </div>
 
-              {/* EDITOR DE NOTA (TEXTAREA CON SALTOS DE LÍNEA) */}
-              {openNoteIndex === i && (
-                <div className="flex flex-col gap-1 mt-1.5 bg-slate-50 border border-orange-200 rounded p-1.5 animate-in fade-in duration-100">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[8px] font-black text-orange-600 uppercase tracking-wider">
-                      Instrucciones de Cocina (Enter para bajar)
-                    </span>
+                  {/* CONTROLES CANTIDAD (Stop propagation para evitar disparar Ctrl+Click) */}
+                  <div
+                    className="flex items-center bg-slate-100 rounded-md p-0.5 border shrink-0"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <button
                       type="button"
-                      onClick={() => setOpenNoteIndex(null)}
-                      className="text-[8px] font-black bg-slate-200 text-slate-600 px-1 py-0.5 rounded uppercase hover:bg-slate-300"
+                      onClick={() => updateQty(i, -1)}
+                      className="w-6 h-6 flex items-center justify-center hover:bg-white active:bg-slate-200 rounded transition-colors"
                     >
-                      Listo
+                      {item.quantity === 1 ? (
+                        <Trash2 size={12} className="text-red-500" />
+                      ) : (
+                        <Minus size={12} className="text-slate-600" />
+                      )}
+                    </button>
+
+                    <span className="text-[10px] font-black w-5 text-center text-slate-800">
+                      {item.quantity}
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() => updateQty(i, 1)}
+                      className="w-6 h-6 flex items-center justify-center hover:bg-white active:bg-slate-200 rounded transition-colors text-slate-600"
+                    >
+                      <Plus size={12} />
                     </button>
                   </div>
-                  <textarea
-                    autoFocus
-                    rows={3}
-                    placeholder={`Poca salsa\nMucho queso\nBien cocida...`}
-                    value={item.notes || ""}
-                    onChange={(e) => updateItemNote?.(i, e.target.value)}
-                    className="w-full text-[10px] font-bold bg-white border border-slate-200 rounded p-1 outline-none text-slate-700 placeholder:text-slate-400 placeholder:font-normal resize-none leading-tight"
-                  />
-                </div>
-              )}
 
-              {/* RESUMEN SI EXISTE NOTA Y EL EDITOR ESTÁ CERRADO */}
-              {item.notes && openNoteIndex !== i && (
-                <div className="text-[9px] text-orange-600 font-bold mt-1 bg-orange-50/60 p-1.5 rounded border border-orange-100 whitespace-pre-line leading-tight">
-                  {item.notes}
+                  {/* BOTÓN NOTA MANUAL */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenNoteIndex(isNoteOpen ? null : i);
+                    }}
+                    className={`w-6 h-6 flex items-center justify-center rounded shrink-0 transition-colors ${
+                      hasNote
+                        ? "bg-orange-100 text-orange-600 hover:bg-orange-200"
+                        : "hover:bg-slate-200 text-slate-400"
+                    }`}
+                    title="Agregar nota (o usá Ctrl + Click)"
+                  >
+                    <FileText size={12} />
+                  </button>
                 </div>
-              )}
-            </div>
-          ))
+
+                {/* EDITOR DE NOTA */}
+                {isNoteOpen && (
+                  <div
+                    className="flex flex-col gap-1 mt-1.5 bg-white border border-orange-300 rounded p-1.5 shadow-sm animate-in fade-in duration-100"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[8px] font-black text-orange-600 uppercase tracking-wider">
+                        Notas para cocina
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setOpenNoteIndex(null)}
+                        className="text-[8px] font-black bg-slate-100 hover:bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded uppercase transition-colors"
+                      >
+                        Listo
+                      </button>
+                    </div>
+                    <textarea
+                      autoFocus
+                      rows={2}
+                      placeholder={`Poca salsa\nMucho queso\nSin cebolla...`}
+                      value={item.notes || ""}
+                      onChange={(e) => updateItemNote?.(i, e.target.value)}
+                      onKeyDown={(e) => {
+                        // Si presiona Ctrl+Enter guarda la nota rápido
+                        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                          e.preventDefault();
+                          setOpenNoteIndex(null);
+                        }
+                      }}
+                      className="w-full text-[10px] font-bold bg-slate-50 border border-slate-200 rounded p-1 outline-none focus:bg-white focus:border-orange-400 text-slate-800 placeholder:text-slate-400 placeholder:font-normal resize-none leading-tight"
+                    />
+                  </div>
+                )}
+
+                {/* RESUMEN DE NOTA (CUANDO EL EDITOR ESTÁ CERRADO) */}
+                {hasNote && !isNoteOpen && (
+                  <div
+                    onClick={(e) => {
+                      // Hacer click en la nota previa también abre el editor
+                      e.stopPropagation();
+                      setOpenNoteIndex(i);
+                    }}
+                    className="text-[9px] text-orange-700 font-bold mt-1 bg-orange-100/70 hover:bg-orange-100 px-1.5 py-1 rounded border border-orange-200/80 whitespace-pre-line leading-tight cursor-pointer"
+                  >
+                    {item.notes}
+                  </div>
+                )}
+              </div>
+            );
+          })
         )}
       </div>
 

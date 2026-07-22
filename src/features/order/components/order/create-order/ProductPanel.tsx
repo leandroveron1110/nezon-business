@@ -41,14 +41,24 @@ const ProductCard = memo(function ProductCard({
 
   return (
     <div
-      onClick={() => onClickDirect(product)}
+      onClick={(e) => {
+        // Atajo: Ctrl + Click o Cmd + Click abre la personalización/nota
+        if (e.ctrlKey || e.metaKey) {
+          e.preventDefault();
+          onClickCustomize(product);
+        } else {
+          onClickDirect(product);
+        }
+      }}
       className={`
         relative flex flex-col justify-between p-2 text-left h-16
         rounded-xl border transition-all duration-75
         active:scale-[0.97] cursor-pointer select-none group
         ${cardStyles}
       `}
+      title="Click: Agregar directo | Ctrl + Click: Personalizar / Agregar nota"
     >
+      {/* Botón de Ajustes (Se frena la propagación para evitar doble disparo) */}
       <button
         type="button"
         onClick={(e) => {
@@ -56,7 +66,7 @@ const ProductCard = memo(function ProductCard({
           onClickCustomize(product);
         }}
         className="absolute top-1 right-1 p-1 rounded-md bg-slate-100 text-slate-500 hover:bg-orange-100 hover:text-orange-600 transition-colors z-10"
-        title="Agregar con nota o adicionales (Shift + Enter / F2)"
+        title="Personalizar (Ctrl + Click en la tarjeta o click aquí)"
       >
         <SlidersHorizontal size={10} />
       </button>
@@ -178,148 +188,6 @@ export function ProductPanel({
     startTransition(() => setSearch(""));
     inputRef.current?.focus();
   };
-
-  // // Motor Geométrico (Se mantiene encapsulado, performante para los 80 items del visor)
-  // const moveVertical = (direction: "UP" | "DOWN") => {
-  //   if (!containerRef.current) return;
-  //   const items = containerRef.current.querySelectorAll(
-  //     "[data-product-wrapper]",
-  //   );
-  //   if (items.length === 0) return;
-
-  //   const currentRect = items[selectedIndex].getBoundingClientRect();
-  //   const currentCenterLeft = currentRect.left + currentRect.width / 2;
-
-  //   let targetIndex = -1;
-  //   let closestDistance = Infinity;
-
-  //   for (let i = 0; i < items.length; i++) {
-  //     if (i === selectedIndex) continue;
-  //     const rect = items[i].getBoundingClientRect();
-
-  //     if (direction === "DOWN" && rect.top >= currentRect.bottom - 1) {
-  //       const verticalDist = rect.top - currentRect.bottom;
-  //       const horizontalDist = Math.abs(
-  //         rect.left + rect.width / 2 - currentCenterLeft,
-  //       );
-  //       const totalDist = verticalDist + horizontalDist * 0.5;
-
-  //       if (totalDist < closestDistance) {
-  //         closestDistance = totalDist;
-  //         targetIndex = i;
-  //       }
-  //     } else if (direction === "UP" && rect.bottom <= currentRect.top + 1) {
-  //       const verticalDist = currentRect.top - rect.bottom;
-  //       const horizontalDist = Math.abs(
-  //         rect.left + rect.width / 2 - currentCenterLeft,
-  //       );
-  //       const totalDist = verticalDist + horizontalDist * 0.5;
-
-  //       if (totalDist < closestDistance) {
-  //         closestDistance = totalDist;
-  //         targetIndex = i;
-  //       }
-  //     }
-  //   }
-
-  //   if (targetIndex !== -1) {
-  //     setSelectedIndex(targetIndex);
-  //   }
-  // };
-
-  // // 🆕 Punto 8: Escucha global real a nivel de Window controlada por estado del POS
-  // useEffect(() => {
-  //   // Si hay un modal abierto, apagamos la escucha del catálogo para no romper la UX al escribir notas
-  //   if (isModalOpen) return;
-
-  //   const handleGlobalKeyDown = (e: KeyboardEvent) => {
-  //     const totalItems = filteredProducts.length;
-  //     const activeProduct = filteredProducts[selectedIndex];
-
-  //     // Atajos globales absolutos
-  //     if (e.key === "F4") {
-  //       e.preventDefault();
-  //       inputRef.current?.focus();
-  //       return;
-  //     }
-
-  //     if (e.key === "F8") {
-  //       e.preventDefault();
-  //       onCheckout?.();
-  //       return;
-  //     }
-
-  //     if (e.key === "Escape") {
-  //       e.preventDefault();
-  //       clearSearch();
-  //       return;
-  //     }
-
-  //     // 🆕 Punto 1: Protección total contra undefined si la lista está vacía
-  //     if ((e.key === "Enter" || e.key === "F2") && !activeProduct) {
-  //       if (e.key === "Enter" && document.activeElement !== inputRef.current) {
-  //         // Dejamos pasar el enter nativo sólo si no está interactuando con el panel
-  //       } else {
-  //         e.preventDefault();
-  //       }
-  //       return;
-  //     }
-
-  //     // 🆕 Punto 6: Proteger personalización explícita
-  //     if ((e.key === "Enter" && e.shiftKey) || e.key === "F2") {
-  //       e.preventDefault();
-  //       if (activeProduct) onProductCustomize(activeProduct);
-  //       return;
-  //     }
-
-  //     // Navegación Direccional de la cuadrícula
-  //     switch (e.key) {
-  //       case "ArrowRight":
-  //         if (selectedIndex + 1 < totalItems) {
-  //           e.preventDefault();
-  //           setSelectedIndex(selectedIndex + 1);
-  //         }
-  //         break;
-
-  //       case "ArrowLeft":
-  //         if (selectedIndex - 1 >= 0) {
-  //           e.preventDefault();
-  //           setSelectedIndex(selectedIndex - 1);
-  //         }
-  //         break;
-
-  //       case "ArrowDown":
-  //         e.preventDefault();
-  //         moveVertical("DOWN");
-  //         break;
-
-  //       case "ArrowUp":
-  //         e.preventDefault();
-  //         moveVertical("UP");
-  //         break;
-
-  //       case "Enter":
-  //         e.preventDefault();
-  //         handleProductAction(activeProduct);
-  //         break;
-  //     }
-  //   };
-
-  //   window.addEventListener("keydown", handleGlobalKeyDown);
-  //   return () => window.removeEventListener("keydown", handleGlobalKeyDown);
-  // }, [filteredProducts, selectedIndex, isModalOpen, onCheckout]);
-
-  // // 🆕 Punto 3: Cambiado a scroll instantáneo sin suavizados que retrasen al cajero veterano
-  // useEffect(() => {
-  //   if (!containerRef.current) return;
-  //   const activeEl = containerRef.current.querySelector("[data-active='true']");
-  //   if (activeEl) {
-  //     activeEl.scrollIntoView({
-  //       block: "nearest",
-  //       inline: "nearest",
-  //     });
-  //   }
-  // }, [selectedIndex]);
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-slate-100">

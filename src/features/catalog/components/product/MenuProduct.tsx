@@ -358,7 +358,7 @@ export default function MenuProduct({
           />
         ))}
 
-        {showNewGroup ? (
+        {/* {showNewGroup ? (
           <NewMenuGroup
             menuProductId={product.id}
             onCreate={handleNewGroupCreate}
@@ -371,7 +371,7 @@ export default function MenuProduct({
           >
             + Agregar grupo
           </button>
-        )}
+        )} */}
       </div>
 
       <div className="border-t border-gray-200 pt-4 flex flex-col sm:flex-row justify-end gap-3">
