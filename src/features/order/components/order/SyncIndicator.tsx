@@ -106,13 +106,47 @@ export function SyncIndicator() {
             <span>Sin Conexión</span>
           </>
         )}
-      </button>
 
-      {isOnline && !isChecking && errorMessage && (
-        <span className="text-[10px] text-amber-600 font-medium tracking-wide animate-fadeIn px-1">
-          {errorMessage}
-        </span>
-      )}
+        {/* Estado 2: Verificando disponibilidad */}
+        {!isOffline && isChecking && (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
+            <span>Verificando Red...</span>
+          </>
+        )}
+
+        {/* Estado 3: En proceso de sincronización */}
+        {isOnline && !isChecking && syncStatus === "syncing" && (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
+            <span>Sincronizando...</span>
+          </>
+        )}
+
+        {/* Estado 4: Éxito */}
+        {isOnline && !isChecking && syncStatus === "success" && (
+          <>
+            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+            <span>Sincronizado con éxito</span>
+          </>
+        )}
+
+        {/* Estado 5: Error parcial */}
+        {isOnline && !isChecking && syncStatus === "partial_error" && (
+          <>
+            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+            <span>Sincronización incompleta</span>
+          </>
+        )}
+
+        {/* Estado 6: En línea y listo (Idle) */}
+        {isOnline && !isChecking && syncStatus === "idle" && (
+          <>
+            <CloudUpload className="w-4 h-4 flex-shrink-0" />
+            <span>Sincronizar</span>
+          </>
+        )}
+      </button>
     </div>
   );
 }
