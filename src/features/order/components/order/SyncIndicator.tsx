@@ -1,4 +1,6 @@
 "use client";
+
+import { useConnectivity } from "@/lib/hooks/useConnectivity";
 import {
   getSyncQueueWorker,
   SyncResult,
@@ -9,7 +11,7 @@ import {
   CloudUpload,
   CheckCircle2,
   AlertTriangle,
-  CloudOff,
+  WifiOff,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -21,107 +23,93 @@ type SyncUIStatus =
   | "offline";
 
 export function SyncIndicator() {
-  const [status, setStatus] = useState<SyncUIStatus>("idle");
+  const { isOnline, isOffline, isChecking } = useConnectivity();
+  const [syncStatus, setSyncStatus] = useState<SyncUIStatus>("idle");
   const [errorMessage, setErrorMessage] = useState("");
 
   const handleSyncClick = async () => {
-    setStatus("syncing");
+    // Si no hay red/servidor activo, abortamos la acción manual
+    if (!isOnline) return;
+
+    setSyncStatus("syncing");
     setErrorMessage("");
 
     try {
       const result: SyncResult =
         await getSyncQueueWorker().forceManualSyncAll();
-      initSchedulers(); // Reiniciamos los schedulers del DeliveryWorker tras la sincronización
+      initSchedulers(); // Reiniciamos schedulers del DeliveryWorker tras la sincronización
 
       if (result.success) {
-        // Volver al estado inicial tras unos segundos de feedback positivo
-        setTimeout(() => setStatus("idle"), 3000);
+        setSyncStatus("success");
+        setTimeout(() => setSyncStatus("idle"), 3000);
       } else {
         if (result.status === "OFFLINE" || result.status === "SERVER_DOWN") {
-          setStatus("offline");
-          setErrorMessage(
-            result.status === "OFFLINE"
-              ? "Sin conexión a internet"
-              : "Servidor no disponible",
-          );
+          setSyncStatus("offline");
+          setErrorMessage("Sin comunicación con el servidor");
         } else {
-          setStatus("partial_error");
+          setSyncStatus("partial_error");
           setErrorMessage(
-            `Quedaron ${result.pendingCount ?? "algunas"} órdenes sin subir.`,
+            `Quedaron ${result.pendingCount ?? "algunas"} órdenes sin subir.`
           );
         }
-        setTimeout(() => setStatus("idle"), 5000); // feedback extendido para el error
+        setTimeout(() => setSyncStatus("idle"), 5000);
       }
     } catch (error) {
-      setStatus("partial_error");
-      setErrorMessage("Error crítico inesperado en la sincronización.");
-      setTimeout(() => setStatus("idle"), 4000);
+      setSyncStatus("partial_error");
+      setErrorMessage("Error inesperado en la sincronización.");
+      setTimeout(() => setSyncStatus("idle"), 4000);
     }
   };
 
-  // Mapeo dinámico de estilos Tailwind según el estado real
-  const buttonStyles = {
-    idle: "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800 shadow-sm active:scale-98",
-    syncing:
-      "bg-blue-50 border-blue-200 text-blue-600 shadow-inner animate-pulse",
-    success: "bg-emerald-50 border-emerald-200 text-emerald-600",
-    partial_error: "bg-amber-50 border-amber-200 text-amber-700 font-medium",
-    offline: "bg-rose-50 border-rose-200 text-rose-600 cursor-not-allowed",
+  // Botón deshabilitado si no estamos 100% online o si ya se está ejecutando una sincronización
+  const isButtonDisabled = !isOnline || syncStatus === "syncing";
+
+  // Mapeo dinámico de estilos Tailwind según el estado de conectividad real
+  const getButtonStyles = () => {
+    if (isOffline) {
+      return "bg-rose-50 border-rose-200 text-rose-600 opacity-80 cursor-not-allowed";
+    }
+    if (isChecking) {
+      return "bg-amber-50 border-amber-200 text-amber-700 animate-pulse cursor-wait";
+    }
+
+    switch (syncStatus) {
+      case "syncing":
+        return "bg-blue-50 border-blue-200 text-blue-600 shadow-inner animate-pulse";
+      case "success":
+        return "bg-emerald-50 border-emerald-200 text-emerald-600";
+      case "partial_error":
+        return "bg-amber-50 border-amber-200 text-amber-700 font-medium";
+      default:
+        return "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800 shadow-sm active:scale-98";
+    }
   };
 
   return (
     <div className="flex flex-col items-end gap-1.5">
       <button
         onClick={handleSyncClick}
-        disabled={status === "syncing" || status === "offline"}
+        disabled={isButtonDisabled}
         className={`
           flex items-center justify-center gap-2
           px-3.5 py-2 rounded-xl
           font-semibold text-xs md:text-sm
           border transition-all duration-200
           disabled:cursor-not-allowed select-none
-          ${buttonStyles[status]}
+          ${getButtonStyles()}
         `}
       >
-        {status === "syncing" && (
+        {/* Estado 1: Sin conexión */}
+        {isOffline && (
           <>
-            <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
-            <span>Sincronizando...</span>
-          </>
-        )}
-
-        {status === "success" && (
-          <>
-            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-            <span>Sincronizado con éxito</span>
-          </>
-        )}
-
-        {status === "partial_error" && (
-          <>
-            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-            <span>Sincronización incompleta</span>
-          </>
-        )}
-
-        {status === "offline" && (
-          <>
-            <CloudOff className="w-4 h-4 flex-shrink-0" />
-            <span>Modo Offline</span>
-          </>
-        )}
-
-        {status === "idle" && (
-          <>
-            <CloudUpload className="w-4 h-4 flex-shrink-0" />
-            <span>Sincronizar</span>
+            <WifiOff className="w-4 h-4 flex-shrink-0" />
+            <span>Sin Conexión</span>
           </>
         )}
       </button>
 
-      {/* Subtexto descriptivo de errores si los hubiera */}
-      {errorMessage && (
-        <span className="text-[10px] text-gray-400 font-medium tracking-wide animate-fadeIn px-1">
+      {isOnline && !isChecking && errorMessage && (
+        <span className="text-[10px] text-amber-600 font-medium tracking-wide animate-fadeIn px-1">
           {errorMessage}
         </span>
       )}
