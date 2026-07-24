@@ -1,6 +1,6 @@
 "use client";
 
-import { Star, Tag, ShoppingBag, Package, Users, Settings } from "lucide-react";
+import { Star, Tag, ShoppingBag, Package, Users, Settings, Calculator } from "lucide-react";
 import { SearchResultBusiness } from "../../../types/search";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -131,12 +131,12 @@ export const SearchBusinessCard = ({ business }: BusinessCardProps) => {
         </button>
 
         <button
-          onClick={() => openBusiness(`/business/${business.id}/employees`)}
+          onClick={() => openBusiness(`/business/${business.id}/cash-register`)}
           className="flex flex-col items-center justify-center py-2.5 px-1 text-gray-600 hover:bg-gray-100/80 rounded-lg transition-colors gap-1"
-          title="Personal"
+          title="Caja"
         >
-          <Users size={18} />
-          <span className="text-[10px] font-medium">Personal</span>
+          <Calculator size={18} />
+          <span className="text-[10px] font-medium">Caja</span>
         </button>
 
         <button

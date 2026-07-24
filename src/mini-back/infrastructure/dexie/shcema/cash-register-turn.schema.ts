@@ -91,4 +91,4 @@ export interface LocalCashRegisterTurn {
 // ============================================================================
 
 export const CASH_REGISTER_STORE =
-  "clientTurnId, id, businessId, status, syncStatus, openingDate";
+  "clientTurnId, id, businessId, status, syncStatus, openingDate, [businessId+status]";

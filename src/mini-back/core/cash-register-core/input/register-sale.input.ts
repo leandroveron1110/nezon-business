@@ -3,9 +3,9 @@ import { PaymentMethodTypeFinancial } from "../domain/financial-movement-status.
 export interface RegisterSaleInput {
   businessId: string;
 
+  clientMovementId?: string;
+  
   userId: string;
-
-  clientMovementId: string;
 
   orderId: string;
 

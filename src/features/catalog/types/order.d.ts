@@ -1,10 +1,6 @@
 import { OrderStatus } from "@/features/order/types/order";
+import { PaymentMethodTypeFinancial } from "@/mini-back/shared/enums/financial-movement-status.enum";
 
-export enum PaymentMethodType {
-  TRANSFER = "TRANSFER", 
-  CASH = "CASH",
-  DELIVERY = "DELIVERY"
-}
 
 export enum PaymentStatus {
   PENDING = "PENDING", 
@@ -72,7 +68,7 @@ export interface CreateOrderFull {
   items: CreateOrderItem[];
 
   // --- pagos ---
-  orderPaymentMethod?: PaymentMethodType;       // CASH, TRANSFER, DELIVERY
+  orderPaymentMethod?: PaymentMethodTypeFinancial;       // CASH, TRANSFER, DELIVERY
   paymentStatus?: PaymentStatus;         // PENDING, IN_PROGRESS, CONFIRMED, REJECTED
   paymentReceiptUrl?: string;            // URL del comprobante
   paymentInstructions?: string;          // solo si es transferencia

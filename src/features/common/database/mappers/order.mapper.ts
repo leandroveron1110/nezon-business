@@ -95,7 +95,7 @@ export class OrderMapper {
       total: Number(apiOrder.total),
 
       // Pagos
-      orderPaymentMethod: this.mapPaymentMethod(apiOrder.orderPaymentMethod),
+      orderPaymentMethod: apiOrder.orderPaymentMethod,
       paymentStatus,
 
       // Items

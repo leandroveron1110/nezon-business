@@ -1,5 +1,5 @@
 // src/orchestrator/order.orchestrator.ts
-
+import { v4 as uuid } from "uuid";
 import {
   CreateOrderInput,
   OrderServicePublic,
@@ -10,6 +10,7 @@ import { DexieOrderIdentityAdapter } from "../infrastructure/dexie/repositories/
 import { DexieOrderRepositoryAdapter } from "../infrastructure/dexie/repositories/dexie-order.repository";
 import { cloudSyncService } from "../infrastructure/network/CloudSyncService";
 import { requestDeliveryDispatch } from "../infrastructure/network/delivery-api";
+import { cashRegisterOrchestrator } from "./cash-register.orchestrator";
 import { quoteDeliveryOrchestrator } from "./delivery.orchestrator";
 // import { syncQueueWorker } from "../infrastructure/network/SyncQueueWorker";
 
@@ -96,6 +97,64 @@ export const updateOrderStatusOrchestrator = async (
   if (!result.success || !result.data) return result;
 
   const order = result.data;
+
+  // =================================================================
+  // 🌟 IMPACTO EN CAJA (Coordinación de Cores mediante el Orquestador)
+  // =================================================================
+  try {
+    // ---------------------------------------------------------------
+    // ESCENARIO A: Cambios explícitos en el hilo de PAGO (PAYMENT)
+    // ---------------------------------------------------------------
+    if (input.thread === "PAYMENT") {
+      if (input.nextValue === "CONFIRMED") {
+        // 1. Cobro exitoso de la orden
+        await cashRegisterOrchestrator.processSaleMovement({
+          businessId: order.businessId,
+          userId: order.userId || "system",
+          amount: order.total,
+          paymentMethod: order.orderPaymentMethod,
+          orderId: order.idTemp,
+          description: `Cobro de pedido #${order.shortCode || order.idTemp.slice(-4)}`,
+        });
+      } else if (input.nextValue === "PENDING") {
+        // 2. Reversión / Desmarcado de pago
+        await cashRegisterOrchestrator.processRefundMovement({
+          businessId: order.businessId,
+          userId: order.userId || "system",
+          amount: order.total,
+          paymentMethod: order.orderPaymentMethod,
+          orderId: order.idTemp,
+          description: `Reversión de cobro pedido #${order.shortCode || order.idTemp.slice(-4)}`,
+        });
+      }
+    }
+
+    // ---------------------------------------------------------------
+    // ESCENARIO B: Cancelación de la Orden Completa (STATUS -> CANCELLED)
+    // ---------------------------------------------------------------
+    if (input.thread === "STATUS" && input.nextValue === "CANCELLED") {
+      // ⚠️ SOLO genera egreso si la orden figuraba como PAGADA (CONFIRMED)
+      if (order.paymentStatus === "CONFIRMED") {
+        await cashRegisterOrchestrator.processRefundMovement({
+          businessId: order.businessId,
+          userId: order.userId || "system",
+          amount: order.total,
+          paymentMethod: order.orderPaymentMethod,
+          orderId: order.idTemp,
+          description: `Devolución por cancelación de pedido #${order.shortCode || order.idTemp.slice(-4)}`,
+        });
+
+        // 💡 OPCIONAL: Actualizar quirúrgicamente el hilo de pago local a PENDING o REFUNDED
+        // si tu máquina de estados lo requiere.
+      }
+    }
+  } catch (cashError) {
+    // Si la caja está cerrada, registramos el error sin romper la app local
+    console.error(
+      "No se pudo impactar el movimiento de caja al actualizar estado:",
+      cashError,
+    );
+  }
 
   const esCambioCritico =
     input.thread === "DELIVERY" && input.nextValue === "REQUESTED";

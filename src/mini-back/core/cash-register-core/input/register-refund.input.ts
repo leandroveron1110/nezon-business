@@ -3,10 +3,9 @@ import { PaymentMethodTypeFinancial } from "../domain/financial-movement-status.
 export interface RegisterRefundInput {
   businessId: string;
 
-  userId: string;
+  clientMovementId?: string;
   
-
-  clientMovementId: string;
+  userId: string;
 
   orderId: string;
 
@@ -19,6 +18,6 @@ export interface RegisterRefundInput {
   notes?: string;
 
   externalReference?: string;
-
+  
   referenceCashRegisterTurnId?: string;
 }

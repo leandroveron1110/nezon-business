@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import { Plus, Save, Layers, CreditCard, Tag, PackageCheck } from "lucide-react";
 import {
   IMenuProduct,
   IOptionGroup,
@@ -48,7 +49,6 @@ export default function MenuProduct({
   const [showNewGroup, setShowNewGroup] = useState(false);
   const { addAlert } = useAlert();
 
-  // 📌 producto desde la store
   const product = useMenuStore((state) =>
     state.menus
       .find((m) => m.id === menuId)
@@ -78,7 +78,6 @@ export default function MenuProduct({
 
   const getModifiedFields = (): Partial<IMenuProduct> => {
     if (!initialProduct) return {};
-
     const modified: Record<string, unknown> = { id: product.id };
 
     (Object.keys(product) as (keyof IMenuProduct)[]).forEach((key) => {
@@ -117,7 +116,7 @@ export default function MenuProduct({
       if (data) {
         updateProduct({ menuId, sectionId, productId }, data);
         addAlert({
-          message: `Producto actualizado`,
+          message: `Producto actualizado correctamente`,
           type: "info",
         });
       } else {
@@ -125,7 +124,6 @@ export default function MenuProduct({
       }
     } catch (error) {
       updateProduct({ menuId, sectionId, productId }, previousValues);
-
       addAlert({
         message: getDisplayErrorMessage(error),
         type: "error",
@@ -140,10 +138,7 @@ export default function MenuProduct({
     updatedData: Partial<OptionGroupCreate>
   ) => {
     const group = product.optionGroups.find((g) => g.id === groupId);
-
-    if (!group) {
-      return;
-    }
+    if (!group) return;
 
     const previousValues = getPreviousValues<IOptionGroup>(
       group,
@@ -183,18 +178,11 @@ export default function MenuProduct({
     optionIds: string[]
   ) => {
     const groupToDelete = product.optionGroups.find((g) => g.id === groupId);
-
     if (!groupToDelete) return;
 
     const groupToRestore = deepCopy(groupToDelete);
 
-    // 2. ⚡ APLICAR ELIMINACIÓN OPTIMISTA
-    deleteGroupStore({
-      groupId,
-      menuId,
-      productId,
-      sectionId,
-    });
+    deleteGroupStore({ groupId, menuId, productId, sectionId });
     try {
       await deleteManyOptionsMutate.mutateAsync(optionIds);
       await deleteGroup.mutateAsync(groupId);
@@ -228,15 +216,12 @@ export default function MenuProduct({
       const result = await createGroup.mutateAsync(group);
 
       if (result) {
-        // 5. ✅ ÉXITO: REEMPLAZAR ID TEMPORAL
         replaceTempId(
           "group",
-          { menuId, sectionId, productId }, // IDs de los padres
+          { menuId, sectionId, productId },
           tempId,
-          result.id // ID real
+          result.id
         );
-
-        // 6. Aplicar el patch canónico (opcional pero recomendado)
         updateGroupStore(
           { menuId, sectionId, productId, groupId: result.id },
           result
@@ -249,12 +234,7 @@ export default function MenuProduct({
         throw new Error("El grupo se creó pero no se recibió el ID real.");
       }
     } catch (error) {
-      deleteGroupStore({
-        groupId: tempId,
-        menuId,
-        productId,
-        sectionId,
-      });
+      deleteGroupStore({ groupId: tempId, menuId, productId, sectionId });
       addAlert({
         message: getDisplayErrorMessage(error),
         type: "error",
@@ -263,129 +243,177 @@ export default function MenuProduct({
   };
 
   return (
-    <div className="max-w-xl mx-auto space-y-6">
-      {/* Imagen */}
-      <MenuProductImage
-        businessId={businessId}
-        menuProductId={product.id}
-        image={product.imageUrl || ""}
-        name={product.name}
-        onUpdate={(data) => handleUpdate({ imageUrl: data.imageUrl })}
-      />
+    <div className="space-y-6 text-slate-800">
+      {/* BLOQUE 1: IMAGEN E INFORMACIÓN BÁSICA */}
+      <section className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 space-y-5">
+        <MenuProductImage
+          businessId={businessId}
+          menuProductId={product.id}
+          image={product.imageUrl || ""}
+          name={product.name}
+          onUpdate={(data) => handleUpdate({ imageUrl: data.imageUrl })}
+        />
 
-      {/* Header */}
-      <MenuProductHeader
-        name={product.name}
-        description={product.description}
-        onUpdate={(data) => handleUpdate(data)}
-      />
+        <MenuProductHeader
+          name={product.name}
+          description={product.description}
+          onUpdate={(data) => handleUpdate(data)}
+        />
+      </section>
 
-      {/* Precio */}
-      <MenuProductPrice
-        finalPrice={product.finalPrice}
-        originalPrice={product.originalPrice}
-        discountPercentage={product.discountPercentage}
-        currencyMask={product.currencyMask}
-        onUpdate={(data) => handleUpdate(data)}
-      />
+      {/* BLOQUE 2: PRECIO Y ETIQUETAS */}
+      <section className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 space-y-5">
+        <div className="flex items-center gap-2 text-slate-900 font-semibold text-sm border-b border-slate-100 pb-3">
+          <Tag className="w-4 h-4 text-blue-600" />
+          <h3>Precio y Promociones</h3>
+        </div>
 
-      {/* Stock y disponibilidad */}
-      <MenuProductStock
-        available={product.available}
-        stock={product.stock}
-        preparationTime={product.preparationTime}
-        onUpdate={(data) => handleUpdate(data)}
-      />
+        <MenuProductPrice
+          finalPrice={product.finalPrice}
+          originalPrice={product.originalPrice}
+          discountPercentage={product.discountPercentage}
+          currencyMask={product.currencyMask}
+          onUpdate={(data) => handleUpdate(data)}
+        />
 
-      {/* Flags */}
-      <MenuProductFlags
-        isMostOrdered={product.isMostOrdered}
-        isRecommended={product.isRecommended}
-        onUpdate={(data) => handleUpdate(data)}
-      />
-
-      {/* Enabled */}
-      <EnabledSwitch
-        enabled={!!product.enabled}
-        onChange={(val) => handleUpdate({ enabled: val })}
-        label="Visible en la carta"
-        hint="Activa o desactiva la visibilidad del producto."
-      />
-
-      {/* -------------------------------
-          Nueva sección: Métodos de pago (producto)
-          ------------------------------- */}
-      <div className="mt-4 p-4 rounded-xl border border-gray-200 bg-white">
-        <h4 className="font-semibold text-gray-800 mb-3">Métodos de pago (producto)</h4>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <EnabledSwitch
-            enabled={product.acceptsCash ?? true}
-            onChange={(val) => handleUpdate({ acceptsCash: val })}
-            label="Acepta efectivo"
-            hint="Si está activo, el cliente puede pagar este producto en efectivo."
-          />
-
-          <EnabledSwitch
-            enabled={product.acceptsTransfer ?? true}
-            onChange={(val) => handleUpdate({ acceptsTransfer: val })}
-            label="Acepta transferencia"
-            hint="Si está activo, el cliente puede pagar este producto por transferencia."
-          />
-
-          <EnabledSwitch
-            enabled={product.acceptsQr ?? false}
-            onChange={(val) => handleUpdate({ acceptsQr: val })}
-            label="Acepta QR / billetera"
-            hint="Si está activo, el cliente puede pagar con QR o billeteras digitales."
+        <div className="pt-2">
+          <MenuProductFlags
+            isMostOrdered={product.isMostOrdered}
+            isRecommended={product.isRecommended}
+            onUpdate={(data) => handleUpdate(data)}
           />
         </div>
-      </div>
+      </section>
 
-      {/* Opciones */}
-      <div className="space-y-6 mb-6">
-        {(product.optionGroups ?? []).map((group) => (
-          <MenuGroup
-            key={group.id}
-            businessId={businessId}
-            groupId={group.id}
-            menuId={menuId}
-            productId={productId}
-            sectionId={sectionId}
-            currencyMask={product.currencyMask || "$"}
-            onDeleteGroup={deleteGroupWithOptions}
-            onUpdate={(data) => handleGroupUpdate(group.id, data.group)}
+      {/* BLOQUE 3: DISPONIBILIDAD Y STOCK */}
+      <section className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 space-y-5">
+        <div className="flex items-center gap-2 text-slate-900 font-semibold text-sm border-b border-slate-100 pb-3">
+          <PackageCheck className="w-4 h-4 text-emerald-600" />
+          <h3>Disponibilidad y Visibilidad</h3>
+        </div>
+
+        <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/60">
+          <EnabledSwitch
+            enabled={!!product.enabled}
+            onChange={(val) => handleUpdate({ enabled: val })}
+            label="Visible en la carta"
+            hint="Si está desactivado, el producto estará oculto para todos los clientes."
           />
-        ))}
+        </div>
 
-        {/* {showNewGroup ? (
-          <NewMenuGroup
-            menuProductId={product.id}
-            onCreate={handleNewGroupCreate}
-            onClose={() => setShowNewGroup(false)}
-          />
-        ) : (
-          <button
-            className="text-blue-600 hover:underline text-sm"
-            onClick={() => setShowNewGroup(true)}
-          >
-            + Agregar grupo
-          </button>
-        )} */}
-      </div>
+        <MenuProductStock
+          available={product.available}
+          stock={product.stock}
+          preparationTime={product.preparationTime}
+          onUpdate={(data) => handleUpdate(data)}
+        />
+      </section>
 
-      <div className="border-t border-gray-200 pt-4 flex flex-col sm:flex-row justify-end gap-3">
+      {/* BLOQUE 4: MÉTODOS DE PAGO */}
+      <section className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 space-y-4">
+        <div className="flex items-center gap-2 text-slate-900 font-semibold text-sm border-b border-slate-100 pb-3">
+          <CreditCard className="w-4 h-4 text-purple-600" />
+          <h3>Métodos de pago aceptados</h3>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="p-3 bg-slate-50/70 rounded-xl border border-slate-200/60 hover:bg-slate-50 transition-colors">
+            <EnabledSwitch
+              enabled={product.acceptsCash ?? true}
+              onChange={(val) => handleUpdate({ acceptsCash: val })}
+              label="Efectivo"
+              hint="Pago presencial al entregar."
+            />
+          </div>
+
+          <div className="p-3 bg-slate-50/70 rounded-xl border border-slate-200/60 hover:bg-slate-50 transition-colors">
+            <EnabledSwitch
+              enabled={product.acceptsTransfer ?? true}
+              onChange={(val) => handleUpdate({ acceptsTransfer: val })}
+              label="Transferencia"
+              hint="Transferencia bancaria/CBU."
+            />
+          </div>
+
+          <div className="p-3 bg-slate-50/70 rounded-xl border border-slate-200/60 hover:bg-slate-50 transition-colors">
+            <EnabledSwitch
+              enabled={product.acceptsQr ?? false}
+              onChange={(val) => handleUpdate({ acceptsQr: val })}
+              label="QR / Billetera"
+              hint="MercadoPago o apps digitales."
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* BLOQUE 5: GRUPOS DE OPCIONES / ADICIONALES */}
+      {/* <section className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2 text-slate-900 font-semibold text-sm">
+            <Layers className="w-4 h-4 text-amber-600" />
+            <h3>Grupos de Opciones y Adicionales</h3>
+          </div>
+          {!showNewGroup && (
+            <button
+              type="button"
+              onClick={() => setShowNewGroup(true)}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Nuevo grupo
+            </button>
+          )}
+        </div>
+
+        <div className="space-y-4 pt-1">
+          {(product.optionGroups ?? []).map((group) => (
+            <MenuGroup
+              key={group.id}
+              businessId={businessId}
+              groupId={group.id}
+              menuId={menuId}
+              productId={productId}
+              sectionId={sectionId}
+              currencyMask={product.currencyMask || "$"}
+              onDeleteGroup={deleteGroupWithOptions}
+              onUpdate={(data) => handleGroupUpdate(group.id, data.group)}
+            />
+          ))}
+
+          {showNewGroup && (
+            <NewMenuGroup
+              menuProductId={product.id}
+              onCreate={handleNewGroupCreate}
+              onClose={() => setShowNewGroup(false)}
+            />
+          )}
+
+          {!showNewGroup && (product.optionGroups ?? []).length === 0 && (
+            <div className="text-center py-8 border-2 border-dashed border-slate-200 rounded-xl">
+              <p className="text-sm text-slate-500 font-medium">
+                Este producto no tiene adicionales ni opciones personalizables.
+              </p>
+            </div>
+          )}
+        </div>
+      </section> */}
+
+      {/* BOTONES ACCIÓN (Renderizados abajo) */}
+      <div className="flex items-center justify-end gap-3 pt-2">
         <button
+          type="button"
           onClick={onClose}
-          className="flex-1 text-sm sm:flex-none px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+          className="px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors"
         >
           Cancelar
         </button>
         <button
+          type="button"
           onClick={handleSaveAll}
           disabled={saving}
-          className="px-4 py-2 text-sm bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 disabled:opacity-50"
+          className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-xl hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 shadow-sm shadow-blue-500/20 transition-all"
         >
+          <Save className="w-4 h-4" />
           {saving ? "Guardando..." : "Guardar cambios"}
         </button>
       </div>

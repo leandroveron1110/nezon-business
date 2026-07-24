@@ -7,35 +7,12 @@ import { RegisterExpenseInput } from "../input/register-expense.input";
 
 export interface IFinancialMovementPublicService {
 
-  registerSale(
-    input: RegisterSaleInput,
-  ): Promise<FinancialMovementServiceResponse>;
+  registerSale(input: RegisterSaleInput): Promise<FinancialMovement>;
 
-  registerRefund(
-    input: RegisterRefundInput,
-  ): Promise<FinancialMovementServiceResponse>;
+  registerRefund(input: RegisterRefundInput): Promise<FinancialMovement>;
 
-  registerIncome(
-    input: RegisterIncomeInput,
-  ): Promise<FinancialMovementServiceResponse>;
+  registerIncome(input: RegisterIncomeInput): Promise<FinancialMovement>;
 
-  registerExpense(
-    input: RegisterExpenseInput,
-  ): Promise<FinancialMovementServiceResponse>;
+  registerExpense(input: RegisterExpenseInput): Promise<FinancialMovement>
 }
 
-export interface FinancialMovementServiceResponse {
-  success: boolean;
-
-  data?: FinancialMovement;
-
-  error?: {
-    code:
-      | "VALIDATION_ERROR"
-      | "NOT_FOUND"
-      | "CONFLICT"
-      | "REPOSITORY_ERROR";
-
-    message: string;
-  };
-}

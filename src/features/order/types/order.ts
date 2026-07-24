@@ -1,4 +1,5 @@
-import { Origin, PaymentMethodType } from "@/types/order";
+import { PaymentMethodTypeFinancial } from "@/mini-back/shared/enums/financial-movement-status.enum";
+import { Origin } from "@/types/order";
 import { DeliveryStatus, OrderStatus, PaymentStatus } from "@/types/order-state-machine";
 
 export interface SyncResponse {
@@ -73,7 +74,7 @@ export interface IOrder {
   updatedAt: string; // ISO string
   deliveryType: DeliveryType;
   deliveryStatus: DeliveryStatus; // estado del hilo de entrega
-  orderPaymentMethod: PaymentMethodType;
+  orderPaymentMethod: PaymentMethodTypeFinancial;
   paymentStatus: PaymentStatus; // estado del pago si es por trasnferencia
   paymentReceiptUrl?: string | null;
   paymentInstructions?: string | null;

@@ -1,5 +1,6 @@
 // src/common/database/schema/orders.schema.ts
 
+import { PaymentMethodTypeFinancial } from "@/mini-back/shared/enums/financial-movement-status.enum";
 import { SyncStatus } from "@/mini-back/shared/types/sync-status.type";
 import { Origin } from "@/types/order";
 import {
@@ -185,11 +186,7 @@ export interface LocalOrder {
   // PAGOS
   // ==========================================================================
 
-  orderPaymentMethod:
-    | "CASH"
-    | "TRANSFER"
-    | "QR"
-    | "DELIVERY";
+  orderPaymentMethod: PaymentMethodTypeFinancial;
 
   paymentStatus: PaymentStatus;
 

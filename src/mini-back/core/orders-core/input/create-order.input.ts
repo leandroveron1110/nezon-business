@@ -1,5 +1,5 @@
 import { DeliveryQuotationStatus, DeliveryStatus } from "../domain/order-state-machine";
-import { OrderItem } from "../domain/order.entity";
+import { OrderItem, PaymentMethodTypeFinancial } from "../domain/order.entity";
 
 export interface CreateOrderInput {
   idTemp: string; // El front genera un UUID v4 y lo envía para mantener la trazabilidad local
@@ -26,11 +26,7 @@ export interface CreateOrderInput {
 
   deliveryProvider: "PLATFORM" | "INTERNAL";
 
-  orderPaymentMethod:
-    | "CASH"
-    | "TRANSFER"
-    | "QR"
-    | "DELIVERY";
+  orderPaymentMethod: PaymentMethodTypeFinancial;
 
   total: number;
 

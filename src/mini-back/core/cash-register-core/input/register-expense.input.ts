@@ -6,7 +6,7 @@ export interface RegisterExpenseInput {
   userId: string;
   approvedByUserId: string;
 
-  clientMovementId: string;
+  clientMovementId?: string;
 
   amount: number;
 

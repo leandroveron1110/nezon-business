@@ -34,8 +34,8 @@ interface OrderPanelProps {
   setDeliveryProvider: (v: "PLATFORM" | "INTERNAL") => void;
   deliveryCost: number;
   setDeliveryCost: (v: number) => void;
-  paymentMethod: "CASH" | "TRANSFER" | "QR" | "DELIVERY";
-  setPaymentMethod: (v: "CASH" | "TRANSFER" | "QR" | "DELIVERY") => void;
+  paymentMethod:     "CASH" | "TRANSFER" | "QR" | "DEBIT_CARD" | "CREDIT_CARD" | "MERCADO_PAGO" | "ACCOUNT" | "OTHER";
+  setPaymentMethod: (v:     "CASH" | "TRANSFER" | "QR" | "DEBIT_CARD" | "CREDIT_CARD" | "MERCADO_PAGO" | "ACCOUNT" | "OTHER") => void;
   setZoneId: (v: string | null) => void;
 }
 

@@ -11,6 +11,7 @@ import {
   Store,
   Package,
   Settings,
+  Calculator, // 1. Importamos el ícono para la caja (puedes cambiarlo por Banknote o CreditCard)
   LucideProps,
 } from "lucide-react";
 
@@ -46,6 +47,11 @@ export default function Header() {
       href: (id) => `/business/${id}/orders`,
       label: "Órdenes",
       icon: ShoppingBag,
+    },
+    {
+      href: (id) => `/business/${id}/cash-register`, // 2. Agregamos el enlace a Caja (o la ruta que uses, p. ej. /cashier, /checkout)
+      label: "Caja",
+      icon: Calculator,
     },
     {
       href: (id) => `/business/${id}/products`,
@@ -112,7 +118,6 @@ export default function Header() {
           </div>
 
           {/* Nombre negocio móvil */}
-          {/* Logo + nombre móvil */}
           {isBusinessContext && business && (
             <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center sm:hidden">
               <Link href="/">

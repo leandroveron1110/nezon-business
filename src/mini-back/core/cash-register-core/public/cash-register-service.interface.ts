@@ -1,28 +1,19 @@
+import { CashRegister } from "../domain/cash-register";
+import { CashRegisterTotals } from "../domain/cash-register-totals";
 import { CloseCashRegisterInput } from "../input/close.input";
 import { InitializeCashRegisterInput } from "../input/initialize.input";
 import { OpenCashRegisterInput } from "../input/open.input";
-import { CashRegisterClosedSignal } from "../signal/cash-register-closed.signal";
 
-export interface ICashRegisterPublicService {
+export interface ICashRegisterService {
 
-    initialize(
-        input: InitializeCashRegisterInput
-    ): Promise<CashRegisterClosedSignal>;
+    initialize(input: InitializeCashRegisterInput): Promise<CashRegister>
 
-    open(
-        input: OpenCashRegisterInput
-    ): Promise<CashRegisterClosedSignal>;
+    open(input: OpenCashRegisterInput): Promise<CashRegister>
 
-    close(
-        input: CloseCashRegisterInput
-    ): Promise<CashRegisterClosedSignal>;
+    reopen(businessId: string, turnId: string): Promise<CashRegister>
 
-    calculateSummary(
-        businessId: string
-    ): Promise<CashRegisterClosedSignal>;
+    close(input: CloseCashRegisterInput): Promise<CashRegister | null>
 
-    calculateClosingAmount(
-        businessId: string
-    ): Promise<CashRegisterClosedSignal>;
+    getActiveTurnTotals(businessId: string): Promise<CashRegisterTotals>
 
 }

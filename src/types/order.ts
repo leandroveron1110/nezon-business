@@ -1,3 +1,4 @@
+import { PaymentMethodTypeFinancial } from "@/mini-back/shared/enums/financial-movement-status.enum";
 import { DeliveryStatus, OrderStatus, PaymentStatus } from "./order-state-machine";
 
 export interface User {
@@ -66,12 +67,6 @@ export enum DeliveryType {
   EXTERNAL_DELIVERY = "EXTERNAL_DELIVERY", // Se usa una cadetería externa
 }
 
-export enum PaymentMethodType {
-  TRANSFER = "TRANSFER",
-  CASH = "CASH",
-  QR = "QR",
-  OTHER="OTHER"
-}
 
 export type Origin = 'APP' | 'BUSINESS'
 
@@ -82,7 +77,7 @@ export interface IOrderShortDto {
   total: number;
   deliveryType: DeliveryType;
   deliveryStatus: DeliveryStatus;
-  orderPaymentMethod: PaymentMethodType;
+  orderPaymentMethod: PaymentMethodTypeFinancial;
   status: OrderStatus;
   paymentStatus: PaymentStatus;
   customerName: string;

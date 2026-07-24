@@ -10,4 +10,6 @@ export interface CashRegisterPort {
   save(cashRegister: CashRegister): Promise<CashRegister>;
 
   update(cashRegister: CashRegister): Promise<CashRegister>;
+
+  close(cashRegister: CashRegister): Promise<CashRegister>;
 }

@@ -5,7 +5,6 @@ import {
 } from "@/mini-back/shared/enums/financial-movement-status.enum";
 import { SyncStatus } from "@/mini-back/shared/types/sync-status.type";
 
-
 // ============================================================================
 // MOVIMIENTO FINANCIERO LOCAL
 // ============================================================================
@@ -114,6 +113,5 @@ export interface LocalFinancialMovement {
 // ============================================================================
 // ÍNDICES DEXIE
 // ============================================================================
-
 export const FINANCIAL_MOVEMENT_STORE =
   "idTemp, id, businessId, cashRegisterTurnIdTemp, cashRegisterTurnId, orderIdTemp, orderId, type, status, paymentMethod, syncStatus, date";

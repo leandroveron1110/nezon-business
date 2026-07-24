@@ -24,8 +24,8 @@ interface OrderSheetProps {
   deliveryCost: number;
   setDeliveryCost: (v: number) => void;
   // 🆕 pago
-  paymentMethod: "CASH" | "TRANSFER" | "QR" | "DELIVERY";
-  setPaymentMethod: (v: "CASH" | "TRANSFER" | "QR" | "DELIVERY") => void;
+  paymentMethod:     "CASH" | "TRANSFER" | "QR" | "DEBIT_CARD" | "CREDIT_CARD" | "MERCADO_PAGO" | "ACCOUNT" | "OTHER";
+  setPaymentMethod: (v:     "CASH" | "TRANSFER" | "QR" | "DEBIT_CARD" | "CREDIT_CARD" | "MERCADO_PAGO" | "ACCOUNT" | "OTHER") => void;
   setZoneId: (v: string | null) => void;
 
   updateItemNote: (index: number, note: string) => void;

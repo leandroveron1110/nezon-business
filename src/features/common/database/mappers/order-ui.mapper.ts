@@ -1,6 +1,6 @@
 import { UIOrder } from "@/features/order/types/ui-order";
 import { LocalOrder } from "@/mini-back/infrastructure/dexie/shcema/orders.schema";
-import { DeliveryType, PaymentMethodType } from "@/types/order";
+import { DeliveryType } from "@/types/order";
 import { OrderStatus } from "@/types/order-state-machine";
 
 export class OrderUiMapper {
@@ -25,7 +25,7 @@ export class OrderUiMapper {
       createdAt: local.createdAt.toISOString(), // IndexedDB (Date) -> UI (String ISO)
       updatedAt: local.updatedAt.toISOString(),
       deliveryType: local.deliveryType as DeliveryType,
-      orderPaymentMethod: local.orderPaymentMethod as PaymentMethodType,
+      orderPaymentMethod: local.orderPaymentMethod,
       paymentStatus: local.paymentStatus,
       deliveryStatus: local.deliveryStatus,
       

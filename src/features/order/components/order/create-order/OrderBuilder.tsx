@@ -18,6 +18,7 @@ import {
 import { LocalProduct } from "@/mini-back/infrastructure/dexie/shcema/products.schema";
 import { OrderSheet } from "./OrderSheet";
 import { initSchedulers } from "@/mini-back/infrastructure/workers/delivery/delivery.worker";
+import { PaymentMethodTypeFinancial } from "@/mini-back/shared/enums/financial-movement-status.enum";
 
 export default function OrderBuilder({
   onClose,
@@ -44,7 +45,7 @@ export default function OrderBuilder({
     "PLATFORM" | "INTERNAL"
   >("PLATFORM");
   const [paymentMethod, setPaymentMethod] = useState<
-    "CASH" | "TRANSFER" | "QR" | "DELIVERY"
+    "CASH" | "TRANSFER" | "QR" | "DEBIT_CARD" | "CREDIT_CARD" | "MERCADO_PAGO" | "ACCOUNT" | "OTHER"
   >("CASH");
   const [deliveryCost, setDeliveryCost] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -160,7 +161,7 @@ export default function OrderBuilder({
       deliveryType,
       deliveryProvider,
       totalDeliveryCost: deliveryType === "DELIVERY" ? deliveryCost : 0,
-      orderPaymentMethod: paymentMethod,
+      orderPaymentMethod: paymentMethod as PaymentMethodTypeFinancial,
       paymentStatus: PaymentStatus.PENDING,
       items: [...items],
       origin: "BUSINESS" as const,

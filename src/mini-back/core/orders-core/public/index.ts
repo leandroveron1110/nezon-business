@@ -26,6 +26,4 @@ export * from "../input/update-order-status.input";
 // --- EXPORTACIONES DE PORTS ---
 export * from "../ports/order-repository.port";
 export * from "../ports/order-identity.port";
-export * from "../ports/order-repository.port";
-export * from "../ports/order-identity.port";
 export * from "./order-service.interface";

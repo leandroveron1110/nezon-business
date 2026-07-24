@@ -1,7 +1,8 @@
 "use client";
 
-import { OrderItem, PaymentMethodType } from "@/types/order";
+import { OrderItem } from "@/types/order";
 import { IOrder, DeliveryType } from "../../../types/order";
+import { PaymentMethodTypeFinancial } from "@/mini-back/shared/enums/financial-movement-status.enum";
 
 interface OrderTicketProps {
   order: IOrder;
@@ -10,11 +11,15 @@ interface OrderTicketProps {
 
 
 
-const PAYMENT_LABELS: Record<PaymentMethodType , string> = {
-  [PaymentMethodType.CASH]: "EFECTIVO",
-  [PaymentMethodType.TRANSFER]: "TRANSFERENCIA",
-  [PaymentMethodType.OTHER]: "OTRO",
-  [PaymentMethodType.QR]:"QR"
+const PAYMENT_LABELS: Record<PaymentMethodTypeFinancial , string> = {
+  [PaymentMethodTypeFinancial.CASH]: "EFECTIVO",
+  [PaymentMethodTypeFinancial.TRANSFER]: "TRANSFERENCIA",
+  [PaymentMethodTypeFinancial.OTHER]: "OTRO",
+  [PaymentMethodTypeFinancial.QR]:"QR",
+  [PaymentMethodTypeFinancial.ACCOUNT]: "ACCOUNT",
+  [PaymentMethodTypeFinancial.CREDIT_CARD]: "CREDIT_CARD",
+  [PaymentMethodTypeFinancial.DEBIT_CARD]: "DEBIT_CARD",
+  [PaymentMethodTypeFinancial.MERCADO_PAGO]: "MERCADO_PAGO"
 };
 
 const formatMoney = (value: number) =>

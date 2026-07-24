@@ -36,6 +36,17 @@ export type DeliveryType = 'DELIVERY' | 'PICKUP';
 
 export type DeliveryProvider = 'PLATFORM' | 'INTERNAL';
 
+export enum PaymentMethodTypeFinancial {
+  CASH = "CASH",
+  TRANSFER = "TRANSFER",
+  QR = "QR",
+  DEBIT_CARD = "DEBIT_CARD",
+  CREDIT_CARD = "CREDIT_CARD",
+  MERCADO_PAGO = "MERCADO_PAGO",
+  ACCOUNT = "ACCOUNT",
+  OTHER = "OTHER",
+}
+
 export interface Order {
   // Identificadores
   idTemp: string;               // UUID v4 generado en el front
@@ -73,7 +84,7 @@ export interface Order {
   totalDeliveryCost: number;
   
   // Pagos
-  orderPaymentMethod: 'CASH' | 'TRANSFER' | 'QR' |"DELIVERY", // Basado en tus Enums
+  orderPaymentMethod: PaymentMethodTypeFinancial, // Basado en tus Enums
   paymentStatus: PaymentStatus;
   deliveryStatus: DeliveryStatus;
   shortCode?: string | null;

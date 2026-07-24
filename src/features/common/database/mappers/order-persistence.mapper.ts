@@ -2,6 +2,7 @@
 
 import { IOrder } from "@/features/order/types/order";
 import { LocalOrder } from "@/mini-back/infrastructure/dexie/shcema/orders.schema";
+import { PaymentMethodTypeFinancial } from "@/mini-back/shared/enums/financial-movement-status.enum";
 
 type ApiOrderExtended = IOrder & {
   deliveryProvider?: "PLATFORM" | "INTERNAL";
@@ -87,7 +88,7 @@ export class OrderPersistenceMapper {
       total: Number(apiOrder.total),
 
       // Pagos
-      orderPaymentMethod: (apiOrder.orderPaymentMethod as "CASH" | "TRANSFER" | "QR" | "DELIVERY") ?? "CASH",
+      orderPaymentMethod: (apiOrder.orderPaymentMethod as PaymentMethodTypeFinancial) ?? "CASH",
       paymentStatus: apiOrder.paymentStatus,
 
       // Items

@@ -347,126 +347,131 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
         </div>
 
         {/* ========================================================= */}
-{/* LOGÍSTICA DE ENVÍO - BARRA COMPACTA POS (1-CLICK COPY)    */}
-{/* ========================================================= */}
-{canShowActions() && safeOrder.deliveryType === DeliveryType.DELIVERY && (
-  <div className="px-3 py-2 bg-amber-50/90 border-b border-amber-200/80 flex items-center justify-between gap-2 shrink-0">
-    
-    {/* Área Cliqueable de Dirección + Copia */}
-    <button
-      type="button"
-      onClick={() => {
-        const fullAddress = `${safeOrder.user?.address || ''}`.trim();
-        if (navigator.clipboard) {
-          navigator.clipboard.writeText(fullAddress);
-        } else {
-          // Fallback por si la API del navegador no está disponible
-          const input = document.createElement("input");
-          input.value = fullAddress;
-          document.body.appendChild(input);
-          input.select();
-          document.execCommand("copy");
-          document.body.removeChild(input);
-        }
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
-      }}
-      className="flex items-center gap-2 flex-1 min-w-0 text-left hover:bg-amber-100/70 p-1 rounded-md transition-all active:scale-[0.99] group cursor-pointer overflow-hidden"
-      title="Click para copiar dirección completa"
-    >
-      <div className="relative shrink-0">
-        <MapPin size={16} className="text-red-600" />
-        {copied && (
-          <span className="absolute -top-1 -right-1 bg-emerald-600 text-white rounded-full p-0.5 animate-in zoom-in">
-            <Check size={9} />
-          </span>
-        )}
-      </div>
+        {/* LOGÍSTICA DE ENVÍO - BARRA COMPACTA POS (1-CLICK COPY)    */}
+        {/* ========================================================= */}
+        {canShowActions() &&
+          safeOrder.deliveryType === DeliveryType.DELIVERY && (
+            <div className="px-3 py-2 bg-amber-50/90 border-b border-amber-200/80 flex items-center justify-between gap-2 shrink-0">
+              {/* Área Cliqueable de Dirección + Copia */}
+              <button
+                type="button"
+                onClick={() => {
+                  const fullAddress = `${safeOrder.user?.address || ""}`.trim();
+                  if (navigator.clipboard) {
+                    navigator.clipboard.writeText(fullAddress);
+                  } else {
+                    // Fallback por si la API del navegador no está disponible
+                    const input = document.createElement("input");
+                    input.value = fullAddress;
+                    document.body.appendChild(input);
+                    input.select();
+                    document.execCommand("copy");
+                    document.body.removeChild(input);
+                  }
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 1500);
+                }}
+                className="flex items-center gap-2 flex-1 min-w-0 text-left hover:bg-amber-100/70 p-1 rounded-md transition-all active:scale-[0.99] group cursor-pointer overflow-hidden"
+                title="Click para copiar dirección completa"
+              >
+                <div className="relative shrink-0">
+                  <MapPin size={16} className="text-red-600" />
+                  {copied && (
+                    <span className="absolute -top-1 -right-1 bg-emerald-600 text-white rounded-full p-0.5 animate-in zoom-in">
+                      <Check size={9} />
+                    </span>
+                  )}
+                </div>
 
-      <div className="flex items-center gap-1.5 min-w-0 text-xs">
-        <span className={`font-black truncate ${copied ? "text-emerald-700 font-extrabold" : "text-slate-900 group-hover:text-blue-700"}`}>
-          {safeOrder.user?.address || "Sin dirección"}
-        </span>
+                <div className="flex items-center gap-1.5 min-w-0 text-xs">
+                  <span
+                    className={`font-black truncate ${copied ? "text-emerald-700 font-extrabold" : "text-slate-900 group-hover:text-blue-700"}`}
+                  >
+                    {safeOrder.user?.address || "Sin dirección"}
+                  </span>
 
-        {/* {safeOrder.reference && (
+                  {/* {safeOrder.reference && (
           <span className="text-[11px] font-semibold text-slate-600 bg-amber-200/60 px-1.5 py-0.5 rounded truncate shrink-0 max-w-[140px]">
             {safeOrder.reference}
           </span>
         )} */}
 
-        <span className="text-[10px] text-slate-400 group-hover:text-blue-600 shrink-0 font-medium ml-0.5">
-          {copied ? "¡Copiado!" : "(Copiar)"}
-        </span>
-      </div>
-    </button>
+                  <span className="text-[10px] text-slate-400 group-hover:text-blue-600 shrink-0 font-medium ml-0.5">
+                    {copied ? "¡Copiado!" : "(Copiar)"}
+                  </span>
+                </div>
+              </button>
 
-    {/* Acciones e Indicadores Compactos (Sin redundancias) */}
-    <div className="shrink-0 flex items-center gap-2">
-      
-      {/* 1. Cadete Interno */}
-      {safeOrder.deliveryProvider === "INTERNAL" && (
-        <button
-          onClick={handleSolicitarCadete}
-          disabled={loading || safeOrder.status === OrderStatus.PENDING}
-          className="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white px-3 py-1 rounded-md text-xs font-black shadow-sm transition-all flex items-center gap-1 disabled:opacity-50"
-        >
-          <Send size={11} />
-          ASIGNAR
-        </button>
-      )}
+              {/* Acciones e Indicadores Compactos (Sin redundancias) */}
+              <div className="shrink-0 flex items-center gap-2">
+                {/* 1. Cadete Interno */}
+                {safeOrder.deliveryProvider === "INTERNAL" && (
+                  <button
+                    onClick={handleSolicitarCadete}
+                    disabled={
+                      loading || safeOrder.status === OrderStatus.PENDING
+                    }
+                    className="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white px-3 py-1 rounded-md text-xs font-black shadow-sm transition-all flex items-center gap-1 disabled:opacity-50"
+                  >
+                    <Send size={11} />
+                    ASIGNAR
+                  </button>
+                )}
 
-      {/* 2. Cadete por Plataforma */}
-      {safeOrder.deliveryProvider === "PLATFORM" && (
-        <>
-          {safeOrder.deliveryStatus === DeliveryStatus.PENDING && (
-            <button
-              onClick={handleSolicitarCadete}
-              disabled={loading || safeOrder.status === OrderStatus.PENDING}
-              className="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white px-3 py-1 rounded-md text-xs font-black shadow-sm transition-all flex items-center gap-1 disabled:opacity-50"
-            >
-              <Send size={11} />
-              ENVIAR
-            </button>
-          )}
+                {/* 2. Cadete por Plataforma */}
+                {safeOrder.deliveryProvider === "PLATFORM" && (
+                  <>
+                    {safeOrder.deliveryStatus === DeliveryStatus.PENDING && (
+                      <button
+                        onClick={handleSolicitarCadete}
+                        disabled={
+                          loading || safeOrder.status === OrderStatus.PENDING
+                        }
+                        className="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white px-3 py-1 rounded-md text-xs font-black shadow-sm transition-all flex items-center gap-1 disabled:opacity-50"
+                      >
+                        <Send size={11} />
+                        ENVIAR
+                      </button>
+                    )}
 
-          {safeOrder.deliveryStatus === DeliveryStatus.REQUESTED && (
-            <div className="flex items-center gap-1.5">
-              {/* <span className="text-[11px] font-extrabold text-amber-700 animate-pulse hidden sm:inline">
+                    {safeOrder.deliveryStatus === DeliveryStatus.REQUESTED && (
+                      <div className="flex items-center gap-1.5">
+                        {/* <span className="text-[11px] font-extrabold text-amber-700 animate-pulse hidden sm:inline">
                 Buscando...
               </span> */}
-              <button
-                onClick={handleCancelarCadete}
-                disabled={loading}
-                className="bg-white hover:bg-red-50 text-red-600 border border-red-200 px-2.5 py-1 rounded-md text-xs font-black shadow-sm transition-all flex items-center gap-1"
-              >
-                <Undo2 size={12} />
-                RETIRAR
-              </button>
+                        <button
+                          onClick={handleCancelarCadete}
+                          disabled={loading}
+                          className="bg-white hover:bg-red-50 text-red-600 border border-red-200 px-2.5 py-1 rounded-md text-xs font-black shadow-sm transition-all flex items-center gap-1"
+                        >
+                          <Undo2 size={12} />
+                          RETIRAR
+                        </button>
+                      </div>
+                    )}
+
+                    {safeOrder.deliveryStatus === DeliveryStatus.SHIPPED && (
+                      <span className="text-xs font-black text-blue-700 bg-blue-100 px-2 py-0.5 rounded-md flex items-center gap-1">
+                        En camino
+                      </span>
+                    )}
+
+                    {safeOrder.deliveryStatus === DeliveryStatus.COMPLETED && (
+                      <span className="text-xs font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
+                        Entregado
+                      </span>
+                    )}
+
+                    {safeOrder.deliveryStatus === DeliveryStatus.CANCELLED && (
+                      <span className="text-xs font-black text-red-700 bg-red-100 px-2 py-0.5 rounded-md">
+                        Cancelado
+                      </span>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
           )}
-
-          {safeOrder.deliveryStatus === DeliveryStatus.SHIPPED && (
-            <span className="text-xs font-black text-blue-700 bg-blue-100 px-2 py-0.5 rounded-md flex items-center gap-1">
-              En camino
-            </span>
-          )}
-
-          {safeOrder.deliveryStatus === DeliveryStatus.COMPLETED && (
-            <span className="text-xs font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
-              Entregado
-            </span>
-          )}
-
-          {safeOrder.deliveryStatus === DeliveryStatus.CANCELLED && (
-            <span className="text-xs font-black text-red-700 bg-red-100 px-2 py-0.5 rounded-md">
-              Cancelado
-            </span>
-          )}
-        </>
-      )}
-    </div>
-  </div>
-)}
 
         {/* ITEMS */}
         <div className="flex-1 overflow-y-auto bg-white">

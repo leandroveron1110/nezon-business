@@ -6,7 +6,7 @@ import { Package, Search, LayoutGrid, Printer } from "lucide-react";
 import OrdersFilters from "./OrdersFilters";
 import { simplifiedFilters } from "@/features/common/utils/filtersData";
 
-import { DeliveryType, IOrderShortDto, PaymentMethodType } from "@/types/order";
+import { DeliveryType, IOrderShortDto } from "@/types/order";
 import { OrderList } from "./order/OrderList";
 import { OrderDetailsSidePanel } from "./order/view-detail-order/OrderDetailsSidePanel";
 import { getOrderPriority } from "@/features/order/utilities/order-logic";
@@ -26,6 +26,9 @@ import {
 import { SyncIndicator } from "./order/SyncIndicator";
 import { OrderKitchenView } from "./order/view-detail-order/OrderKitchenView";
 import { OrderTicket } from "./order/ticket-order/OrderTicket";
+import { CashRegisterStatusBadge } from "@/features/cashRegister/components/CashRegisterStatusBadge";
+import { OpenCashModal } from "@/features/cashRegister/components/OpenCashModal";
+import { useCashRegisterStatus } from "@/features/cashRegister/hooks/useCashRegisterStatus";
 
 interface Props {
   businessId: string;
@@ -59,12 +62,16 @@ export default function BusinessOrdersPage({ businessId }: Props) {
     "KITCHEN" | "CUSTOMER" | "SHARE_WHATSAPP" | null
   >(null);
 
+  const { isOpen } = useCashRegisterStatus(businessId);
+
   // --- ANCLA TEMPORAL GLOBAL (RELOJ DE PANTALLA) ---
   const [now, setNow] = useState<number>(Date.now());
   // --- CONFIGURACIÓN MODULAR DINÁMICA DE LA APP (PROVISORIO) ---
   const [allowPhysicalPrinting, setAllowPhysicalPrinting] =
     useState<boolean>(true);
   const [allowDigitalTicket, setAllowDigitalTicket] = useState<boolean>(true);
+
+  const [showOpenCashModal, setShowOpenCashModal] = useState(false);
 
   // Mantenemos la estructura del objeto agrupada para no romper tus referencias de abajo
   const businessSettings = useMemo(
@@ -192,7 +199,7 @@ export default function BusinessOrdersPage({ businessId }: Props) {
       id: o.idTemp,
       customerName: o.customerName,
       deliveryType: o.deliveryType as DeliveryType,
-      orderPaymentMethod: o.orderPaymentMethod as PaymentMethodType,
+      orderPaymentMethod: o.orderPaymentMethod,
       status: o.status as OrderStatus,
       paymentStatus: o.paymentStatus as PaymentStatus,
       deliveryStatus: o.deliveryStatus as DeliveryStatus,
@@ -290,101 +297,94 @@ export default function BusinessOrdersPage({ businessId }: Props) {
         </div>
 
         {/* HEADER DEL PANEL */}
-        <header className="bg-white border-b shadow-sm sticky top-0 z-30 w-full">
-          <div className="p-4 max-w-7xl mx-auto w-full space-y-4">
-            {/* FILA DE TÍTULO Y ACCIONES */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              {/* Título */}
-              <h1 className="text-xl font-black text-gray-800 flex items-center gap-2">
-                <LayoutGrid className="w-5 h-5 text-blue-600 flex-shrink-0" />
+        <header className="sticky top-0 z-30 border-b bg-white shadow-sm">
+          <div className="mx-auto flex max-w-7xl flex-col gap-4 p-4">
+            {/* ========================================================= */}
+            {/* FILA 1 - TÍTULO + ACCIÓN PRINCIPAL                        */}
+            {/* ========================================================= */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <h1 className="flex items-center gap-2 text-xl font-black text-slate-800">
+                <LayoutGrid className="h-5 w-5 text-blue-600" />
                 <span>Panel de Órdenes</span>
               </h1>
 
-              {/* Botones de Acción Agrupados */}
-              <div className="flex flex-wrap items-center justify-end gap-2 w-full sm:w-auto">
-                {/* AJUSTES RÁPIDOS SUTILES (PROVISORIO DE LA V1) */}
-                <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl border border-gray-200/60 shadow-inner mr-1">
-                  {/* Switch Comanda Digital */}
+              {isOpen ? (
+                <>
                   <button
-                    onClick={() => setAllowDigitalTicket(!allowDigitalTicket)}
-                    className={`p-2 rounded-lg transition-all duration-200 flex items-center justify-center`}
-                    title={
-                      allowDigitalTicket
-                        ? "Desactivar pantalla de cocina"
-                        : "Activar pantalla de cocina"
-                    }
+                    onClick={() => setIsNewOrder(true)}
+                    className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 active:scale-[0.98]"
                   >
-                    <span
-                      className={`text-[11px] font-black mr-1 uppercase ${allowDigitalTicket ? "text-blue-600" : "text-gray-400"}`}
-                    >
-                      KDS
-                    </span>
-                    <LayoutGrid
-                      className={`w-4 h-4 ${allowDigitalTicket ? "text-blue-600 drop-shadow-[0_0_4px_rgba(37,99,235,0.2)]" : "text-gray-400 opacity-60"}`}
-                      strokeWidth={allowDigitalTicket ? 3 : 2}
-                    />
+                    Nueva orden
                   </button>
-
-                  {/* Separador sutil */}
-                  <div className="w-[1px] h-4 bg-gray-300 mx-0.5" />
-
-                  {/* Switch Impresora Física */}
-                  <button
-                    onClick={() =>
-                      setAllowPhysicalPrinting(!allowPhysicalPrinting)
-                    }
-                    className={`p-2 rounded-lg transition-all duration-200 flex items-center justify-center`}
-                    title={
-                      allowPhysicalPrinting
-                        ? "Ocultar botones de ticketera"
-                        : "Mostrar botones de ticketera"
-                    }
-                  >
-                    <span
-                      className={`text-[11px] font-black mr-1 uppercase ${allowPhysicalPrinting ? "text-blue-600" : "text-gray-400"}`}
-                    >
-                      POS
-                    </span>
-                    <Printer
-                      className={`w-4 h-4 ${allowPhysicalPrinting ? "text-blue-600 drop-shadow-[0_0_4px_rgba(37,99,235,0.2)]" : "text-gray-400 opacity-60"}`}
-                      strokeWidth={allowPhysicalPrinting ? 3 : 2}
-                    />
-                  </button>
-                </div>
-
-                {/* El indicador integrado de forma limpia */}
-                <SyncIndicator />
-
-                <button
-                  onClick={() => setIsNewOrder(true)}
-                  className="flex-1 sm:flex-initial bg-blue-600 hover:bg-blue-700 text-white text-xs md:text-sm font-bold px-4 py-2.5 rounded-xl transition-all shadow-sm active:scale-98 text-center"
-                >
-                  Nueva orden
-                </button>
-              </div>
+                </>
+              ) : (
+                <></>
+              )}
             </div>
 
-            {/* BARRA DE BÚSQUEDA */}
+            {/* ========================================================= */}
+            {/* FILA 2 - ESTADO DEL SISTEMA                              */}
+            {/* ========================================================= */}
+            <div className="flex flex-wrap items-center gap-2">
+              <CashRegisterStatusBadge
+                businessId={businessId}
+                onOpenRegisterClick={() => setShowOpenCashModal(true)}
+                onGoToCashPageClick={() => {}}
+              />
+
+              {/* <SyncIndicator /> */}
+
+              {/* Estado KDS */}
+              <button
+                onClick={() => setAllowDigitalTicket(!allowDigitalTicket)}
+                className={`flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-medium transition ${
+                  allowDigitalTicket
+                    ? "border-slate-200 bg-white text-slate-700"
+                    : "border-slate-200 bg-slate-50 text-slate-400"
+                }`}
+              >
+                <LayoutGrid className="h-4 w-4" />
+                <span>KDS</span>
+              </button>
+
+              {/* Estado POS */}
+              <button
+                onClick={() => setAllowPhysicalPrinting(!allowPhysicalPrinting)}
+                className={`flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-medium transition ${
+                  allowPhysicalPrinting
+                    ? "border-slate-200 bg-white text-slate-700"
+                    : "border-slate-200 bg-slate-50 text-slate-400"
+                }`}
+              >
+                <Printer className="h-4 w-4" />
+                <span>POS</span>
+              </button>
+            </div>
+
+            {/* ========================================================= */}
+            {/* FILA 3 - BUSCADOR                                        */}
+            {/* ========================================================= */}
             <div className="relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+
               <input
                 type="text"
                 placeholder="Buscar por ID o nombre del cliente..."
-                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 rounded-xl text-sm border border-gray-200 outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-gray-800"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pr-4 pl-10 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"
               />
             </div>
 
-            {/* FILTROS DE ESTADO */}
-            <div className="pt-1">
-              <OrdersFilters
-                quickFilters={simplifiedFilters}
-                activeFilter={activeFilter}
-                setActiveFilter={setActiveFilter}
-                orders={normalizedOrders}
-              />
-            </div>
+            {/* ========================================================= */}
+            {/* FILA 4 - FILTROS                                          */}
+            {/* ========================================================= */}
+            <OrdersFilters
+              quickFilters={simplifiedFilters}
+              activeFilter={activeFilter}
+              setActiveFilter={setActiveFilter}
+              orders={normalizedOrders}
+            />
           </div>
         </header>
         {/* Botones de Acción Agrupados */}
@@ -478,6 +478,16 @@ export default function BusinessOrdersPage({ businessId }: Props) {
         isOpen={showPrintModal}
         onClose={handleClosePrintModal}
         onSelect={executePrint}
+      />
+
+      {/* RENDER DEL MODAL */}
+      <OpenCashModal
+        businessId={businessId}
+        isOpen={showOpenCashModal}
+        onClose={() => setShowOpenCashModal(false)}
+        onSuccess={() => {
+          // Opcional: mostrar alerta de éxito
+        }}
       />
 
       {isNewOrder && (

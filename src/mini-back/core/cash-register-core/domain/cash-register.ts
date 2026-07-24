@@ -1,9 +1,9 @@
 import { CashRegisterStatus } from "./cash-register-status.enum";
 
 export interface CashRegister {
-  id: string;
+  id?: string;
 
-  clientTurnId: string;
+  clientTurnId?: string;
 
   businessId: string;
 
