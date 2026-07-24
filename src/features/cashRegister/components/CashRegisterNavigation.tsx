@@ -12,14 +12,14 @@ const items = [
     label: "Historial",
     href: "history",
   },
-  {
-    label: "Gráficos",
-    href: "analytics",
-  },
-  {
-    label: "Reportes",
-    href: "reports",
-  },
+  // {
+  //   label: "Gráficos",
+  //   href: "analytics",
+  // },
+  // {
+  //   label: "Reportes",
+  //   href: "reports",
+  // },
 ];
 
 export default function CashRegisterNavigation() {

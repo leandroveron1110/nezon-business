@@ -111,7 +111,7 @@ export const updateOrderStatusOrchestrator = async (
         await cashRegisterOrchestrator.processSaleMovement({
           businessId: order.businessId,
           userId: order.userId || "system",
-          amount: order.total,
+          amount: (order.total - (order.totalDeliveryCost ?? 0)),
           paymentMethod: order.orderPaymentMethod,
           orderId: order.idTemp,
           description: `Cobro de pedido #${order.shortCode || order.idTemp.slice(-4)}`,
@@ -121,7 +121,7 @@ export const updateOrderStatusOrchestrator = async (
         await cashRegisterOrchestrator.processRefundMovement({
           businessId: order.businessId,
           userId: order.userId || "system",
-          amount: order.total,
+          amount: (order.total - (order.totalDeliveryCost ?? 0)),
           paymentMethod: order.orderPaymentMethod,
           orderId: order.idTemp,
           description: `Reversión de cobro pedido #${order.shortCode || order.idTemp.slice(-4)}`,
@@ -138,7 +138,7 @@ export const updateOrderStatusOrchestrator = async (
         await cashRegisterOrchestrator.processRefundMovement({
           businessId: order.businessId,
           userId: order.userId || "system",
-          amount: order.total,
+          amount: (order.total - (order.totalDeliveryCost ?? 0)),
           paymentMethod: order.orderPaymentMethod,
           orderId: order.idTemp,
           description: `Devolución por cancelación de pedido #${order.shortCode || order.idTemp.slice(-4)}`,
