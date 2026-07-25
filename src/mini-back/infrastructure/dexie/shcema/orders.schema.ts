@@ -96,7 +96,6 @@ export interface LocalOrder {
 
   // ID definitivo asignado por el servidor luego de sincronizar.
   id?: string | null;
-
   userId?: string;
 
   // Negocio propietario de la orden.
@@ -105,7 +104,6 @@ export interface LocalOrder {
   // ==========================================================================
   // SINCRONIZACIÓN
   // ==========================================================================
-
   syncStatus: SyncStatus;
 
   // Evitan enviar múltiples veces el mismo cambio.
@@ -122,13 +120,9 @@ export interface LocalOrder {
   // ==========================================================================
   // CLIENTE
   // ==========================================================================
-
   customerName: string;
-
   customerPhone: string;
-
   customerAddress?: string;
-
   customerObservations?: string;
 
   // ==========================================================================
@@ -162,15 +156,12 @@ export interface LocalOrder {
   // ==========================================================================
   // CONFIGURACIÓN LOGÍSTICA
   // ==========================================================================
-
   deliveryType: "DELIVERY" | "PICKUP";
-
   deliveryProvider: "PLATFORM" | "INTERNAL";
 
   // Indica si el costo fue calculado automáticamente
   // o cargado manualmente por el negocio.
   deliveryPriceMode: "AUTOMATIC" | "MANUAL";
-
   totalDeliveryCost: number;
 
   // Estado operativo del envío.
@@ -185,45 +176,42 @@ export interface LocalOrder {
   // ==========================================================================
   // PAGOS
   // ==========================================================================
-
   orderPaymentMethod: PaymentMethodTypeFinancial;
-
   paymentStatus: PaymentStatus;
 
   // ==========================================================================
   // TOTALES
   // ==========================================================================
-
   total: number;
 
   // ==========================================================================
   // PRODUCTOS
   // ==========================================================================
-
   items: LocalOrderItem[];
 
   // ==========================================================================
   // ESTADO DE NEGOCIO
   // ==========================================================================
-
   status: string;
-
   origin: Origin;
 
   // ==========================================================================
   // IDENTIFICADORES VISUALES
   // ==========================================================================
-
   shortCode?: string | null;
-
   dailyNumber?: number | null;
+
+  // ==========================================================================
+  // CAJA DE TURNO (RELACIÓN)
+  // ==========================================================================
+  // Guardamos las claves locales y remotas de la caja donde se creó la orden
+  cashRegisterTurnIdTemp?: string;
+  cashRegisterTurnId?: string | null;
 
   // ==========================================================================
   // AUDITORÍA
   // ==========================================================================
-
   createdAt: Date;
-
   updatedAt: Date;
 }
 
@@ -232,4 +220,4 @@ export interface LocalOrder {
 // ============================================================================
 
 export const ORDERS_STORE =
-  "idTemp, id, status, syncStatus, syncedStatus, syncedPayment, syncedDelivery, deliveryQuotationStatus, createdAt";
+  "idTemp, id, businessId, status, syncStatus, cashRegisterTurnIdTemp, cashRegisterTurnId, syncedStatus, syncedPayment, syncedDelivery, deliveryQuotationStatus, createdAt";

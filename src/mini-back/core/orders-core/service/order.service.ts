@@ -24,11 +24,13 @@ import {
   CoreOrderThreadType,
   MutateOrderStateInput,
 } from "../input/mutate-order.input";
+import { CashRegisterPort } from "../ports/cash-register.port";
 
 export class OrderService implements IOrderPublicService {
   constructor(
     private readonly repository: OrderRepositoryPort,
     private readonly identityPort: OrderIdentityPort,
+    private readonly cashRegisterPort: CashRegisterPort,
   ) {}
 
   async mutateState(
@@ -157,6 +159,8 @@ export class OrderService implements IOrderPublicService {
     const identityService = new OrderIdentityService(this.identityPort);
     const nextNumber = await identityService.generate(input.origin);
 
+    const activeTurn = await this.cashRegisterPort.findActive(input.businessId);
+
     const initialStatus = input.instantPrepare
       ? OrderStatus.PREPARING
       : OrderStatus.PENDING;
@@ -198,6 +202,9 @@ export class OrderService implements IOrderPublicService {
       syncedStatus: isHighPriority ? false : true,
       syncedPayment: isHighPriority ? false : true,
       syncedDelivery: isHighPriority ? false : true,
+
+      cashRegisterTurnIdTemp: activeTurn?.clientTurnId,
+      cashRegisterTurnId: activeTurn?.id || null,
 
       shortCode: nextNumber.shortCode,
       dailyNumber: nextNumber.nextNumber,

@@ -67,7 +67,6 @@ export interface Order {
   syncedDelivery: boolean;  // true si el deliveryStatus actual ya impactó en la nube
   // Logística y Totales
   total: number;
-
   syncPriority: SyncPriority; // Determina si va por el canal rápido o el batch
 
   // Nueva configuración de logística
@@ -75,12 +74,10 @@ export interface Order {
   
   // Especificamos quién hace la entrega
   deliveryProvider: DeliveryProvider; 
-
   deliveryQuotationStatus?: DeliveryQuotationStatus; // Estado de la cotización de envío (si aplica)
 
   // Control de precio
   deliveryPriceMode: 'AUTOMATIC' | 'MANUAL';
-  
   totalDeliveryCost: number;
   
   // Pagos
@@ -92,6 +89,9 @@ export interface Order {
   
   // El "Corazón": los productos comprados
   items: OrderItem[];
+
+  cashRegisterTurnIdTemp?: string;
+  cashRegisterTurnId?: string | null;
   
   // Metadata
   status: OrderStatus;               // PENDING, PREPARING, COMPLETED, etc.

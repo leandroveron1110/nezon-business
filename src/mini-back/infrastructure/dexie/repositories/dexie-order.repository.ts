@@ -7,8 +7,26 @@ import {
 } from "@/mini-back/core/orders-core/public";
 import { db } from "../db";
 import { SyncStatus } from "@/mini-back/shared/types/sync-status.type";
+import { CashRegisterPort } from "@/mini-back/core/orders-core/ports/cash-register.port";
+import { CashRegisterStatus } from "@/mini-back/shared/enums/cash-register-status.enum";
 
-export class DexieOrderRepositoryAdapter implements OrderRepositoryPort {
+export class DexieOrderRepositoryAdapter
+  implements OrderRepositoryPort, CashRegisterPort
+{
+  async findActive(
+    businessId: string,
+  ): Promise<{ clientTurnId: string; id: string | null } | null> {
+    const record = await db.cashRegisterTurn
+      .where({ businessId, status: CashRegisterStatus.OPEN })
+      .first();
+    if (!record) {
+      return null;
+    }
+    return {
+      clientTurnId: record.clientTurnId,
+      id: record.id || null,
+    };
+  }
   async save(input: Order): Promise<void> {
     // console.log("Guardando orden en Dexie:", input.idTemp);
     await db.orders.add({
@@ -38,7 +56,9 @@ export class DexieOrderRepositoryAdapter implements OrderRepositoryPort {
       updatedAt: input.updatedAt,
       syncedDelivery: false,
       syncedPayment: false,
-      syncedStatus: false, 
+      syncedStatus: false,
+      cashRegisterTurnId: input.cashRegisterTurnId,
+      cashRegisterTurnIdTemp: input.cashRegisterTurnIdTemp
     }); // Adaptamos la entidad del core a la tabla
   }
 
@@ -132,9 +152,6 @@ export class DexieOrderRepositoryAdapter implements OrderRepositoryPort {
       targetStatuses.push("LOCAL_ONLY");
     }
 
-    return await db.orders
-      .where("syncStatus")
-      .anyOf(targetStatuses)
-      .count();
+    return await db.orders.where("syncStatus").anyOf(targetStatuses).count();
   }
 }

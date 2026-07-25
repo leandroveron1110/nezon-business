@@ -8,6 +8,7 @@ import {
 } from "../domain/financial-movement-status.enum";
 
 import { CloseCashRegisterInput } from "../input/close.input";
+import { HistoryFiltersInput } from "../input/hitory-filter.input";
 import { InitializeCashRegisterInput } from "../input/initialize.input";
 import { OpenCashRegisterInput } from "../input/open.input";
 
@@ -38,6 +39,47 @@ export class CashRegisterService implements ICashRegisterService {
       openingAmount: input.openingAmount,
       openingNotes: input.openingNotes,
     });
+  }
+
+  async historyCashRegiter(filter: HistoryFiltersInput): Promise<CashRegister[]> {
+    if (!filter.businessId) {
+      throw new Error(
+        "El businessId es requerido para consultar el historial.",
+      );
+    }
+
+    // 1. Consultar a través de tu repositorio/capa de datos (IndexedDB/Dexie)
+    // Se filtran por negocio y se ordenan por apertura descendente (más recientes primero)
+    let turns = await this.cashRegister.findByBusinessId(filter.businessId);
+
+    // 2. Aplicar filtros en memoria si vienen especificados
+    if (filter?.startDate) {
+      turns = turns.filter(
+        (turn) => new Date(turn.openingDate) >= filter.startDate!,
+      );
+    }
+
+    if (filter?.endDate) {
+      turns = turns.filter(
+        (turn) => new Date(turn.openingDate) <= filter.endDate!,
+      );
+    }
+
+    // 3. Ordenar siempre los más recientes primero
+    turns.sort(
+      (a, b) =>
+        new Date(b.openingDate).getTime() - new Date(a.openingDate).getTime(),
+    );
+
+    // 4. Paginación / Límite
+    const offset = filter?.offset || 0;
+    const limit = filter?.limit;
+
+    if (limit) {
+      return turns.slice(offset, offset + limit);
+    }
+
+    return turns;
   }
 
   async open(input: OpenCashRegisterInput): Promise<CashRegister> {
@@ -72,6 +114,8 @@ export class CashRegisterService implements ICashRegisterService {
     return this.cashRegister.save(cashRegister as CashRegister);
   }
 
+  // 🛠️ DENTRO DE CashRegisterService.ts (Método close)
+
   async close(input: CloseCashRegisterInput): Promise<CashRegister> {
     const turn = await this.cashRegister.findActive(input.businessId);
 
@@ -79,33 +123,38 @@ export class CashRegisterService implements ICashRegisterService {
       throw new Error("No existe una caja abierta para este negocio.");
     }
 
-    // 💡 Identificador seguro (funciona local y sincronizado)
     const turnIdentifier = turn.clientTurnId || turn.id;
 
     if (!turnIdentifier) {
       throw new Error("El turno activo no posee un identificador válido.");
     }
 
-    // 1. Reusamos el cálculo de totales del Core
+    // 1. Totales de movimientos del turno (Neto operado)
     const totals = await this.getActiveTurnTotals(input.businessId);
 
-    // 2. El arqueo en efectivo es el total en caja calculado por el sistema
-    const cashSystemAmount = totals.cash;
+    const netCashOperated = totals.cash;
+    const openingAmount = turn.openingAmount || 0;
 
-    // 3. Mutamos la entidad de dominio con la información de cierre
+    // 2. El dinero esperado TOTAL en el cajón físico (Fondo + Neto Operado)
+    const totalExpectedInDrawer = openingAmount + netCashOperated;
+
+    // 3. Mutación limpia de la entidad de dominio
     turn.closedByUserId = input.userId;
     turn.closingDate = new Date();
     turn.declaredClosingAmount = input.declaredClosingAmount;
-    turn.systemClosingAmount = cashSystemAmount;
-    turn.difference = input.declaredClosingAmount - cashSystemAmount;
+
+    // Guardamos el neto operado en systemClosingAmount
+    turn.systemClosingAmount = netCashOperated;
+
+    // 💥 REGLA DE NEGOCIO CORREGIDA:
+    // Arqueo = Declarado - Esperado Real en Cajón
+    turn.difference = input.declaredClosingAmount - totalExpectedInDrawer;
+
     turn.closingNotes = input.closingNotes;
     turn.status = CashRegisterStatus.CLOSED;
 
-    // 4. Persistimos los cambios
     return this.cashRegister.close(turn);
   }
-
-  // En CashRegisterService.ts
 
   async getActiveTurnTotals(businessId: string): Promise<CashRegisterTotals> {
     const turn = await this.cashRegister.findActive(businessId);

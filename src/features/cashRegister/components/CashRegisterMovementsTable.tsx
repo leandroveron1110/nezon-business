@@ -12,7 +12,8 @@ import {
   Receipt,
   Hash,
   AlertTriangle,
-  WalletCards, // 💡 Nuevo ícono para ingresos manuales
+  WalletCards,
+  Link as LinkIcon,
 } from "lucide-react";
 
 interface Props {
@@ -32,9 +33,12 @@ export function CashRegisterMovementsTable({
         <div className="rounded-full bg-slate-100 p-3 text-slate-400">
           <Receipt className="h-6 w-6" />
         </div>
-        <h3 className="mt-3 font-semibold text-slate-700">Sin movimientos aún</h3>
+        <h3 className="mt-3 font-semibold text-slate-700">
+          Sin movimientos aún
+        </h3>
         <p className="mt-1 text-xs text-slate-500">
-          Las ventas, ingresos y egresos registrados en este turno aparecerán aquí.
+          Las ventas, ingresos y egresos registrados en este turno aparecerán
+          aquí.
         </p>
       </div>
     );
@@ -45,7 +49,8 @@ export function CashRegisterMovementsTable({
       <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
         <h2 className="font-bold text-slate-800">Movimientos del Turno</h2>
         <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
-          {movements.length} {movements.length === 1 ? "operación" : "operaciones"}
+          {movements.length}{" "}
+          {movements.length === 1 ? "operación" : "operaciones"}
         </span>
       </div>
 
@@ -73,10 +78,13 @@ export function CashRegisterMovementsTable({
 
               const isPending = m.status === FinancialMovementStatus.PENDING;
 
-              // 💡 Identificamos si es una venta o un ingreso/aporte manual
+              // Identificamos si es una venta o un ingreso/aporte manual
               const displayOrderId = m.orderId || m.orderIdTemp;
               const isSale = Boolean(displayOrderId);
               const isManualIncome = !isNegative && !isSale;
+
+              // Identificamos si proviene del arrastre de un turno anterior
+              const hasTurnReference = Boolean(m.referenceCashRegisterTurnId);
 
               const formattedTime = new Date(m.date).toLocaleTimeString([], {
                 hour: "2-digit",
@@ -85,6 +93,10 @@ export function CashRegisterMovementsTable({
 
               const shortOrderId = displayOrderId
                 ? `${displayOrderId.slice(-6).toUpperCase()}`
+                : null;
+
+              const shortRefTurnId = m.referenceCashRegisterTurnId
+                ? `${m.referenceCashRegisterTurnId.slice(-6).toUpperCase()}`
                 : null;
 
               return (
@@ -106,10 +118,10 @@ export function CashRegisterMovementsTable({
                         isInactive
                           ? "line-through text-slate-400"
                           : isNegative
-                          ? "text-rose-600"
-                          : isManualIncome
-                          ? "text-blue-600" // Azul para diferienciar el ingreso manual de ventas
-                          : "text-emerald-600"
+                            ? "text-rose-600"
+                            : isManualIncome
+                              ? "text-blue-600"
+                              : "text-emerald-600"
                       }`}
                     >
                       {isNegative ? (
@@ -121,7 +133,7 @@ export function CashRegisterMovementsTable({
                     </span>
                   </td>
 
-                  {/* Detalle, Orden asociada, Badges y Referencias */}
+                  {/* Detalle, Orden asociada, Turno de Referencia, Badges y Notas */}
                   <td className="px-5 py-3.5 max-w-[280px]">
                     <div className="flex flex-col gap-0.5">
                       <div className="flex items-center gap-1.5 flex-wrap">
@@ -134,6 +146,17 @@ export function CashRegisterMovementsTable({
                           <span className="inline-flex items-center gap-0.5 rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-slate-600">
                             <Hash className="h-2.5 w-2.5" />
                             {shortOrderId}
+                          </span>
+                        )}
+
+                        {/* Badge de Turno de Referencia (si viene de una caja previa) */}
+                        {hasTurnReference && shortRefTurnId && (
+                          <span
+                            className="inline-flex items-center gap-1 rounded bg-indigo-50 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-indigo-700 border border-indigo-100"
+                            title={`Monto proveniente del turno #${shortRefTurnId}`}
+                          >
+                            <LinkIcon className="h-2.5 w-2.5" />
+                            Turno #{shortRefTurnId}
                           </span>
                         )}
 
@@ -175,7 +198,9 @@ export function CashRegisterMovementsTable({
                   </td>
 
                   {/* Hora */}
-                  <td className="px-5 py-3.5 text-slate-500">{formattedTime}</td>
+                  <td className="px-5 py-3.5 text-slate-500">
+                    {formattedTime}
+                  </td>
 
                   {/* Monto */}
                   <td
@@ -183,10 +208,10 @@ export function CashRegisterMovementsTable({
                       isInactive
                         ? "line-through text-slate-400"
                         : isNegative
-                        ? "text-rose-600"
-                        : isManualIncome
-                        ? "text-blue-600"
-                        : "text-slate-900"
+                          ? "text-rose-600"
+                          : isManualIncome
+                            ? "text-blue-600"
+                            : "text-slate-900"
                     }`}
                   >
                     {isNegative ? "-" : "+"}${m.amount.toLocaleString("es-AR")}

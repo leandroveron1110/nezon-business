@@ -57,14 +57,24 @@ export class FinancialMovementService implements IFinancialMovementPublicService
   }
 
   async registerRefund(input: RegisterRefundInput): Promise<FinancialMovement> {
+    // 1. Obtenemos la caja abierta hoy (donde VA A SALIR el dinero del reembolso)
     const activeBox = await this.getActiveCashRegisterOrThrow(input.businessId);
+
+    // 2. Comparamos simple y directo:
+    // ¿El turno de la orden viene de un turno distinto a la caja activa de hoy?
+    const isFromPreviousTurn =
+      input.referenceCashRegisterTurnId &&
+      input.referenceCashRegisterTurnId !== activeBox.clientTurnId;
 
     const financialMovement: FinancialMovement = {
       clientMovementId: input.clientMovementId,
       businessId: input.businessId,
       userId: input.userId,
       approvedByUserId: input.userId,
-      cashRegisterTurnId: activeBox.id,
+
+      // El dinero SALE de la caja activa hoy
+      // cashRegisterTurnId: activeBox.id,
+      cashRegisterTurnId: activeBox.clientTurnId,
 
       type: FinancialMovementType.REFUND,
       status: FinancialMovementStatus.CONFIRMED,
@@ -77,7 +87,11 @@ export class FinancialMovementService implements IFinancialMovementPublicService
 
       date: new Date(),
       orderId: input.orderId,
-      referenceCashRegisterTurnId: input.referenceCashRegisterTurnId,
+
+      // Si provenía de otra caja, guardamos esa referencia. Si era de la misma, queda en null.
+      referenceCashRegisterTurnId: isFromPreviousTurn
+        ? input.referenceCashRegisterTurnId
+        : undefined,
     };
 
     return this.movement.save(financialMovement);
@@ -108,7 +122,9 @@ export class FinancialMovementService implements IFinancialMovementPublicService
     return this.movement.save(financialMovement);
   }
 
-  async registerExpense(input: RegisterExpenseInput): Promise<FinancialMovement> {
+  async registerExpense(
+    input: RegisterExpenseInput,
+  ): Promise<FinancialMovement> {
     const activeBox = await this.getActiveCashRegisterOrThrow(input.businessId);
 
     const financialMovement: FinancialMovement = {

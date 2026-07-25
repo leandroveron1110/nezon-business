@@ -14,6 +14,7 @@ import {
   CashRegister,
   FinancialMovement,
   CashRegisterTotals,
+  HistoryFiltersInput,
 } from "@/mini-back/core/cash-register-core/public";
 import { CashRegisterDexieRepository } from "../infrastructure/dexie/repositories/cash-register-dexie.repository";
 import { FinancialMovementDexieRepository } from "../infrastructure/dexie/repositories/financial-movement-dexie.repository";
@@ -64,6 +65,10 @@ class CashRegisterOrchestrator {
     // o congelar la interfaz del POS), manteniendo la lógica decoupled.
 
     return closedRegister;
+  }
+
+  async historyCashRegiter(filter: HistoryFiltersInput): Promise<CashRegister[]> {
+    return await this.cashRegisterService.historyCashRegiter(filter);
   }
 
   async getActiveTurnTotals(businessId: string): Promise<CashRegisterTotals> {

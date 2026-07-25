@@ -80,6 +80,8 @@ export class FinancialMovementDexieRepository implements FinancialMovementPort {
       orderIdTemp: movement.orderId ?? existing?.orderIdTemp ?? undefined, // 💡 Aseguramos también si acepta null/string
       cashRegisterTurnIdTemp: turnIdTemp, // 💡 TypeScript ahora sabe 100% que es string
 
+      referenceCashRegisterTurnId: movement.referenceCashRegisterTurnId,
+
       syncStatus:
         existing?.syncStatus === "SYNCED"
           ? "SYNC_PENDING"

@@ -26,6 +26,7 @@ export const createOrderOrchestrator = async (input: CreateOrderInput) => {
   const orderCore = OrderServicePublic({
     repository: repositoryAdapter,
     identity: identityAdapter,
+    cashRegister: repositoryAdapter
   });
 
   if (
@@ -90,7 +91,7 @@ export const updateOrderStatusOrchestrator = async (
 ) => {
   const repository = new DexieOrderRepositoryAdapter();
   const identity = new DexieOrderIdentityAdapter();
-  const orderCore = OrderServicePublic({ repository, identity });
+  const orderCore = OrderServicePublic({ repository, identity, cashRegister: repository });
 
   // 1. El Core valida la máquina de estados y guarda localmente (Rápido y Offline-First)
   const result = await orderCore.updateStatus(input);
@@ -137,6 +138,7 @@ export const updateOrderStatusOrchestrator = async (
       if (order.paymentStatus === "CONFIRMED") {
         await cashRegisterOrchestrator.processRefundMovement({
           businessId: order.businessId,
+          referenceCashRegisterTurnId: order.cashRegisterTurnIdTemp,
           userId: order.userId || "system",
           amount: (order.total - (order.totalDeliveryCost ?? 0)),
           paymentMethod: order.orderPaymentMethod,

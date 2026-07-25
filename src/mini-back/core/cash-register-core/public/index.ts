@@ -23,6 +23,7 @@ export * from "../input/register-expense.input";
 export * from "../input/register-income.input";
 export * from "../input/register-refund.input";
 export * from "../input/register-sale.input";
+export * from "../input/hitory-filter.input"
 
 // --- EXPORTACIONES DE INPUTS ---
 export * from "../port/cash-register.port";

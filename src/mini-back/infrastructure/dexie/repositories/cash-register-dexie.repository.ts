@@ -77,6 +77,16 @@ export class CashRegisterDexieRepository implements CashRegisterPort {
     return this.toCoreDomain(closedRecord);
   }
 
+  async findByBusinessId(businessId: string): Promise<CashRegister[]> {
+    const result = await this.db.cashRegisterTurn
+      .where("businessId")
+      .equals(businessId)
+      .reverse() // Orden descendente
+      .sortBy("openingDate");
+
+    return result.map((r) => this.toCoreDomain(r));
+  }
+
   async save(cashRegister: CashRegister): Promise<CashRegister> {
     const now = new Date();
 

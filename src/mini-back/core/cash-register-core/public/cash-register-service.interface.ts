@@ -1,6 +1,7 @@
 import { CashRegister } from "../domain/cash-register";
 import { CashRegisterTotals } from "../domain/cash-register-totals";
 import { CloseCashRegisterInput } from "../input/close.input";
+import { HistoryFiltersInput } from "../input/hitory-filter.input";
 import { InitializeCashRegisterInput } from "../input/initialize.input";
 import { OpenCashRegisterInput } from "../input/open.input";
 
@@ -15,5 +16,7 @@ export interface ICashRegisterService {
     close(input: CloseCashRegisterInput): Promise<CashRegister | null>
 
     getActiveTurnTotals(businessId: string): Promise<CashRegisterTotals>
+
+    historyCashRegiter(filter: HistoryFiltersInput): Promise<CashRegister[]>
 
 }

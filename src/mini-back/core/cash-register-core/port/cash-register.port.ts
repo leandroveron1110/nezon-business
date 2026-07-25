@@ -12,4 +12,6 @@ export interface CashRegisterPort {
   update(cashRegister: CashRegister): Promise<CashRegister>;
 
   close(cashRegister: CashRegister): Promise<CashRegister>;
+
+  findByBusinessId(businessId: string): Promise<CashRegister[]>
 }
