@@ -87,6 +87,7 @@ class SyncQueueWorker {
       const orderCore = OrderServicePublic({
         repository: this.repository,
         identity: this.identity,
+        cashRegister: this.repository
       });
 
       const pendingOrders = await this.repository.getPendingQueue({
