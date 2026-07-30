@@ -255,7 +255,17 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
       ticketRef.current &&
       ticketRef.current.innerHTML
     ) {
-      print(ticketRef.current.innerHTML);
+          // Esperamos a que React renderice el ticket
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!ticketRef.current) return;
+
+        console.log(ticketRef.current?.getBoundingClientRect());
+
+
+        print(ticketRef.current);
+      });
+    });
     }
   };
 
@@ -297,7 +307,7 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
             }}
           >
             <div ref={ticketRef}>
-              <OrderTicket order={safeOrder} mode="KITCHEN" />
+              <OrderTicket order={safeOrder} mode="CUSTOMER" />
             </div>
           </div>
         )}
