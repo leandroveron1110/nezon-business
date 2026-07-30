@@ -17,16 +17,26 @@ html, body {
   z-index: 0 !important;
 }
 
-/* Configuración de impresión se mantiene impecable */
 @media print {
-  @page {
-    margin: 0;
-    size: auto;
+
+  html,
+  body {
+    width: 80mm !important;
+    max-width: 80mm !important;
+    min-width: 80mm !important;
+    overflow: hidden;
   }
-  
-  .ticket-wrapper {
-    display: block !important;
-    visibility: visible !important;
-    width: 80mm;
+
+  #mobile-print-area,
+  .force-print-area {
+
+    width: 80mm !important;
+    max-width: 80mm !important;
+    min-width: 80mm !important;
+
+    transform: none !important;
+    zoom: 1 !important;
+    scale: 1 !important;
   }
+
 }

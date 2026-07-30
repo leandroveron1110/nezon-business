@@ -1,76 +1,98 @@
 "use client";
-import { toPng } from 'html-to-image';
 
 export function usePrintTicket() {
-  const print = (contentHtml: string) => {
-    // 1. Creamos un contenedor para el área de impresión
-    const printWindow = document.createElement("div");
-    printWindow.id = "mobile-print-area";
-    
-    // Estilos para que solo sea visible al imprimir
+  const print = async (
+    element: HTMLElement,
+    paperWidth: 58 | 80 = 80
+  ) => {
+    // Esperamos dos frames para asegurar que React terminó de renderizar
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+
+    const ticketWidth = `${paperWidth}mm`;
+
+    // Clonamos exactamente el nodo renderizado
+    const clone = element.cloneNode(true) as HTMLElement;
+
+    // Contenedor temporal
+    const printArea = document.createElement("div");
+    printArea.id = "mobile-print-area";
+    printArea.appendChild(clone);
+
+    // CSS exclusivo para impresión
     const style = document.createElement("style");
+
     style.innerHTML = `
       @media screen {
-        #mobile-print-area { display: none !important; }
+        #mobile-print-area {
+          display: none !important;
+        }
       }
+
       @media print {
-        body > *:not(#mobile-print-area) { display: none !important; }
-        #mobile-print-area { 
-          display: block !important; 
-          width: 100%;
+
+        @page {
+          size: ${ticketWidth};
+          margin: 0;
+        }
+
+        html,
+        body {
+          margin: 0 !important;
+          padding: 0 !important;
+          width: ${ticketWidth} !important;
+          min-width: ${ticketWidth} !important;
+          max-width: ${ticketWidth} !important;
+          overflow: hidden !important;
+          background: white !important;
+        }
+
+        body > *:not(#mobile-print-area) {
+          display: none !important;
+        }
+
+        #mobile-print-area {
+
+          display: block !important;
+
+          width: ${ticketWidth} !important;
+          min-width: ${ticketWidth} !important;
+          max-width: ${ticketWidth} !important;
+
+          margin: 0 !important;
+          padding: 0 !important;
+
+          transform: none !important;
+          zoom: 1 !important;
+        }
+
+        #mobile-print-area * {
+          transform: none !important;
         }
       }
     `;
 
-    // 2. Capturamos los estilos de Tailwind para que el ticket se vea bien
-    const existingStyles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
-      .map(s => s.outerHTML)
-      .join('');
-
-    // 3. Inyectamos el contenido
-    printWindow.innerHTML = `
-      ${existingStyles}
-      <div class="force-print-area">
-        ${contentHtml}
-      </div>
-    `;
-
-    // 4. Limpieza y ejecución
     document.head.appendChild(style);
-    document.body.appendChild(printWindow);
+    document.body.appendChild(printArea);
 
-    // Pequeño delay para que el navegador móvil procese el nuevo DOM
-    setTimeout(() => {
-      window.print();
-      
-      // Limpiamos después de imprimir (o cancelar)
-      setTimeout(() => {
-        printWindow.remove();
-        style.remove();
-      }, 1000);
-    }, 500);
+    // DEBUG
+    console.log(
+      "Ancho real del ticket:",
+      element.getBoundingClientRect().width,
+      "px"
+    );
+    const rect = element.getBoundingClientRect();
+
+    console.table({
+  widthPx: rect.width,
+  widthMmEsperado: paperWidth,
+});
+
+    window.print();
+
+    printArea.remove();
+    style.remove();
   };
 
-  const generateImage = async (element: HTMLElement, fileName: string) => {
-    try {
-      // Convertimos el HTML a una URL de datos (Base64)
-      const dataUrl = await toPng(element, { 
-        quality: 0.95,
-        backgroundColor: '#ffffff', // Forzamos fondo blanco
-        style: {
-          visibility: 'visible', // Nos aseguramos que sea visible para la captura
-        }
-      });
-      
-      // Convertimos esa URL en un objeto de archivo real
-      const res = await fetch(dataUrl);
-      const blob = await res.blob();
-      return new File([blob], `${fileName}.png`, { type: 'image/png' });
-    } catch (err) {
-      console.error("Error generando imagen del ticket", err);
-      return null;
-    }
-  };
-
-  return { print, generateImage };
+  return { print };
 }

@@ -119,73 +119,32 @@ export default function BusinessOrdersPage({ businessId }: Props) {
   ) => {
     if (!orderToPrint) return;
 
-    if (mode === "SHARE_WHATSAPP") {
-      setShowPrintModal(false);
+    // ============================
+    // IMPRESIÓN FÍSICA
+    // ============================
 
-      // Lazy load de la librería pesada de captura de imagen
-      const { toPng } = await import("html-to-image");
-      setPrintMode("CUSTOMER");
+    setPrintMode(mode);
+    setShowPrintModal(false);
 
-      // Esperamos el re-render en el DOM (800ms optimizado para móviles)
-      setTimeout(async () => {
+    // Esperamos a que React renderice el ticket
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
         if (!printRef.current) return;
 
-        try {
-          const dataUrl = await toPng(printRef.current, {
-            cacheBust: true,
-            pixelRatio: 2,
-            backgroundColor: "#ffffff",
-            skipFonts: false,
-          });
+        console.log(printRef.current?.getBoundingClientRect());
+        window.addEventListener(
+          "afterprint",
+          () => {
+            setPrintMode(null);
+            setSelectedPrintOrderId(null);
+            setOrderToPrint(null);
+          },
+          { once: true },
+        );
 
-          const blob = await (await fetch(dataUrl)).blob();
-          const ticketFile = new File(
-            [blob],
-            `Ticket_${orderToPrint.id.slice(-6)}.png`,
-            { type: "image/png" },
-          );
-
-          const message = `¡Hola! 👋 Acá tenés el detalle de tu pedido #${orderToPrint.id.slice(-6).toUpperCase()}.`;
-
-          if (
-            navigator.canShare &&
-            navigator.canShare({ files: [ticketFile] })
-          ) {
-            await navigator.share({
-              files: [ticketFile],
-              title: "Ticket de Pedido",
-              text: message,
-            });
-          } else {
-            // Fallback si no admite compartir archivos nativos (ej: Web desktop)
-            window.open(
-              `https://wa.me/3442667301?text=${encodeURIComponent(message)}`,
-              "_blank",
-            );
-          }
-        } catch (error) {
-          console.error("Error capturando ticket:", error);
-          addAlert({
-            message: "No se pudo generar la imagen del ticket",
-            type: "error",
-          });
-        } finally {
-          setPrintMode(null);
-          setSelectedPrintOrderId(null); // Reseteo total de flujo
-        }
-      }, 800);
-    } else {
-      setPrintMode(mode);
-      setShowPrintModal(false);
-
-      setTimeout(() => {
-        if (printRef.current && orderToPrint) {
-          print(printRef.current.innerHTML);
-        }
-        setPrintMode(null);
-        setSelectedPrintOrderId(null); // Reseteo total de flujo
-      }, 300);
-    }
+        print(printRef.current);
+      });
+    });
   };
 
   // Buscamos la orden para renderizar en el Modal de comanda en pantalla
