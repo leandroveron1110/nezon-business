@@ -31,7 +31,7 @@ const LocationSelector = ({ onSave }: LocationSelectorProps) => {
   const [lastSearchAddress, setLastSearchAddress] = useState("");
   const [step, setStep] = useState<"input" | "map" | "review">("input");
 
-  const { addAlert } = useAlert()
+  const { addAlert } = useAlert();
 
   const DEFAULT_CITY = "Concepción del Uruguay";
   const DEFAULT_PROVINCE = "Entre Ríos";
@@ -43,7 +43,6 @@ const LocationSelector = ({ onSave }: LocationSelectorProps) => {
   ) => {
     setLoading(true);
     setError(null);
-    // Cambiamos el proveedor de búsqueda a EsriProvider
     const provider = new EsriProvider();
 
     try {
@@ -59,14 +58,14 @@ const LocationSelector = ({ onSave }: LocationSelectorProps) => {
         addAlert({
           message: "No se encontraron resultados. Intenta con otra calle o número.",
           type: 'info'
-        })
+        });
         resetSearch();
       }
     } catch {
       addAlert({
         message: `Error al buscar la dirección. Inténtalo de nuevo.`,
         type: 'error'
-      })
+      });
     } finally {
       setLoading(false);
     }
@@ -94,7 +93,7 @@ const LocationSelector = ({ onSave }: LocationSelectorProps) => {
       addAlert({
         message: "Por favor, selecciona una ubicación antes de confirmar.",
         type: 'info' 
-      })
+      });
       return;
     }
 
@@ -118,7 +117,6 @@ const LocationSelector = ({ onSave }: LocationSelectorProps) => {
     };
 
     onSave(dataToSend);
-    
     setIsConfirming(false);
   };
 
@@ -146,10 +144,11 @@ const LocationSelector = ({ onSave }: LocationSelectorProps) => {
       : null;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    /* Cambiado: h-full w-full relative en lugar de min-h-screen */
+    <div className="h-full w-full bg-gray-50 flex flex-col relative">
       {/* Paso 1: Input */}
       {step === "input" && (
-        <div className="flex-1 flex items-center justify-center">
+        <div className="flex-1 flex items-center justify-center p-6 overflow-y-auto">
           <div className="w-full max-w-2xl">
             <AddressInput
               onSearch={handleSearchAddress}
@@ -168,15 +167,15 @@ const LocationSelector = ({ onSave }: LocationSelectorProps) => {
 
       {/* Paso 2: Mapa */}
       {step === "map" && initialPosition && (
-        <div className="relative w-full h-screen">
-          {/* El mapa ocupa toda la pantalla */}
+        /* Cambiado: h-full / flex-1 min-h-0 en lugar de h-screen */
+        <div className="relative w-full flex-1 min-h-0">
           <MapComponent
             initialPosition={initialPosition}
             onPositionChange={handlePositionChange}
           />
           {showCard && <ConfirmationCard onClose={() => setShowCard(false)} />}
 
-          {/* Panel flotante en la parte inferior */}
+          {/* Panel flotante ajustado al fondo del contenedor */}
           <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl p-6 space-y-4 z-50">
             <p className="text-sm text-gray-600 text-center">
               <span className="font-semibold text-gray-800">
@@ -187,12 +186,14 @@ const LocationSelector = ({ onSave }: LocationSelectorProps) => {
 
             <div className="flex gap-4">
               <button
+                type="button"
                 onClick={resetSearch}
                 className="flex-1 px-4 py-3 rounded-full border border-gray-300 bg-white text-gray-700 font-medium shadow hover:bg-gray-100 transition"
               >
                 Cambiar
               </button>
               <button
+                type="button"
                 onClick={handleGoToReview}
                 disabled={!finalCoordinates || isConfirming}
                 className="flex-1 px-4 py-3 rounded-full bg-blue-600 text-white font-semibold shadow hover:bg-blue-700 disabled:bg-gray-400 transition"
@@ -206,7 +207,7 @@ const LocationSelector = ({ onSave }: LocationSelectorProps) => {
 
       {/* Paso 3: Review */}
       {step === "review" && addressForReview && (
-        <div className="flex-1 flex items-center justify-center">
+        <div className="flex-1 flex items-center justify-center p-6 overflow-y-auto">
           <LocationReview
             address={addressForReview}
             onConfirm={handleConfirmLocation}

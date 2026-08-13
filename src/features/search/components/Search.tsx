@@ -32,12 +32,12 @@ export default function SearchPage() {
   }, [isError, error, addAlert]);
 
   // 🚀 REDIRECCIÓN AUTOMÁTICA AL POS SI TIENE SOLO 1 NEGOCIO
-  // useEffect(() => {
-  //   if (data?.data && data.data.length === 1) {
-  //     const singleBusinessId = data.data[0].id;
-  //     router.replace(`/business/${singleBusinessId}/orders`);
-  //   }
-  // }, [data, router]);
+  useEffect(() => {
+    if (data?.data && data.data.length === 1) {
+      const singleBusinessId = data.data[0].id;
+      router.replace(`/business/${singleBusinessId}/orders`);
+    }
+  }, [data, router]);
 
   if (isLoading || (data?.data && data.data.length === 1)) {
     return (
