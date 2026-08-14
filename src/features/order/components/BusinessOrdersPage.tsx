@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Package, Search, LayoutGrid, Printer } from "lucide-react";
+import { Package, Search, LayoutGrid, Printer, List } from "lucide-react";
 
 import OrdersFilters from "./OrdersFilters";
 import { simplifiedFilters } from "@/features/common/utils/filtersData";
@@ -29,6 +29,7 @@ import { OrderTicket } from "./order/ticket-order/OrderTicket";
 import { CashRegisterStatusBadge } from "@/features/cashRegister/components/CashRegisterStatusBadge";
 import { OpenCashModal } from "@/features/cashRegister/components/OpenCashModal";
 import { useCashRegisterStatus } from "@/features/cashRegister/hooks/useCashRegisterStatus";
+import { OrderCard } from "./order/OrderCard";
 
 interface Props {
   businessId: string;
@@ -62,6 +63,7 @@ export default function BusinessOrdersPage({ businessId }: Props) {
     "KITCHEN" | "CUSTOMER" | "SHARE_WHATSAPP" | null
   >(null);
 
+  const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
   const { isOpen } = useCashRegisterStatus(businessId);
 
   // --- ANCLA TEMPORAL GLOBAL (RELOJ DE PANTALLA) ---
@@ -259,27 +261,55 @@ export default function BusinessOrdersPage({ businessId }: Props) {
         <header className="sticky top-0 z-30 border-b bg-white shadow-sm">
           <div className="mx-auto flex max-w-7xl flex-col gap-4 p-4">
             {/* ========================================================= */}
-            {/* FILA 1 - TÍTULO + ACCIÓN PRINCIPAL                        */}
-            {/* ========================================================= */}
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <h1 className="flex items-center gap-2 text-xl font-black text-slate-800">
-                <LayoutGrid className="h-5 w-5 text-blue-600" />
-                <span>Panel de Órdenes</span>
-              </h1>
+{/* FILA 1 - TÍTULO + ACCIONES Y SELECTOR DE VISTA           */}
+{/* ========================================================= */}
+<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <h1 className="flex items-center gap-2 text-xl font-black text-slate-800">
+    <LayoutGrid className="h-5 w-5 text-blue-600" />
+    <span>Panel de Órdenes</span>
+  </h1>
 
-              {isOpen ? (
-                <>
-                  <button
-                    onClick={() => setIsNewOrder(true)}
-                    className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 active:scale-[0.98]"
-                  >
-                    Nueva orden
-                  </button>
-                </>
-              ) : (
-                <></>
-              )}
-            </div>
+  <div className="flex items-center gap-3">
+    {/* SELECTOR DE MODO DE VISTA (LISTA / CARDS) */}
+    <div className="flex items-center rounded-xl border border-slate-200 bg-slate-100 p-1">
+      <button
+        onClick={() => setViewMode("grid")}
+        className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+          viewMode === "grid"
+            ? "bg-white text-slate-900 shadow-sm"
+            : "text-slate-500 hover:text-slate-700"
+        }`}
+        title="Vista en Tarjetas"
+      >
+        <LayoutGrid className="h-4 w-4" />
+        <span className="hidden sm:inline">Tarjetas</span>
+      </button>
+
+      <button
+        onClick={() => setViewMode("list")}
+        className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+          viewMode === "list"
+            ? "bg-white text-slate-900 shadow-sm"
+            : "text-slate-500 hover:text-slate-700"
+        }`}
+        title="Vista en Lista"
+      >
+        <List className="h-4 w-4" />
+        <span className="hidden sm:inline">Lista</span>
+      </button>
+    </div>
+
+    {/* BOTÓN NUEVA ORDEN */}
+    {isOpen && (
+      <button
+        onClick={() => setIsNewOrder(true)}
+        className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 active:scale-[0.98]"
+      >
+        Nueva orden
+      </button>
+    )}
+  </div>
+</div>
 
             {/* ========================================================= */}
             {/* FILA 2 - ESTADO DEL SISTEMA                              */}
@@ -349,31 +379,52 @@ export default function BusinessOrdersPage({ businessId }: Props) {
         {/* Botones de Acción Agrupados */}
 
         {/* CONTAINER MAESTRO CON ALTURA CONTROLADA */}
-        <main className="flex-1 min-h-0 overflow-y-auto scrollbar-thin bg-white">
+        <main className="flex-1 min-h-0 overflow-y-auto scrollbar-thin bg-white p-4">
           <div className="max-w-7xl mx-auto w-full">
-            {/* HEADER DE LA TABLA FLEX REALINEADO CON LOS BOTONES DINÁMICOS */}
-            <div className="hidden md:flex items-center gap-4 px-6 py-3 text-[11px] uppercase tracking-wider font-bold text-gray-400 border-b bg-white sticky top-0 z-10 pl-8">
-              <div className="min-w-[78px] text-center">Pedido</div>
-              <div className="flex-1">Información del Cliente</div>
-              <div className="min-w-[75px]"></div>
-              <div className="min-w-[120px] text-right">Total</div>
-              {businessSettings.allowDigitalTicket && (
-                <div className="w-12"></div>
-              )}
-              {businessSettings.allowPhysicalPrinting && (
-                <div className="w-12"></div>
-              )}
-            </div>
+            {/* Controles para cambiar de vista (Opcional) */}
+            {/* <div className="flex justify-end gap-2 mb-4"> ... </div> */}
 
-            <div className="divide-y divide-gray-100 bg-white">
-              {filteredAndSortedOrders.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-                  <Package className="w-12 h-12 mb-4 opacity-20" />
-                  <p>No hay órdenes en esta sección</p>
+            {filteredAndSortedOrders.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+                <Package className="w-12 h-12 mb-4 opacity-20" />
+                <p>No hay órdenes en esta sección</p>
+              </div>
+            ) : viewMode === "list" ? (
+              /* MODO LISTA */
+              <div>
+                <div className="hidden md:flex items-center gap-4 px-6 py-3 text-[11px] uppercase tracking-wider font-bold text-gray-400 border-b bg-white sticky top-0 z-10 pl-8">
+                  <div className="min-w-[78px] text-center">Pedido</div>
+                  <div className="flex-1">Información del Cliente</div>
+                  <div className="min-w-[75px]"></div>
+                  <div className="min-w-[120px] text-right">Total</div>
+                  {businessSettings.allowDigitalTicket && (
+                    <div className="w-12"></div>
+                  )}
+                  {businessSettings.allowPhysicalPrinting && (
+                    <div className="w-12"></div>
+                  )}
                 </div>
-              ) : (
-                filteredAndSortedOrders.map((order) => (
-                  <OrderList
+
+                <div className="divide-y divide-gray-100 bg-white">
+                  {filteredAndSortedOrders.map((order) => (
+                    <OrderList
+                      key={order.id}
+                      order={order}
+                      now={now}
+                      showPrintButton={businessSettings.allowPhysicalPrinting}
+                      showViewTicketButton={businessSettings.allowDigitalTicket}
+                      onClick={() => setSelectedOrderId(order.id)}
+                      onPrintDirect={handlePrintRequest}
+                      onViewTicket={(id) => setViewTicketOrderId(id)}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              /* MODO GRID (CARDS) */
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {filteredAndSortedOrders.map((order) => (
+                  <OrderCard
                     key={order.id}
                     order={order}
                     now={now}
@@ -381,14 +432,11 @@ export default function BusinessOrdersPage({ businessId }: Props) {
                     showViewTicketButton={businessSettings.allowDigitalTicket}
                     onClick={() => setSelectedOrderId(order.id)}
                     onPrintDirect={handlePrintRequest}
-                    onViewTicket={(id) => {
-                      // console.log(`id de la orden:${id}`)
-                      setViewTicketOrderId(id);
-                    }}
+                    onViewTicket={(id) => setViewTicketOrderId(id)}
                   />
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </main>
 
