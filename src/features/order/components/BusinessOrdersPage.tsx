@@ -261,55 +261,55 @@ export default function BusinessOrdersPage({ businessId }: Props) {
         <header className="sticky top-0 z-30 border-b bg-white shadow-sm">
           <div className="mx-auto flex max-w-7xl flex-col gap-4 p-4">
             {/* ========================================================= */}
-{/* FILA 1 - TÍTULO + ACCIONES Y SELECTOR DE VISTA           */}
-{/* ========================================================= */}
-<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-  <h1 className="flex items-center gap-2 text-xl font-black text-slate-800">
-    <LayoutGrid className="h-5 w-5 text-blue-600" />
-    <span>Panel de Órdenes</span>
-  </h1>
+            {/* FILA 1 - TÍTULO + ACCIONES Y SELECTOR DE VISTA           */}
+            {/* ========================================================= */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <h1 className="flex items-center gap-2 text-xl font-black text-slate-800">
+                <LayoutGrid className="h-5 w-5 text-blue-600" />
+                <span>Panel de Órdenes</span>
+              </h1>
 
-  <div className="flex items-center gap-3">
-    {/* SELECTOR DE MODO DE VISTA (LISTA / CARDS) */}
-    <div className="flex items-center rounded-xl border border-slate-200 bg-slate-100 p-1">
-      <button
-        onClick={() => setViewMode("grid")}
-        className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-          viewMode === "grid"
-            ? "bg-white text-slate-900 shadow-sm"
-            : "text-slate-500 hover:text-slate-700"
-        }`}
-        title="Vista en Tarjetas"
-      >
-        <LayoutGrid className="h-4 w-4" />
-        <span className="hidden sm:inline">Tarjetas</span>
-      </button>
+              <div className="flex items-center gap-3">
+                {/* SELECTOR DE MODO DE VISTA (LISTA / CARDS) */}
+                <div className="flex items-center rounded-xl border border-slate-200 bg-slate-100 p-1">
+                  <button
+                    onClick={() => setViewMode("grid")}
+                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                      viewMode === "grid"
+                        ? "bg-white text-slate-900 shadow-sm"
+                        : "text-slate-500 hover:text-slate-700"
+                    }`}
+                    title="Vista en Tarjetas"
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                    <span className="hidden sm:inline">Tarjetas</span>
+                  </button>
 
-      <button
-        onClick={() => setViewMode("list")}
-        className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-          viewMode === "list"
-            ? "bg-white text-slate-900 shadow-sm"
-            : "text-slate-500 hover:text-slate-700"
-        }`}
-        title="Vista en Lista"
-      >
-        <List className="h-4 w-4" />
-        <span className="hidden sm:inline">Lista</span>
-      </button>
-    </div>
+                  <button
+                    onClick={() => setViewMode("list")}
+                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                      viewMode === "list"
+                        ? "bg-white text-slate-900 shadow-sm"
+                        : "text-slate-500 hover:text-slate-700"
+                    }`}
+                    title="Vista en Lista"
+                  >
+                    <List className="h-4 w-4" />
+                    <span className="hidden sm:inline">Lista</span>
+                  </button>
+                </div>
 
-    {/* BOTÓN NUEVA ORDEN */}
-    {isOpen && (
-      <button
-        onClick={() => setIsNewOrder(true)}
-        className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 active:scale-[0.98]"
-      >
-        Nueva orden
-      </button>
-    )}
-  </div>
-</div>
+                {/* BOTÓN NUEVA ORDEN */}
+                {isOpen && (
+                  <button
+                    onClick={() => setIsNewOrder(true)}
+                    className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 active:scale-[0.98]"
+                  >
+                    Nueva orden
+                  </button>
+                )}
+              </div>
+            </div>
 
             {/* ========================================================= */}
             {/* FILA 2 - ESTADO DEL SISTEMA                              */}

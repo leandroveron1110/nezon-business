@@ -7,7 +7,7 @@ import {
   FileText,
   Globe,
   Loader2,
-  MessageSquare, // Ícono para WhatsApp
+  MessageSquare,
   Package,
   Printer,
   Truck,
@@ -22,7 +22,7 @@ import OrderStatusBadge from "../OrderStatusBadge";
 
 interface Props {
   order: IOrderShortDto;
-  now: number; // RECOMENDACIÓN: Actualizar 'now' en el padre cada 60.000ms (1 min), no cada segundo
+  now: number;
   showPrintButton?: boolean;
   showViewTicketButton?: boolean;
   onClick: () => void;
@@ -103,7 +103,6 @@ export const OrderCard = memo(function OrderCard({
 
   const hasDeliveryFee = !isPickup && (order.deliveryFee ?? 0) > 0;
 
-  // Detección de origen extendida para escaneo ultrarrápido
   const originTag = useMemo(() => {
     const origin = order.origin?.toUpperCase();
     if (origin === "WSP" || origin === "WHATSAPP") {
@@ -169,19 +168,17 @@ export const OrderCard = memo(function OrderCard({
   const PaymentIcon = payment.Icon;
 
   // =========================================================
-  // HANDLERS ROBUSTOS PARA PANTALLAS TÁCTILES (POS)
+  // HANDLERS
   // =========================================================
 
   const handleQuickPrint = async (e: React.SyntheticEvent) => {
-    // Frena la propagación en eventos de touch o click para no abrir el modal
     e.stopPropagation();
     if (isPrinting) return;
 
     try {
       setIsPrinting(true);
       await onPrintDirect(order.id);
-      
-      // Feedback visual momentáneo tras impresión exitosa
+
       setPrintSuccess(true);
       setTimeout(() => setPrintSuccess(false), 1500);
     } catch (error) {
@@ -195,10 +192,6 @@ export const OrderCard = memo(function OrderCard({
     e.stopPropagation();
     onViewTicket(order.id);
   };
-
-  // =========================================================
-  // RENDER
-  // =========================================================
 
   return (
     <article
@@ -257,8 +250,16 @@ export const OrderCard = memo(function OrderCard({
           )}
         </div>
 
-        {/* Hora + Timer */}
-        <div className="flex shrink-0 items-center gap-1.5">
+        {/* Punto Alerta Rojo (Solo si no está pagado) + Hora + Timer */}
+        <div className="flex shrink-0 items-center gap-2">
+          {/* CÍRCULO ROJO ESTÁTICO DE ADVERTENCIA */}
+          {!isPaid && (
+            <span
+              className="h-2.5 w-2.5 rounded-full border border-white/40 bg-red-600 shadow-sm"
+              title="Pendiente de cobro"
+            />
+          )}
+
           <span className="text-[10px] font-bold opacity-80">
             {createdTime}
           </span>
@@ -283,14 +284,12 @@ export const OrderCard = memo(function OrderCard({
           BODY
       ====================================================== */}
       <div className="flex flex-1 flex-col px-3 py-2.5">
-        {/* Código de Pedido + Nombre del Cliente */}
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
             <div className="font-mono text-xl font-black leading-none tracking-tight text-slate-900">
               #{order.shortCode}
             </div>
 
-            {/* Nombre con line-clamp para evitar cortes feos si el nombre es largo */}
             <h3
               className="
                 mt-1 line-clamp-2
@@ -305,7 +304,6 @@ export const OrderCard = memo(function OrderCard({
             </h3>
           </div>
 
-          {/* Estado de Pago */}
           <span
             className={`
               inline-flex shrink-0
@@ -321,7 +319,6 @@ export const OrderCard = memo(function OrderCard({
           </span>
         </div>
 
-        {/* Estado operacional de la Orden */}
         <div className="mt-auto flex min-w-0 items-center justify-between gap-2 pt-2">
           <div className="min-w-0 truncate">
             <OrderStatusBadge
@@ -348,7 +345,6 @@ export const OrderCard = memo(function OrderCard({
           border-t border-slate-100 bg-slate-50 px-3
         "
       >
-        {/* Total a cobrar/cobrado */}
         <div className="min-w-0">
           <span className="block text-[8px] font-black uppercase leading-none tracking-wider text-slate-400">
             Total
@@ -365,7 +361,6 @@ export const OrderCard = memo(function OrderCard({
           </span>
         </div>
 
-        {/* Acciones Rápidas con protección táctil */}
         <div className="flex items-center gap-1.5">
           {showViewTicketButton && (
             <button
