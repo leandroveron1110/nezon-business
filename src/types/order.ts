@@ -84,4 +84,5 @@ export interface IOrderShortDto {
   origin: Origin
   shortCode: string;
   deliveryFee: number
+  scheduledAt: Date | null
 }

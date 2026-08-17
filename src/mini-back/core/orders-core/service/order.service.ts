@@ -206,6 +206,8 @@ export class OrderService implements IOrderPublicService {
       cashRegisterTurnIdTemp: activeTurn?.clientTurnId,
       cashRegisterTurnId: activeTurn?.id || null,
 
+      scheduledAt: input.scheduledAt,
+
       shortCode: nextNumber.shortCode,
       dailyNumber: nextNumber.nextNumber,
       createdAt: new Date(),

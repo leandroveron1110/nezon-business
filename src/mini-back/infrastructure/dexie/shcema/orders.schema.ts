@@ -3,10 +3,7 @@
 import { PaymentMethodTypeFinancial } from "@/mini-back/shared/enums/financial-movement-status.enum";
 import { SyncStatus } from "@/mini-back/shared/types/sync-status.type";
 import { Origin } from "@/types/order";
-import {
-  DeliveryStatus,
-  PaymentStatus,
-} from "@/types/order-state-machine";
+import { DeliveryStatus, PaymentStatus } from "@/types/order-state-machine";
 
 // ============================================================================
 // PRODUCTOS
@@ -54,11 +51,11 @@ export interface LocalOrderItem {
 // ============================================================================
 
 export type DeliveryQuotationStatus =
-  | "PENDING"       // El DeliveryWorker todavía debe intentar resolverla
-  | "WAITING_BASE"  // Ya fue enviada a Base
-  | "RESOLVED"      // Precio obtenido automáticamente o desde Base
-  | "MANUAL"        // Precio ingresado manualmente
-  | "ERROR";        // Error definitivo
+  | "PENDING" // El DeliveryWorker todavía debe intentar resolverla
+  | "WAITING_BASE" // Ya fue enviada a Base
+  | "RESOLVED" // Precio obtenido automáticamente o desde Base
+  | "MANUAL" // Precio ingresado manualmente
+  | "ERROR"; // Error definitivo
 
 export type DeliveryResolutionStrategy =
   | "LIVE_MAP" // Resuelto automáticamente mediante geocoding + proveedor
@@ -209,6 +206,14 @@ export interface LocalOrder {
   cashRegisterTurnId?: string | null;
 
   // ==========================================================================
+  // PROGRAMACIÓN DEL PEDIDO
+  // ==========================================================================
+
+  // NULL/undefined = pedido para atender ahora.
+  // Con valor = fecha y hora para la que el cliente solicita el pedido.
+  scheduledAt?: Date | null;
+
+  // ==========================================================================
   // AUDITORÍA
   // ==========================================================================
   createdAt: Date;
@@ -220,4 +225,4 @@ export interface LocalOrder {
 // ============================================================================
 
 export const ORDERS_STORE =
-  "idTemp, id, businessId, status, syncStatus, cashRegisterTurnIdTemp, cashRegisterTurnId, syncedStatus, syncedPayment, syncedDelivery, deliveryQuotationStatus, createdAt";
+  "idTemp, id, businessId, status, syncStatus, cashRegisterTurnIdTemp, cashRegisterTurnId, syncedStatus, syncedPayment, syncedDelivery, deliveryQuotationStatus, scheduledAt, createdAt";

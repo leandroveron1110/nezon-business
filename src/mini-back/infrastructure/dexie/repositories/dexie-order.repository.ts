@@ -1,7 +1,6 @@
 // src/infra/adapters/dexie-order-repository.adapter.ts
 
 import {
-  CoreOrderStateEvent,
   Order,
   OrderRepositoryPort,
 } from "@/mini-back/core/orders-core/public";
@@ -58,7 +57,9 @@ export class DexieOrderRepositoryAdapter
       syncedPayment: false,
       syncedStatus: false,
       cashRegisterTurnId: input.cashRegisterTurnId,
-      cashRegisterTurnIdTemp: input.cashRegisterTurnIdTemp
+      cashRegisterTurnIdTemp: input.cashRegisterTurnIdTemp,
+      scheduledAt: input.scheduledAt
+      
     }); // Adaptamos la entidad del core a la tabla
   }
 

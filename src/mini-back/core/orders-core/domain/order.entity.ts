@@ -79,6 +79,9 @@ export interface Order {
   // Control de precio
   deliveryPriceMode: 'AUTOMATIC' | 'MANUAL';
   totalDeliveryCost: number;
+
+  scheduledAt?: Date | null;
+
   
   // Pagos
   orderPaymentMethod: PaymentMethodTypeFinancial, // Basado en tus Enums

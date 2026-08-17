@@ -11,6 +11,7 @@ import {
 } from "@/mini-back/infrastructure/dexie/shcema/orders.schema";
 import { useConnectivity } from "@/lib/hooks/useConnectivity";
 import { useAlert } from "@/features/common/ui/Alert/Alert";
+import OrderScheduling from "./OrderScheduling";
 
 interface OrderPanelProps {
   businessId: string;
@@ -34,9 +35,30 @@ interface OrderPanelProps {
   setDeliveryProvider: (v: "PLATFORM" | "INTERNAL") => void;
   deliveryCost: number;
   setDeliveryCost: (v: number) => void;
-  paymentMethod:     "CASH" | "TRANSFER" | "QR" | "DEBIT_CARD" | "CREDIT_CARD" | "MERCADO_PAGO" | "ACCOUNT" | "OTHER";
-  setPaymentMethod: (v:     "CASH" | "TRANSFER" | "QR" | "DEBIT_CARD" | "CREDIT_CARD" | "MERCADO_PAGO" | "ACCOUNT" | "OTHER") => void;
+  paymentMethod:
+    | "CASH"
+    | "TRANSFER"
+    | "QR"
+    | "DEBIT_CARD"
+    | "CREDIT_CARD"
+    | "MERCADO_PAGO"
+    | "ACCOUNT"
+    | "OTHER";
+  setPaymentMethod: (
+    v:
+      | "CASH"
+      | "TRANSFER"
+      | "QR"
+      | "DEBIT_CARD"
+      | "CREDIT_CARD"
+      | "MERCADO_PAGO"
+      | "ACCOUNT"
+      | "OTHER",
+  ) => void;
   setZoneId: (v: string | null) => void;
+
+  scheduledAt: Date | null;
+  setScheduledAt: (v: Date | null) => void;
 }
 
 export function OrderPanel({
@@ -64,6 +86,8 @@ export function OrderPanel({
   setZoneId,
   deliveryQuotationStatus,
   setDeliveryQuotationStatus,
+  scheduledAt,
+  setScheduledAt,
 }: OrderPanelProps) {
   const isDelivery = deliveryType === "DELIVERY";
   const isLocus = deliveryProvider === "PLATFORM";
@@ -179,6 +203,7 @@ export function OrderPanel({
   return (
     <div className="w-full flex flex-col bg-white h-full overflow-hidden select-none">
       {/* 1. SELECTOR TIPO PEDIDO */}
+      <OrderScheduling onChange={setScheduledAt} scheduledAt={scheduledAt} />
       <div className="flex border-b divide-x h-10 shrink-0">
         <button
           type="button"

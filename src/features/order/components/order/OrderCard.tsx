@@ -2,6 +2,7 @@
 
 import {
   AlertCircle,
+  CalendarClock,
   Check,
   Clock3,
   FileText,
@@ -33,7 +34,7 @@ interface Props {
 function getTimerStyle(minutes: number) {
   if (minutes >= 35) {
     return {
-      className: "bg-red-600 text-white animate-pulse",
+      className: "bg-red-600 text-white",
       urgent: true,
     };
   }
@@ -70,9 +71,15 @@ export const OrderCard = memo(function OrderCard({
   const [isPrinting, setIsPrinting] = useState(false);
   const [printSuccess, setPrintSuccess] = useState(false);
 
-  const createdAt = useMemo(
-    () => new Date(order.createdAt),
-    [order.createdAt]
+  // =========================================================
+  // FECHAS
+  // =========================================================
+
+  const createdAt = useMemo(() => new Date(order.createdAt), [order.createdAt]);
+
+  const scheduledAt = useMemo(
+    () => (order.scheduledAt ? new Date(order.scheduledAt) : null),
+    [order.scheduledAt],
   );
 
   const createdTime = useMemo(
@@ -81,13 +88,77 @@ export const OrderCard = memo(function OrderCard({
         hour: "2-digit",
         minute: "2-digit",
       }),
-    [createdAt]
+    [createdAt],
   );
 
   const elapsedMinutes = useMemo(
     () => Math.max(0, Math.floor((now - createdAt.getTime()) / 60000)),
-    [now, createdAt]
+    [now, createdAt],
   );
+
+  // =========================================================
+  // PROGRAMACIÓN & TIEMPO RESTANTE
+  // =========================================================
+
+  const isSameDay = useMemo(() => {
+    if (!scheduledAt) return false;
+    const nowDate = new Date(now);
+    return (
+      scheduledAt.getDate() === nowDate.getDate() &&
+      scheduledAt.getMonth() === nowDate.getMonth() &&
+      scheduledAt.getFullYear() === nowDate.getFullYear()
+    );
+  }, [scheduledAt, now]);
+
+  const isFutureDayScheduled = useMemo(() => {
+    if (!scheduledAt) return false;
+    return !isSameDay && scheduledAt.getTime() > now;
+  }, [scheduledAt, isSameDay, now]);
+
+  const remainingMinutes = useMemo(() => {
+    if (!scheduledAt) return 0;
+    return Math.floor((scheduledAt.getTime() - now) / 60000);
+  }, [scheduledAt, now]);
+
+  const scheduledTimeDisplay = useMemo(() => {
+    if (!scheduledAt) return null;
+
+    const timeStr = scheduledAt.toLocaleTimeString("es-AR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    if (isSameDay) {
+      const absMinutes = Math.abs(remainingMinutes);
+
+      // Si la diferencia es mayor a 60 minutos, mostramos formato de horas o directamente la hora pura
+      if (absMinutes >= 60) {
+        const hours = Math.floor(absMinutes / 60);
+        const mins = absMinutes % 60;
+        const formattedTime = mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+
+        return remainingMinutes > 0
+          ? `-${formattedTime} · ${timeStr}`
+          : `+${formattedTime} · ${timeStr}`;
+      }
+
+      // Menos de 60 minutos
+      if (remainingMinutes > 0) {
+        return `-${remainingMinutes}m · ${timeStr}`;
+      }
+      if (remainingMinutes === 0) {
+        return `AHORA · ${timeStr}`;
+      }
+      return `+${remainingMinutes < 0 ? absMinutes : remainingMinutes}m · ${timeStr}`;
+    }
+
+    const dateStr = scheduledAt.toLocaleDateString("es-AR", {
+      day: "2-digit",
+      month: "2-digit",
+    });
+
+    return `${dateStr} · ${timeStr}`;
+  }, [scheduledAt, isSameDay, remainingMinutes]);
 
   // =========================================================
   // FLAGS & ORIGIN
@@ -105,6 +176,7 @@ export const OrderCard = memo(function OrderCard({
 
   const originTag = useMemo(() => {
     const origin = order.origin?.toUpperCase();
+
     if (origin === "WSP" || origin === "WHATSAPP") {
       return {
         label: "WSP",
@@ -112,6 +184,7 @@ export const OrderCard = memo(function OrderCard({
         Icon: MessageSquare,
       };
     }
+
     if (origin === "APP" || origin === "WEB") {
       return {
         label: "WEB",
@@ -119,6 +192,7 @@ export const OrderCard = memo(function OrderCard({
         Icon: Globe,
       };
     }
+
     return null;
   }, [order.origin]);
 
@@ -131,14 +205,24 @@ export const OrderCard = memo(function OrderCard({
       return {
         label: "RETIRO",
         Icon: Package,
-        header: "bg-amber-500 text-slate-950",
+        headerBg: "bg-amber-500 text-slate-950",
+        scheduledHeaderStyle: {
+          backgroundImage:
+            "repeating-linear-gradient(45deg, #f59e0b, #f59e0b 10px, #d97706 10px, #d97706 20px)",
+          color: "#0f172a",
+        },
       };
     }
 
     return {
       label: "DELIVERY",
       Icon: Truck,
-      header: "bg-blue-600 text-white",
+      headerBg: "bg-blue-600 text-white",
+      scheduledHeaderStyle: {
+        backgroundImage:
+          "repeating-linear-gradient(45deg, #2563eb, #2563eb 10px, #1d4ed8 10px, #1d4ed8 20px)",
+        color: "#ffffff",
+      },
     };
   }, [isPickup]);
 
@@ -148,10 +232,7 @@ export const OrderCard = memo(function OrderCard({
   // TIMER & PAYMENT
   // =========================================================
 
-  const timer = useMemo(
-    () => getTimerStyle(elapsedMinutes),
-    [elapsedMinutes]
-  );
+  const timer = useMemo(() => getTimerStyle(elapsedMinutes), [elapsedMinutes]);
 
   const payment = isPaid
     ? {
@@ -173,12 +254,12 @@ export const OrderCard = memo(function OrderCard({
 
   const handleQuickPrint = async (e: React.SyntheticEvent) => {
     e.stopPropagation();
+
     if (isPrinting) return;
 
     try {
       setIsPrinting(true);
       await onPrintDirect(order.id);
-
       setPrintSuccess(true);
       setTimeout(() => setPrintSuccess(false), 1500);
     } catch (error) {
@@ -209,28 +290,33 @@ export const OrderCard = memo(function OrderCard({
         active:scale-[0.985]
 
         ${
-          timer.urgent && elapsedMinutes >= 35
-            ? "border-red-500 ring-2 ring-red-500/20"
-            : "border-slate-200 hover:border-slate-300"
+          isFutureDayScheduled
+            ? "border-slate-300 hover:border-slate-400"
+            : timer.urgent && elapsedMinutes >= 35
+              ? "border-red-500 ring-2 ring-red-500/20"
+              : "border-slate-200 hover:border-slate-300"
         }
       `}
     >
       {/* =====================================================
           HEADER
       ====================================================== */}
+
       <header
+        style={
+          isFutureDayScheduled ? deliveryTheme.scheduledHeaderStyle : undefined
+        }
         className={`
           flex h-9 shrink-0
           items-center justify-between
           px-3
-          ${deliveryTheme.header}
+          ${!isFutureDayScheduled ? deliveryTheme.headerBg : ""}
         `}
       >
-        {/* Tipo de pedido + Canal de Origen */}
         <div className="flex min-w-0 items-center gap-1.5">
           <DeliveryIcon size={14} strokeWidth={3} />
 
-          <span className="text-[11px] font-black uppercase tracking-wide">
+          <span className="text-[11px] font-black uppercase tracking-wide truncate">
             {deliveryTheme.label}
           </span>
 
@@ -250,32 +336,66 @@ export const OrderCard = memo(function OrderCard({
           )}
         </div>
 
-        {/* Punto Alerta Rojo (Solo si no está pagado) + Hora + Timer */}
         <div className="flex shrink-0 items-center gap-2">
-          {/* CÍRCULO ROJO ESTÁTICO DE ADVERTENCIA */}
           {!isPaid && (
             <span
-              className="h-2.5 w-2.5 rounded-full border border-white/40 bg-red-600 shadow-sm"
+              className="
+                h-2.5 w-2.5
+                rounded-full
+                border border-white/40
+                bg-red-600
+                shadow-sm
+              "
               title="Pendiente de cobro"
             />
           )}
 
-          <span className="text-[10px] font-bold opacity-80">
-            {createdTime}
-          </span>
-
-          {!isFinished && (
+          {scheduledAt ? (
             <span
               className={`
                 inline-flex items-center gap-1
-                rounded-md px-1.5 py-0.5
-                text-[10px] font-black
-                ${timer.className}
+                rounded-md px-2 py-0.5
+                text-[10px] font-black text-white
+                shadow-sm
+                ${
+                  isSameDay
+                    ? remainingMinutes < 0
+                      ? "bg-red-600"
+                      : remainingMinutes <= 15
+                        ? "bg-amber-600"
+                        : "bg-slate-900/90"
+                    : "bg-slate-900/90"
+                }
               `}
+              title={`Programado para ${scheduledTimeDisplay}`}
             >
-              <Clock3 size={10} strokeWidth={3} />
-              {elapsedMinutes}'
+              <CalendarClock
+                size={11}
+                strokeWidth={2.5}
+                className="text-amber-400"
+              />
+              {scheduledTimeDisplay}
             </span>
+          ) : (
+            <>
+              <span className="text-[10px] font-bold opacity-80">
+                {createdTime}
+              </span>
+
+              {!isFinished && (
+                <span
+                  className={`
+                    inline-flex items-center gap-1
+                    rounded-md px-1.5 py-0.5
+                    text-[10px] font-black
+                    ${timer.className}
+                  `}
+                >
+                  <Clock3 size={10} strokeWidth={3} />
+                  {elapsedMinutes}'
+                </span>
+              )}
+            </>
           )}
         </div>
       </header>
@@ -283,6 +403,7 @@ export const OrderCard = memo(function OrderCard({
       {/* =====================================================
           BODY
       ====================================================== */}
+
       <div className="flex flex-1 flex-col px-3 py-2.5">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
@@ -338,22 +459,32 @@ export const OrderCard = memo(function OrderCard({
       {/* =====================================================
           FOOTER
       ====================================================== */}
+
       <footer
         className="
           flex h-[54px] shrink-0
           items-center justify-between
-          border-t border-slate-100 bg-slate-50 px-3
+          border-t border-slate-100
+          bg-slate-50 px-3
         "
       >
         <div className="min-w-0">
-          <span className="block text-[8px] font-black uppercase leading-none tracking-wider text-slate-400">
+          <span
+            className="
+              block text-[8px]
+              font-black uppercase
+              leading-none tracking-wider
+              text-slate-400
+            "
+          >
             Total
           </span>
 
           <span
             className={`
-              mt-0.5 block truncate text-xl
-              font-black leading-none tracking-tight
+              mt-0.5 block truncate
+              text-xl font-black
+              leading-none tracking-tight
               ${isPaid ? "text-slate-900" : "text-amber-600"}
             `}
           >
@@ -369,10 +500,13 @@ export const OrderCard = memo(function OrderCard({
               className="
                 flex h-9 w-9
                 items-center justify-center
-                rounded-lg border border-slate-200
+                rounded-lg
+                border border-slate-200
                 bg-white text-slate-600
                 shadow-sm transition
-                hover:border-slate-900 hover:bg-slate-900 hover:text-white
+                hover:border-slate-900
+                hover:bg-slate-900
+                hover:text-white
                 active:scale-90
               "
               title="Ver ticket"
@@ -389,9 +523,12 @@ export const OrderCard = memo(function OrderCard({
               className={`
                 flex h-9 w-9
                 items-center justify-center
-                rounded-lg border shadow-sm transition
+                rounded-lg
+                border shadow-sm transition
                 active:scale-90
-                disabled:cursor-not-allowed disabled:opacity-70
+                disabled:cursor-not-allowed
+                disabled:opacity-70
+
                 ${
                   printSuccess
                     ? "border-emerald-500 bg-emerald-600 text-white"

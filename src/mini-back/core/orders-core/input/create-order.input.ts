@@ -28,6 +28,8 @@ export interface CreateOrderInput {
 
   orderPaymentMethod: PaymentMethodTypeFinancial;
 
+  scheduledAt?: Date | null;
+
   total: number;
 
   totalDeliveryCost: number;

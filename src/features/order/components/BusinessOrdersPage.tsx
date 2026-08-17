@@ -170,64 +170,56 @@ export default function BusinessOrdersPage({ businessId }: Props) {
       createdAt: String(o.createdAt),
       origin: o.origin,
       shortCode: o.shortCode || "",
+      scheduledAt: o.scheduledAt
     })) as IOrderShortDto[];
   }, [orders]);
 
   // --- FILTRADO, ORDENAMIENTO Y NORMALIZACIÓN (Ultra eficiente) ---
-  const filteredAndSortedOrders = useMemo(() => {
-    if (!normalizedOrders.length) return [];
+// Cambiar el useMemo de las órdenes filtradas agregando `now` como dependencia:
+const filteredAndSortedOrders = useMemo(() => {
+  if (!normalizedOrders.length) return [];
 
-    const currentFilter = simplifiedFilters.find(
-      (f) => f.label === activeFilter,
-    );
+  const currentFilter = simplifiedFilters.find(
+    (f) => f.label === activeFilter,
+  );
 
-    const normalizedSearch = searchTerm.toLowerCase().trim().replace(/-/g, "");
+  const normalizedSearch = searchTerm.toLowerCase().trim().replace(/-/g, "");
 
-    return (
-      normalizedOrders
+  return (
+    normalizedOrders
+      .filter((order) => {
+        if (!currentFilter) return true;
+        return currentFilter.condition(order);
+      })
+      .filter((order) => {
+        if (!normalizedSearch) return true;
 
-        // 1. FILTRO ACTIVO
-        .filter((order) => {
-          if (!currentFilter) return true;
+        const normalizedShortCode = order.shortCode
+          .toLowerCase()
+          .replace(/-/g, "");
+        const normalizedId = order.id.toLowerCase().replace(/-/g, "");
+        const normalizedCustomer = order.customerName.toLowerCase();
 
-          return currentFilter.condition(order);
-        })
+        return (
+          normalizedShortCode.includes(normalizedSearch) ||
+          normalizedId.includes(normalizedSearch) ||
+          normalizedCustomer.includes(normalizedSearch)
+        );
+      })
+      .sort((a, b) => {
+        const priorityA = getOrderPriority(a as any);
+        const priorityB = getOrderPriority(b as any);
 
-        // 2. BÚSQUEDA
-        .filter((order) => {
-          if (!normalizedSearch) return true;
+        if (priorityA !== priorityB) {
+          return priorityA - priorityB;
+        }
 
-          const normalizedShortCode = order.shortCode
-            .toLowerCase()
-            .replace(/-/g, "");
-
-          const normalizedId = order.id.toLowerCase().replace(/-/g, "");
-
-          const normalizedCustomer = order.customerName.toLowerCase();
-
-          return (
-            normalizedShortCode.includes(normalizedSearch) ||
-            normalizedId.includes(normalizedSearch) ||
-            normalizedCustomer.includes(normalizedSearch)
-          );
-        })
-
-        // 3. ORDENAMIENTO
-        .sort((a, b) => {
-          const priorityA = getOrderPriority(a as any);
-          const priorityB = getOrderPriority(b as any);
-
-          if (priorityA !== priorityB) {
-            return priorityA - priorityB;
-          }
-
-          return (
-            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-          );
-        })
-    );
-  }, [normalizedOrders, activeFilter, searchTerm]);
-
+        return (
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+      })
+  );
+}, [normalizedOrders, activeFilter, searchTerm, now]); // <--- Agregado `now` aquí
   if (isLoading)
     return (
       <p className="p-6 text-center text-gray-500 animate-pulse">

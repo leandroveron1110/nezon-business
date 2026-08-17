@@ -45,13 +45,21 @@ export default function OrderBuilder({
     "PLATFORM" | "INTERNAL"
   >("PLATFORM");
   const [paymentMethod, setPaymentMethod] = useState<
-    "CASH" | "TRANSFER" | "QR" | "DEBIT_CARD" | "CREDIT_CARD" | "MERCADO_PAGO" | "ACCOUNT" | "OTHER"
+    | "CASH"
+    | "TRANSFER"
+    | "QR"
+    | "DEBIT_CARD"
+    | "CREDIT_CARD"
+    | "MERCADO_PAGO"
+    | "ACCOUNT"
+    | "OTHER"
   >("CASH");
   const [deliveryCost, setDeliveryCost] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deliveryQuotationStatus, setDeliveryQuotationStatus] = useState<
     DeliveryQuotationStatus | undefined
   >(undefined);
+  const [scheduledAt, setScheduledAt] = useState<Date | null>(null);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -143,7 +151,8 @@ export default function OrderBuilder({
     0,
   );
 
-  const total = totalProducts + (deliveryType === "DELIVERY" ? deliveryCost : 0);
+  const total =
+    totalProducts + (deliveryType === "DELIVERY" ? deliveryCost : 0);
 
   const createOrder = async (instantPrepare?: boolean) => {
     if (!items.length || isSubmitting) return;
@@ -168,6 +177,7 @@ export default function OrderBuilder({
       createdAt: new Date(),
       updatedAt: new Date(),
 
+      scheduledAt: scheduledAt,
       deliveryStatus:
         deliveryType === "DELIVERY"
           ? DeliveryStatus.PENDING
@@ -263,6 +273,8 @@ export default function OrderBuilder({
               paymentMethod={paymentMethod}
               setPaymentMethod={setPaymentMethod}
               setZoneId={setZoneId}
+              scheduledAt={scheduledAt}
+              setScheduledAt={setScheduledAt}
             />
           </aside>
         </div>
@@ -299,6 +311,8 @@ export default function OrderBuilder({
             updateItemNote={updateItemNote}
             deliveryQuotationStatus={deliveryQuotationStatus}
             setDeliveryQuotationStatus={setDeliveryQuotationStatus}
+            scheduledAt={scheduledAt}
+            setScheduledAt={setScheduledAt}
           />
         </div>
       </div>

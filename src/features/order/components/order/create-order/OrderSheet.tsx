@@ -31,6 +31,8 @@ interface OrderSheetProps {
   updateItemNote: (index: number, note: string) => void;
   deliveryQuotationStatus: DeliveryQuotationStatus | undefined;
   setDeliveryQuotationStatus: (v: DeliveryQuotationStatus | undefined) => void;
+  scheduledAt: Date | null;
+  setScheduledAt: (v: Date | null) => void;
 }
 export function OrderSheet(props: OrderSheetProps) {
   const [open, setOpen] = useState(false);
