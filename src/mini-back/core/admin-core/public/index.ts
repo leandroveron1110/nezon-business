@@ -16,7 +16,6 @@ export * from "../input/summary/get-administration-summary.input";
 
 // --- EXPORTACIONES DE PORTS ---
 export * from "../port/summary/cash-query.port";
-export * from "../port/summary/orders-query.port";
 
 
 export interface IAdminSummaryService {
