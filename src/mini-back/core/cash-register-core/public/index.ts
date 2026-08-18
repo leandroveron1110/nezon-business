@@ -11,7 +11,7 @@ export * from "../domain/closing-result";
 export * from "../domain/financial-movement-status.enum";
 export * from "../domain/financial-movement";
 export * from "../domain/payment-summary";
-export * from "../domain/cash-register-totals"
+export * from "../domain/cash-register-totals";
 
 // --- EXPORTACIONES DE INPUTS ---
 export * from "../input/calculate-closing-amount.input";
@@ -23,12 +23,11 @@ export * from "../input/register-expense.input";
 export * from "../input/register-income.input";
 export * from "../input/register-refund.input";
 export * from "../input/register-sale.input";
-export * from "../input/hitory-filter.input"
+export * from "../input/hitory-filter.input";
 
 // --- EXPORTACIONES DE INPUTS ---
 export * from "../port/cash-register.port";
 export * from "../port/financial-movement.port";
-
 
 // -- EXPORTACIONES DE SERVICES ---
 export const CashRegisterServicePublic = (dependencies: {

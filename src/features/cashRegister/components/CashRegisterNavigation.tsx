@@ -22,7 +22,7 @@ const items = [
   // },
 ];
 
-export default function CashRegisterNavigation() {
+export default function AdminNavigation() {
   const pathname = usePathname();
   const params = useParams();
 

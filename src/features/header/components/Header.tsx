@@ -13,6 +13,7 @@ import {
   Settings,
   Calculator, // 1. Importamos el ícono para la caja (puedes cambiarlo por Banknote o CreditCard)
   LucideProps,
+  ChartNoAxesCombined,
 } from "lucide-react";
 
 import logo from "../../../app/Nezon.svg";
@@ -52,6 +53,11 @@ export default function Header() {
       href: (id) => `/business/${id}/cash-register`, // 2. Agregamos el enlace a Caja (o la ruta que uses, p. ej. /cashier, /checkout)
       label: "Caja",
       icon: Calculator,
+    },
+        {
+      href: (id) => `/business/${id}/admin`, // 2. Agregamos el enlace a Caja (o la ruta que uses, p. ej. /cashier, /checkout)
+      label: "Administración",
+      icon: ChartNoAxesCombined,
     },
     {
       href: (id) => `/business/${id}/products`,
