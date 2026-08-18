@@ -29,7 +29,7 @@ import { OrderTicket } from "./order/ticket-order/OrderTicket";
 import { CashRegisterStatusBadge } from "@/features/cashRegister/components/CashRegisterStatusBadge";
 import { OpenCashModal } from "@/features/cashRegister/components/OpenCashModal";
 import { useCashRegisterStatus } from "@/features/cashRegister/hooks/useCashRegisterStatus";
-import { OrderCard } from "./order/OrderCard";
+import { OrderCard } from "./order/order-card/OrderCard";
 
 interface Props {
   businessId: string;

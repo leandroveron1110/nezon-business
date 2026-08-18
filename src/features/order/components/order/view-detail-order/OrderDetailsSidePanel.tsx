@@ -31,6 +31,7 @@ import { usePrintTicket } from "@/features/order/hooks/usePrintTicket";
 import { OrderStatus, PaymentStatus } from "@/types/order-state-machine";
 import { updateOrderStatusOrchestrator } from "@/mini-back/orchestrator/order.orchestrator";
 import { DeliveryStatus } from "@/mini-back/core/orders-core/domain/order-state-machine";
+import { formatTimeRemaining } from "@/features/common/utils/formatScheduledTime";
 
 interface Props {
   orderId: string;
@@ -90,11 +91,29 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
 
   const safeOrder = order ?? null;
 
-  const minutes = useMemo(() => {
-    if (!safeOrder) return 0;
-    return Math.floor(
-      (Date.now() - new Date(safeOrder.createdAt).getTime()) / 60000,
-    );
+const minutes = useMemo(() => {
+    if (!safeOrder) return "--:--";
+
+    // Detecta si tiene fecha de entrega programada
+    const isScheduled = Boolean(safeOrder.scheduledAt);
+
+    const formattedTime = formatTimeRemaining({
+      targetDate: isScheduled ? safeOrder.scheduledAt : safeOrder.createdAt,
+      isScheduled,
+    });
+
+    return formattedTime.display;
+  }, [safeOrder]);
+
+  const timeFormatted = useMemo(() => {
+    if (!safeOrder) return null;
+
+    const isScheduled = !!safeOrder.scheduledAt;
+
+    return formatTimeRemaining({
+      targetDate: isScheduled ? safeOrder.scheduledAt : safeOrder.createdAt,
+      isScheduled,
+    });
   }, [safeOrder]);
 
   const isPaid = safeOrder?.paymentStatus === PaymentStatus.CONFIRMED;
@@ -255,17 +274,16 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
       ticketRef.current &&
       ticketRef.current.innerHTML
     ) {
-          // Esperamos a que React renderice el ticket
-    requestAnimationFrame(() => {
+      // Esperamos a que React renderice el ticket
       requestAnimationFrame(() => {
-        if (!ticketRef.current) return;
+        requestAnimationFrame(() => {
+          if (!ticketRef.current) return;
 
-        console.log(ticketRef.current?.getBoundingClientRect());
+          console.log(ticketRef.current?.getBoundingClientRect());
 
-
-        print(ticketRef.current);
+          print(ticketRef.current);
+        });
       });
-    });
     }
   };
 
@@ -347,11 +365,17 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
           <span className="flex items-center gap-1 text-slate-600">
             <Package size={13} /> {safeOrder.deliveryType}
           </span>
-          {canShowMinutes() && (
+          {canShowMinutes() && timeFormatted && (
             <span
-              className={`flex items-center gap-1 ${minutes > 15 ? "text-red-600" : "text-orange-600"}`}
+              className={`flex items-center gap-1 font-bold ${
+                timeFormatted.isLate
+                  ? "text-red-600"
+                  : timeFormatted.isUrgent
+                    ? "text-orange-500"
+                    : "text-slate-600"
+              }`}
             >
-              <Clock size={13} /> {minutes}m
+              <Clock size={13} /> {timeFormatted.display}
             </span>
           )}
         </div>

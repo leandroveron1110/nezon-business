@@ -1,25 +1,15 @@
 "use client";
 
-import {
-  AlertCircle,
-  CalendarClock,
-  Check,
-  Clock3,
-  FileText,
-  Globe,
-  Loader2,
-  MessageSquare,
-  Package,
-  Printer,
-  Truck,
-} from "lucide-react";
+import { AlertCircle, Check, FileText, Loader2, Printer } from "lucide-react";
 import { memo, useMemo, useState } from "react";
 
 import { formatPrice } from "@/features/common/utils/formatPrice";
 import { DeliveryType, IOrderShortDto } from "@/types/order";
 import { OrderStatus, PaymentStatus } from "@/types/order-state-machine";
 
-import OrderStatusBadge from "../OrderStatusBadge";
+import { OrderCardHeader } from "./OrderCardHeader";
+import { formatTimeRemaining } from "@/features/common/utils/formatScheduledTime";
+import OrderStatusBadge from "../../OrderStatusBadge";
 
 interface Props {
   order: IOrderShortDto;
@@ -33,30 +23,15 @@ interface Props {
 
 function getTimerStyle(minutes: number) {
   if (minutes >= 35) {
-    return {
-      className: "bg-red-600 text-white",
-      urgent: true,
-    };
+    return { className: "bg-red-600 text-white", urgent: true };
   }
-
   if (minutes >= 25) {
-    return {
-      className: "bg-orange-500 text-white",
-      urgent: true,
-    };
+    return { className: "bg-orange-500 text-white", urgent: true };
   }
-
   if (minutes >= 15) {
-    return {
-      className: "bg-yellow-300 text-slate-950",
-      urgent: false,
-    };
+    return { className: "bg-yellow-300 text-slate-950", urgent: false };
   }
-
-  return {
-    className: "bg-slate-100 text-slate-600",
-    urgent: false,
-  };
+  return { className: "bg-slate-100 text-slate-600", urgent: false };
 }
 
 export const OrderCard = memo(function OrderCard({
@@ -72,15 +47,10 @@ export const OrderCard = memo(function OrderCard({
   const [printSuccess, setPrintSuccess] = useState(false);
 
   // =========================================================
-  // FECHAS
+  // FECHAS & TIEMPO BASE
   // =========================================================
 
   const createdAt = useMemo(() => new Date(order.createdAt), [order.createdAt]);
-
-  const scheduledAt = useMemo(
-    () => (order.scheduledAt ? new Date(order.scheduledAt) : null),
-    [order.scheduledAt],
-  );
 
   const createdTime = useMemo(
     () =>
@@ -96,72 +66,18 @@ export const OrderCard = memo(function OrderCard({
     [now, createdAt],
   );
 
-  // =========================================================
-  // PROGRAMACIÓN & TIEMPO RESTANTE
-  // =========================================================
-
-  const isSameDay = useMemo(() => {
-    if (!scheduledAt) return false;
-    const nowDate = new Date(now);
-    return (
-      scheduledAt.getDate() === nowDate.getDate() &&
-      scheduledAt.getMonth() === nowDate.getMonth() &&
-      scheduledAt.getFullYear() === nowDate.getFullYear()
-    );
-  }, [scheduledAt, now]);
-
+  // Verificación simplificada para los bordes de la card
   const isFutureDayScheduled = useMemo(() => {
-    if (!scheduledAt) return false;
-    return !isSameDay && scheduledAt.getTime() > now;
-  }, [scheduledAt, isSameDay, now]);
-
-  const remainingMinutes = useMemo(() => {
-    if (!scheduledAt) return 0;
-    return Math.floor((scheduledAt.getTime() - now) / 60000);
-  }, [scheduledAt, now]);
-
-  const scheduledTimeDisplay = useMemo(() => {
-    if (!scheduledAt) return null;
-
-    const timeStr = scheduledAt.toLocaleTimeString("es-AR", {
-      hour: "2-digit",
-      minute: "2-digit",
+    if (!order.scheduledAt) return false;
+    const { isSameDay, diffMinutes } = formatTimeRemaining({
+      targetDate: order.scheduledAt,
+      now,
     });
-
-    if (isSameDay) {
-      const absMinutes = Math.abs(remainingMinutes);
-
-      // Si la diferencia es mayor a 60 minutos, mostramos formato de horas o directamente la hora pura
-      if (absMinutes >= 60) {
-        const hours = Math.floor(absMinutes / 60);
-        const mins = absMinutes % 60;
-        const formattedTime = mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
-
-        return remainingMinutes > 0
-          ? `-${formattedTime} · ${timeStr}`
-          : `+${formattedTime} · ${timeStr}`;
-      }
-
-      // Menos de 60 minutos
-      if (remainingMinutes > 0) {
-        return `-${remainingMinutes}m · ${timeStr}`;
-      }
-      if (remainingMinutes === 0) {
-        return `AHORA · ${timeStr}`;
-      }
-      return `+${remainingMinutes < 0 ? absMinutes : remainingMinutes}m · ${timeStr}`;
-    }
-
-    const dateStr = scheduledAt.toLocaleDateString("es-AR", {
-      day: "2-digit",
-      month: "2-digit",
-    });
-
-    return `${dateStr} · ${timeStr}`;
-  }, [scheduledAt, isSameDay, remainingMinutes]);
+    return !isSameDay && diffMinutes > 0;
+  }, [order.scheduledAt, now]);
 
   // =========================================================
-  // FLAGS & ORIGIN
+  // FLAGS
   // =========================================================
 
   const isPaid = order.paymentStatus === PaymentStatus.CONFIRMED;
@@ -173,60 +89,6 @@ export const OrderCard = memo(function OrderCard({
     order.status === OrderStatus.REJECTED;
 
   const hasDeliveryFee = !isPickup && (order.deliveryFee ?? 0) > 0;
-
-  const originTag = useMemo(() => {
-    const origin = order.origin?.toUpperCase();
-
-    if (origin === "WSP" || origin === "WHATSAPP") {
-      return {
-        label: "WSP",
-        bg: "bg-emerald-600 text-white",
-        Icon: MessageSquare,
-      };
-    }
-
-    if (origin === "APP" || origin === "WEB") {
-      return {
-        label: "WEB",
-        bg: "bg-black/20 text-white",
-        Icon: Globe,
-      };
-    }
-
-    return null;
-  }, [order.origin]);
-
-  // =========================================================
-  // DELIVERY THEME
-  // =========================================================
-
-  const deliveryTheme = useMemo(() => {
-    if (isPickup) {
-      return {
-        label: "RETIRO",
-        Icon: Package,
-        headerBg: "bg-amber-500 text-slate-950",
-        scheduledHeaderStyle: {
-          backgroundImage:
-            "repeating-linear-gradient(45deg, #f59e0b, #f59e0b 10px, #d97706 10px, #d97706 20px)",
-          color: "#0f172a",
-        },
-      };
-    }
-
-    return {
-      label: "DELIVERY",
-      Icon: Truck,
-      headerBg: "bg-blue-600 text-white",
-      scheduledHeaderStyle: {
-        backgroundImage:
-          "repeating-linear-gradient(45deg, #2563eb, #2563eb 10px, #1d4ed8 10px, #1d4ed8 20px)",
-        color: "#ffffff",
-      },
-    };
-  }, [isPickup]);
-
-  const DeliveryIcon = deliveryTheme.Icon;
 
   // =========================================================
   // TIMER & PAYMENT
@@ -254,7 +116,6 @@ export const OrderCard = memo(function OrderCard({
 
   const handleQuickPrint = async (e: React.SyntheticEvent) => {
     e.stopPropagation();
-
     if (isPrinting) return;
 
     try {
@@ -298,112 +159,17 @@ export const OrderCard = memo(function OrderCard({
         }
       `}
     >
-      {/* =====================================================
-          HEADER
-      ====================================================== */}
+      {/* HEADER EXTRAÍDO */}
+      <OrderCardHeader
+        order={order}
+        now={now}
+        createdTime={createdTime}
+        isFinished={isFinished}
+        isPaid={isPaid}
+        timerClassName={timer.className}
+      />
 
-      <header
-        style={
-          isFutureDayScheduled ? deliveryTheme.scheduledHeaderStyle : undefined
-        }
-        className={`
-          flex h-9 shrink-0
-          items-center justify-between
-          px-3
-          ${!isFutureDayScheduled ? deliveryTheme.headerBg : ""}
-        `}
-      >
-        <div className="flex min-w-0 items-center gap-1.5">
-          <DeliveryIcon size={14} strokeWidth={3} />
-
-          <span className="text-[11px] font-black uppercase tracking-wide truncate">
-            {deliveryTheme.label}
-          </span>
-
-          {originTag && (
-            <span
-              className={`
-                inline-flex items-center gap-0.5
-                rounded px-1.5 py-0.5
-                text-[8px] font-black uppercase tracking-wider
-                ${originTag.bg}
-              `}
-              title={`Pedido de ${originTag.label}`}
-            >
-              <originTag.Icon size={9} strokeWidth={3} />
-              {originTag.label}
-            </span>
-          )}
-        </div>
-
-        <div className="flex shrink-0 items-center gap-2">
-          {!isPaid && (
-            <span
-              className="
-                h-2.5 w-2.5
-                rounded-full
-                border border-white/40
-                bg-red-600
-                shadow-sm
-              "
-              title="Pendiente de cobro"
-            />
-          )}
-
-          {scheduledAt ? (
-            <span
-              className={`
-                inline-flex items-center gap-1
-                rounded-md px-2 py-0.5
-                text-[10px] font-black text-white
-                shadow-sm
-                ${
-                  isSameDay
-                    ? remainingMinutes < 0
-                      ? "bg-red-600"
-                      : remainingMinutes <= 15
-                        ? "bg-amber-600"
-                        : "bg-slate-900/90"
-                    : "bg-slate-900/90"
-                }
-              `}
-              title={`Programado para ${scheduledTimeDisplay}`}
-            >
-              <CalendarClock
-                size={11}
-                strokeWidth={2.5}
-                className="text-amber-400"
-              />
-              {scheduledTimeDisplay}
-            </span>
-          ) : (
-            <>
-              <span className="text-[10px] font-bold opacity-80">
-                {createdTime}
-              </span>
-
-              {!isFinished && (
-                <span
-                  className={`
-                    inline-flex items-center gap-1
-                    rounded-md px-1.5 py-0.5
-                    text-[10px] font-black
-                    ${timer.className}
-                  `}
-                >
-                  <Clock3 size={10} strokeWidth={3} />
-                  {elapsedMinutes}'
-                </span>
-              )}
-            </>
-          )}
-        </div>
-      </header>
-
-      {/* =====================================================
-          BODY
-      ====================================================== */}
-
+      {/* BODY */}
       <div className="flex flex-1 flex-col px-3 py-2.5">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
@@ -456,10 +222,7 @@ export const OrderCard = memo(function OrderCard({
         </div>
       </div>
 
-      {/* =====================================================
-          FOOTER
-      ====================================================== */}
-
+      {/* FOOTER */}
       <footer
         className="
           flex h-[54px] shrink-0
