@@ -87,7 +87,7 @@ export interface IOrder {
   user: User;
   bussiness: Bussiness;
 
-  scheduledAt: Date | null
+  scheduledAt?: Date | null
 
   items: OrderItem[];
 

@@ -28,6 +28,8 @@ export class OrderUiMapper {
       orderPaymentMethod: local.orderPaymentMethod,
       paymentStatus: local.paymentStatus,
       deliveryStatus: local.deliveryStatus,
+
+      scheduledAt: local.scheduledAt,
       
       
       // 3. Reconstrucción de Objetos Anidados para la UI
