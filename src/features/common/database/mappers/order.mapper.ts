@@ -39,6 +39,7 @@ export class OrderMapper {
       quantity: item.quantity,
       priceAtPurchase: Number(item.priceAtPurchase),
       notes: item.notes ?? undefined,
+      costAtPurchase: Number(item.costAtPurchase),
 
       optionGroups:
         item.optionGroups?.map(

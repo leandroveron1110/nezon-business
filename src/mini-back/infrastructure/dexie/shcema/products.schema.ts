@@ -20,6 +20,7 @@ export interface LocalProduct {
   name: string;
   description: string;
   finalPrice: number;
+  cost: number;
   sectionName: string;      
   imageUrl?: string | null;
   stock: number;

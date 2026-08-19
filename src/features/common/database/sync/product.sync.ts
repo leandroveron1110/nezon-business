@@ -47,6 +47,7 @@ export const syncCatalog = async (menus: IMenu[]) => {
             stock: product.stock ?? 0,
             available: product.available && product.enabled,
             optionGroups: mappedGroups,
+            cost: Number(product.cost)
           };
 
           productsToStore.push(localProduct);

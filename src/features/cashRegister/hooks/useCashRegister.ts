@@ -4,6 +4,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/mini-back/infrastructure/dexie/db";
 import { cashRegisterOrchestrator } from "@/mini-back/orchestrator/cash-register.orchestrator";
 import { CashRegisterTotals } from "@/mini-back/core/cash-register-core/public";
+import { FinancialMovementType } from "@/mini-back/shared/enums/financial-movement-status.enum";
 
 export function useCashRegister(businessId: string) {
   // 1. Escuchar el turno activo en Dexie
@@ -17,13 +18,18 @@ export function useCashRegister(businessId: string) {
 
   const turnIdTemp = activeTurn?.clientTurnId || activeTurn?.id;
 
-  // 2. Escuchar los movimientos de Dexie
+  // 2. Escuchar los movimientos de Dexie (excluyendo COGS)
   const movements = useLiveQuery(async () => {
     if (!turnIdTemp) return [];
-    return await db.financialMovement
+
+    // Filtrado a nivel de Dexie omitiendo COGS
+    const rawMovements = await db.financialMovement
       .where("cashRegisterTurnIdTemp")
       .equals(turnIdTemp)
+      .filter((movement) => movement.type !== FinancialMovementType.COGS)
       .sortBy("sequence");
+
+    return rawMovements;
   }, [turnIdTemp]);
 
   // 3. Totales calculados por el Core

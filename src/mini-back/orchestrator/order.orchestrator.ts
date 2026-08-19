@@ -12,6 +12,8 @@ import { cloudSyncService } from "../infrastructure/network/CloudSyncService";
 import { requestDeliveryDispatch } from "../infrastructure/network/delivery-api";
 import { cashRegisterOrchestrator } from "./cash-register.orchestrator";
 import { quoteDeliveryOrchestrator } from "./delivery.orchestrator";
+import { DeliveryStatus, PaymentStatus } from "@/types/order-state-machine";
+import { OrderStatus } from "../core/orders-core/domain/order-state-machine";
 // import { syncQueueWorker } from "../infrastructure/network/SyncQueueWorker";
 
 const MAX_RETRIES = 3;
@@ -26,7 +28,7 @@ export const createOrderOrchestrator = async (input: CreateOrderInput) => {
   const orderCore = OrderServicePublic({
     repository: repositoryAdapter,
     identity: identityAdapter,
-    cashRegister: repositoryAdapter
+    cashRegister: repositoryAdapter,
   });
 
   if (
@@ -91,38 +93,65 @@ export const updateOrderStatusOrchestrator = async (
 ) => {
   const repository = new DexieOrderRepositoryAdapter();
   const identity = new DexieOrderIdentityAdapter();
-  const orderCore = OrderServicePublic({ repository, identity, cashRegister: repository });
+  const orderCore = OrderServicePublic({
+    repository,
+    identity,
+    cashRegister: repository,
+  });
 
-  // 1. El Core valida la máquina de estados y guarda localmente (Rápido y Offline-First)
+  // 1. Obtenemos el estado previo para evaluar producción en cancelaciones
+  const previousOrder = await repository.findByIdTemp(input.idTemp);
+
+  // 2. El Core valida la máquina de estados y guarda localmente
   const result = await orderCore.updateStatus(input);
   if (!result.success || !result.data) return result;
 
   const order = result.data;
 
+  // Cálculo del costo total de insumos (COGS / Merma)
+  const totalCogs = order.items.reduce(
+    (acc, item) => acc + (item.costAtPurchase || 0) * item.quantity,
+    0,
+  );
+
   // =================================================================
-  // 🌟 IMPACTO EN CAJA (Coordinación de Cores mediante el Orquestador)
+  // 🌟 IMPACTO FINANCIERO Y CONTABLE (Coordinación de Cores)
   // =================================================================
   try {
     // ---------------------------------------------------------------
-    // ESCENARIO A: Cambios explícitos en el hilo de PAGO (PAYMENT)
+    // 1. ESCENARIO HILO DE PAGO (PAYMENT)
     // ---------------------------------------------------------------
     if (input.thread === "PAYMENT") {
-      if (input.nextValue === "CONFIRMED") {
-        // 1. Cobro exitoso de la orden
+      const paymentValue = input.nextValue as PaymentStatus;
+
+      if (paymentValue === PaymentStatus.CONFIRMED) {
+        // A) Registrar la entrada de dinero a Caja
         await cashRegisterOrchestrator.processSaleMovement({
           businessId: order.businessId,
           userId: order.userId || "system",
-          amount: (order.total - (order.totalDeliveryCost ?? 0)),
+          amount: order.total - (order.totalDeliveryCost ?? 0),
           paymentMethod: order.orderPaymentMethod,
           orderId: order.idTemp,
           description: `Cobro de pedido #${order.shortCode || order.idTemp.slice(-4)}`,
         });
-      } else if (input.nextValue === "PENDING") {
-        // 2. Reversión / Desmarcado de pago
+
+        // B) Reconocer el COGS al concretarse la Venta
+        if (totalCogs > 0) {
+          await cashRegisterOrchestrator.processCogsMovement({
+            businessId: order.businessId,
+            userId: order.userId || "system",
+            approvedByUserId: order.userId || "system",
+            amount: totalCogs,
+            orderId: order.idTemp,
+            description: `Costo de mercadería (COGS) pedido #${order.shortCode || order.idTemp.slice(-4)}`,
+          });
+        }
+      } else if (paymentValue === PaymentStatus.PENDING) {
+        // Reversión del pago en Caja
         await cashRegisterOrchestrator.processRefundMovement({
           businessId: order.businessId,
           userId: order.userId || "system",
-          amount: (order.total - (order.totalDeliveryCost ?? 0)),
+          amount: order.total - (order.totalDeliveryCost ?? 0),
           paymentMethod: order.orderPaymentMethod,
           orderId: order.idTemp,
           description: `Reversión de cobro pedido #${order.shortCode || order.idTemp.slice(-4)}`,
@@ -131,48 +160,67 @@ export const updateOrderStatusOrchestrator = async (
     }
 
     // ---------------------------------------------------------------
-    // ESCENARIO B: Cancelación de la Orden Completa (STATUS -> CANCELLED)
+    // 2. ESCENARIO HILO DE ESTADO (STATUS)
     // ---------------------------------------------------------------
-    if (input.thread === "STATUS" && input.nextValue === "CANCELLED") {
-      // ⚠️ SOLO genera egreso si la orden figuraba como PAGADA (CONFIRMED)
-      if (order.paymentStatus === "CONFIRMED") {
-        await cashRegisterOrchestrator.processRefundMovement({
-          businessId: order.businessId,
-          referenceCashRegisterTurnId: order.cashRegisterTurnIdTemp,
-          userId: order.userId || "system",
-          amount: (order.total - (order.totalDeliveryCost ?? 0)),
-          paymentMethod: order.orderPaymentMethod,
-          orderId: order.idTemp,
-          description: `Devolución por cancelación de pedido #${order.shortCode || order.idTemp.slice(-4)}`,
-        });
+    if (input.thread === "STATUS") {
+      const statusValue = input.nextValue as OrderStatus;
 
-        // 💡 OPCIONAL: Actualizar quirúrgicamente el hilo de pago local a PENDING o REFUNDED
-        // si tu máquina de estados lo requiere.
+      // Cancelación / Rechazo
+      if (
+        statusValue === OrderStatus.CANCELLED ||
+        statusValue === OrderStatus.REJECTED
+      ) {
+        // 1. Devolución de dinero si la orden estaba cobrada
+        if (order.paymentStatus === PaymentStatus.CONFIRMED) {
+          await cashRegisterOrchestrator.processRefundMovement({
+            businessId: order.businessId,
+            referenceCashRegisterTurnId: order.cashRegisterTurnIdTemp,
+            userId: order.userId || "system",
+            amount: order.total - (order.totalDeliveryCost ?? 0),
+            paymentMethod: order.orderPaymentMethod,
+            orderId: order.idTemp,
+            description: `Devolución por cancelación de pedido #${order.shortCode || order.idTemp.slice(-4)}`,
+          });
+        }
+
+        // 2. Si se cancela y YA estaba en preparación/lista, los insumos usados van a MERMA
+        const wasInProduction =
+          previousOrder?.status === OrderStatus.PREPARING ||
+          previousOrder?.status === OrderStatus.READY;
+
+        if (wasInProduction && totalCogs > 0) {
+          await cashRegisterOrchestrator.processMermaMovement({
+            businessId: order.businessId,
+            userId: order.userId || "system",
+            approvedByUserId: order.userId || "system",
+            amount: totalCogs,
+            orderId: order.idTemp,
+            description: `Merma por cancelación de pedido en cocina #${order.shortCode || order.idTemp.slice(-4)}`,
+          });
+        }
       }
     }
   } catch (cashError) {
-    // Si la caja está cerrada, registramos el error sin romper la app local
     console.error(
-      "No se pudo impactar el movimiento de caja al actualizar estado:",
+      "No se pudo impactar el movimiento financiero al actualizar estado:",
       cashError,
     );
   }
 
   const esCambioCritico =
-    input.thread === "DELIVERY" && input.nextValue === "REQUESTED";
+    input.thread === "DELIVERY" &&
+    (input.nextValue as DeliveryStatus) === DeliveryStatus.REQUESTED;
 
   // =================================================================
-  // CASO 1: La orden ya existe en la nube (Tiene ID) -> Sincronización Inmediata
+  // SINCRONIZACIÓN Y DESPACHO
   // =================================================================
   if (order.id && (order.origin === "APP" || order.syncPriority === "HIGH")) {
-    // 🌟 Construimos el payload quirúrgico basado en el hilo que acaba de mutar
     const updatesPayload: {
       status?: string;
       paymentStatus?: string;
       deliveryStatus?: string;
       updatedAt: string;
     } = {
-      // Usamos la fecha de modificación que nos devuelve el core local
       updatedAt: order.updatedAt
         ? new Date(order.updatedAt).toISOString()
         : new Date().toISOString(),
@@ -184,43 +232,31 @@ export const updateOrderStatusOrchestrator = async (
     if (input.thread === "DELIVERY")
       updatesPayload.deliveryStatus = input.nextValue;
 
-    // 🔥 En segundo plano para no bloquear la UI del POS
     cloudSyncService
       .syncOrderUpdatesOffline(order.id, updatesPayload)
       .then(async (success) => {
         if (success && order.id) {
-          // El back ya procesó el cambio y creó el evento histórico.
-          // Confirmamos la sincronización de este hilo en nuestro Dexie local.
           await orderCore.confirmCloudSync(order.idTemp, order.id);
-
-          // Adicionalmente, como impactó en caliente con éxito, podés prender
-          // las banderas específicas de hilos si tu orderCore lo requiere:
-          // await db.orders.update(order.idTemp, { syncedStatus: true, ... });
         } else {
           await orderCore.notifySyncError(order.idTemp);
         }
       })
       .catch(async (error) => {
         console.warn(
-          "Fallo de red al actualizar estado en caliente. El SyncWorker resolverá en el fondo.",
+          "Fallo de red al actualizar estado. El SyncWorker resolverá en el fondo.",
           error,
         );
         await orderCore.notifySyncError(order.idTemp);
       });
-  }
-  // =================================================================
-  // CASO 2: La orden es LOCAL (sin ID de nube) pero sufrió un cambio crítico
-  // =================================================================
-  else if (!order.id && esCambioCritico) {
-    // console.log(
-    //   "Orquestador: Cambio crítico detectado en orden local. Forzando cola de sincronización...",
-    // );
-    // Aquí disparas tu Worker general (el que primero hace el POST de la creación de la orden
-    // y luego actualiza sus estados).
+  } else if (!order.id && esCambioCritico) {
     // syncQueueWorker.processQueue().catch(...);
   }
 
-  if (input.thread === "DELIVERY" && order.customerAddress) {
+  if (
+    input.thread === "DELIVERY" &&
+    (input.nextValue as DeliveryStatus) === DeliveryStatus.REQUESTED &&
+    order.customerAddress
+  ) {
     const businessDiex = new BusinessLocalRepository();
     const business = await businessDiex.getCurrentBusiness();
     await requestDeliveryDispatch({
@@ -234,6 +270,5 @@ export const updateOrderStatusOrchestrator = async (
     });
   }
 
-  // 🚀 Retornamos el resultado local INMEDIATAMENTE para que el cajero no espere a la red.
   return result;
 };

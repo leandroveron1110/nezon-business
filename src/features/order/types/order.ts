@@ -53,6 +53,7 @@ export interface OrderItem {
   productPaymentMethod: ProductPaymentMethod;
   quantity: number;
   priceAtPurchase: number;
+  costAtPurchase: number;
   notes?: string | null;
   optionGroups: OrderOptionGroup[];
 }

@@ -11,6 +11,7 @@ import {
   RegisterExpenseInput,
   RegisterIncomeInput,
   RegisterRefundInput,
+  RegisterCogsInput, // 👈 Importamos el nuevo DTO de COGS
   CashRegister,
   FinancialMovement,
   CashRegisterTotals,
@@ -61,13 +62,13 @@ class CashRegisterOrchestrator {
     const closedRegister = await this.cashRegisterService.close(input);
 
     // 💡 REACCIÓN TÁCTICA DE ORQUESTATOR:
-    // Al cerrar la caja, podríamos gatillar eventos secundarios (ej: notificar a SyncQueueWorker
-    // o congelar la interfaz del POS), manteniendo la lógica decoupled.
-
+    // Al cerrar la caja, podríamos gatillar eventos secundarios (ej: notificar a SyncQueueWorker)
     return closedRegister;
   }
 
-  async historyCashRegiter(filter: HistoryFiltersInput): Promise<CashRegister[]> {
+  async historyCashRegiter(
+    filter: HistoryFiltersInput,
+  ): Promise<CashRegister[]> {
     return await this.cashRegisterService.historyCashRegiter(filter);
   }
 
@@ -83,53 +84,59 @@ class CashRegisterOrchestrator {
   }
 
   // ==========================================================================
-  // FLUJOS DE MOVIMIENTOS FINANCIEROS
+  // FLUJOS DE MOVIMIENTOS FINANCIEROS Y CONTABLES
   // ==========================================================================
+
+  // 1. Cobro efectivo/tarjeta
   async processSaleMovement(
     input: Omit<RegisterSaleInput, "sequence" | "clientMovementId">,
-  ) {
-    console.group(
-      "💰 [CashRegisterOrchestrator] Procesando movimiento de venta",
-    );
-    console.log("📥 Payload recibido:", input);
-
+  ): Promise<FinancialMovement> {
     try {
-      // Delegamos al Servicio del Core la venta.
-      // El Core buscará la caja activa y llamará al Repository Adapter.
-      const result = await this.movementService.registerSale({
-        businessId: input.businessId,
-        userId: input.userId,
-        amount: input.amount,
-        paymentMethod: input.paymentMethod,
-        description: input.description,
-        orderId: input.orderId,
-        notes: input.notes,
-        externalReference: input.externalReference,
-      });
-
-      console.log("✅ Movimiento procesado e impactado con éxito:", result);
-      console.groupEnd();
-
-      return result;
+      return await this.movementService.registerSale(input);
     } catch (error) {
       console.error("🚨 Falló el movimiento de venta:", error);
-      console.groupEnd();
       throw error;
     }
   }
 
+  // 2. Costo de Mercadería Vendida (Contable - No afecta saldo de caja)
+  async processCogsMovement(
+    input: RegisterCogsInput,
+  ): Promise<FinancialMovement> {
+    try {
+      return await this.movementService.registerCogs(input);
+    } catch (error) {
+      console.error("🚨 Falló el registro de COGS:", error);
+      throw error;
+    }
+  }
+
+  async processMermaMovement(
+    input: RegisterCogsInput,
+  ): Promise<FinancialMovement> {
+    try {
+      return await this.movementService.registerMerma(input);
+    } catch (error) {
+      console.error("🚨 Falló el registro de Merma:", error);
+      throw error;
+    }
+  }
+
+  // 3. Gastos operativos / Mermas por cancelaciones
   async processExpenseMovement(
     input: Omit<RegisterExpenseInput, "sequence" | "clientTurnId">,
   ): Promise<FinancialMovement> {
     return this.movementService.registerExpense(input);
   }
 
+  // 4. Ingresos manuales a caja
   async processIncomeMovement(
-    input: Omit<RegisterIncomeInput, "clientTurnId" >,
+    input: Omit<RegisterIncomeInput, "clientTurnId">,
   ): Promise<FinancialMovement> {
     return this.movementService.registerIncome(input);
   }
 
+  // 5. Reembolso / Devolución de dinero
   async processRefundMovement(
     input: RegisterRefundInput,
   ): Promise<FinancialMovement> {

@@ -14,6 +14,8 @@ export interface RegisterExpenseInput {
 
   description: string;
 
+  orderId?: string;
+
   notes?: string;
   externalReference?: string;
 }

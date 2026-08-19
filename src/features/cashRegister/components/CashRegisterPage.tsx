@@ -37,6 +37,7 @@ const MOVEMENT_TYPE_LABELS: Record<string, string> = {
   INCOME: "Ingreso Manual",
   EXPENSE: "Egreso / Gasto",
   REFUND: "Devolución",
+  MERMAS: "MERMAS"
 };
 
 export default function CashRegisterPage({ businessId }: Props) {

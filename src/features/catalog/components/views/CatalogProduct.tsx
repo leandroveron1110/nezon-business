@@ -29,7 +29,7 @@ export default function CatalogProduct({ product, onClick }: Props) {
       ? Math.round(
           ((Number(originalPrice) - Number(finalPrice)) /
             Number(originalPrice)) *
-            100
+            100,
         )
       : 0;
 
@@ -146,16 +146,19 @@ export default function CatalogProduct({ product, onClick }: Props) {
             </div>
 
             {/* Precios */}
-            <div className="flex items-end gap-2 mt-1">
+            {/* Precios y Costo */}
+            <div className="flex items-end justify-between mt-1">
               <div className="flex flex-col">
-                <span className="text-sm text-gray-900">
-                  {formatPrice(finalPrice, currencyMask)}{" "}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm font-bold text-gray-900">
+                    {formatPrice(finalPrice, currencyMask)}
+                  </span>
                   {hasDiscount && (
                     <span className="text-[10px] text-green-600 font-medium">
                       {discountPercent}% OFF
                     </span>
                   )}
-                </span>
+                </div>
 
                 {hasDiscount && (
                   <span className="text-xs line-through text-gray-400">
@@ -163,6 +166,13 @@ export default function CatalogProduct({ product, onClick }: Props) {
                   </span>
                 )}
               </div>
+
+              {/* 📦 Costo solo si existe y es > 0 */}
+              {Number(product.cost) > 0 && (
+                <span className="text-[11px] font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                  Costo: {formatPrice(product.cost, currencyMask)}
+                </span>
+              )}
             </div>
           </div>
         </div>

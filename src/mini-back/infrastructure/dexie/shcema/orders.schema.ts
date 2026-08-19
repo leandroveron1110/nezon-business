@@ -26,6 +26,7 @@ export interface LocalOrderItem {
   productName: string;
   quantity: number;
   priceAtPurchase: number;
+  costAtPurchase: number;
   notes?: string;
   optionGroups: LocalOrderOptionGroup[];
 }

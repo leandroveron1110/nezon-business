@@ -91,20 +91,6 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
 
   const safeOrder = order ?? null;
 
-const minutes = useMemo(() => {
-    if (!safeOrder) return "--:--";
-
-    // Detecta si tiene fecha de entrega programada
-    const isScheduled = Boolean(safeOrder.scheduledAt);
-
-    const formattedTime = formatTimeRemaining({
-      targetDate: isScheduled ? safeOrder.scheduledAt : safeOrder.createdAt,
-      isScheduled,
-    });
-
-    return formattedTime.display;
-  }, [safeOrder]);
-
   const timeFormatted = useMemo(() => {
     if (!safeOrder) return null;
 

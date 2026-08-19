@@ -24,6 +24,7 @@ export * from "../input/register-income.input";
 export * from "../input/register-refund.input";
 export * from "../input/register-sale.input";
 export * from "../input/hitory-filter.input";
+export * from "../input/register-cogs.Input"
 
 // --- EXPORTACIONES DE INPUTS ---
 export * from "../port/cash-register.port";

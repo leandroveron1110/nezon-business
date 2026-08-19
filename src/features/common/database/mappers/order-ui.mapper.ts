@@ -52,6 +52,7 @@ export class OrderUiMapper {
         productName: item.productName,
         quantity: item.quantity,
         priceAtPurchase: item.priceAtPurchase,
+        costAtPurchase: item.costAtPurchase,
         notes: item.notes || null,
         productPaymentMethod: "CASH", // Default
         optionGroups: item.optionGroups.map((group) => ({

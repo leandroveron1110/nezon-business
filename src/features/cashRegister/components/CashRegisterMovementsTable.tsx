@@ -70,7 +70,8 @@ export function CashRegisterMovementsTable({
             {movements.map((m) => {
               const isNegative =
                 m.type === FinancialMovementType.EXPENSE ||
-                m.type === FinancialMovementType.REFUND;
+                m.type === FinancialMovementType.REFUND || 
+                m.type ===  FinancialMovementType.MERMAS;
 
               const isInactive =
                 m.status === FinancialMovementStatus.CANCELLED ||

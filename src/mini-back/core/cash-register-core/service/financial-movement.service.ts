@@ -4,6 +4,7 @@ import { FinancialMovement } from "../domain/financial-movement";
 import {
   FinancialMovementStatus,
   FinancialMovementType,
+  PaymentMethodTypeFinancial,
 } from "../domain/financial-movement-status.enum";
 
 import { CashRegisterPort } from "../port/cash-register.port";
@@ -14,6 +15,7 @@ import { RegisterIncomeInput } from "../input/register-income.input";
 import { RegisterRefundInput } from "../input/register-refund.input";
 import { RegisterSaleInput } from "../input/register-sale.input";
 import { IFinancialMovementPublicService } from "../public/financial-movement-service.interface";
+import { RegisterCogsInput } from "../input/register-cogs.Input";
 
 export class FinancialMovementService implements IFinancialMovementPublicService {
   constructor(
@@ -35,10 +37,10 @@ export class FinancialMovementService implements IFinancialMovementPublicService
     const activeBox = await this.getActiveCashRegisterOrThrow(input.businessId);
 
     const financialMovement: FinancialMovement = {
-      clientMovementId: input.clientMovementId, // Opcional si la UI mandó id de idempotencia local
+      clientMovementId: input.clientMovementId,
       businessId: input.businessId,
       userId: input.userId,
-      cashRegisterTurnId: activeBox.id, // ID unificado del turno según la entidad de dominio
+      cashRegisterTurnId: activeBox.clientTurnId,
 
       type: FinancialMovementType.SALE,
       status: FinancialMovementStatus.CONFIRMED,
@@ -57,11 +59,8 @@ export class FinancialMovementService implements IFinancialMovementPublicService
   }
 
   async registerRefund(input: RegisterRefundInput): Promise<FinancialMovement> {
-    // 1. Obtenemos la caja abierta hoy (donde VA A SALIR el dinero del reembolso)
     const activeBox = await this.getActiveCashRegisterOrThrow(input.businessId);
 
-    // 2. Comparamos simple y directo:
-    // ¿El turno de la orden viene de un turno distinto a la caja activa de hoy?
     const isFromPreviousTurn =
       input.referenceCashRegisterTurnId &&
       input.referenceCashRegisterTurnId !== activeBox.clientTurnId;
@@ -72,8 +71,6 @@ export class FinancialMovementService implements IFinancialMovementPublicService
       userId: input.userId,
       approvedByUserId: input.userId,
 
-      // El dinero SALE de la caja activa hoy
-      // cashRegisterTurnId: activeBox.id,
       cashRegisterTurnId: activeBox.clientTurnId,
 
       type: FinancialMovementType.REFUND,
@@ -88,7 +85,6 @@ export class FinancialMovementService implements IFinancialMovementPublicService
       date: new Date(),
       orderId: input.orderId,
 
-      // Si provenía de otra caja, guardamos esa referencia. Si era de la misma, queda en null.
       referenceCashRegisterTurnId: isFromPreviousTurn
         ? input.referenceCashRegisterTurnId
         : undefined,
@@ -105,7 +101,7 @@ export class FinancialMovementService implements IFinancialMovementPublicService
       businessId: input.businessId,
       userId: input.userId,
       approvedByUserId: input.approvedByUserId,
-      cashRegisterTurnId: activeBox.id,
+      cashRegisterTurnId: activeBox.clientTurnId,
 
       type: FinancialMovementType.INCOME,
       status: FinancialMovementStatus.CONFIRMED,
@@ -132,7 +128,7 @@ export class FinancialMovementService implements IFinancialMovementPublicService
       businessId: input.businessId,
       userId: input.userId,
       approvedByUserId: input.approvedByUserId,
-      cashRegisterTurnId: activeBox.id,
+      cashRegisterTurnId: activeBox.clientTurnId,
 
       type: FinancialMovementType.EXPENSE,
       status: FinancialMovementStatus.CONFIRMED,
@@ -144,6 +140,54 @@ export class FinancialMovementService implements IFinancialMovementPublicService
       externalReference: input.externalReference,
 
       date: new Date(),
+      orderId: input.orderId, // Útil si la merma proviene de una orden cancelada
+    };
+
+    return this.movement.save(financialMovement);
+  }
+
+  // 📦 REGISTRO DE COSTO DE MERCADERÍA (COGS)
+  async registerCogs(input: RegisterCogsInput): Promise<FinancialMovement> {
+    const activeBox = await this.getActiveCashRegisterOrThrow(input.businessId);
+
+    const financialMovement: FinancialMovement = {
+      clientMovementId: input.clientMovementId,
+      businessId: input.businessId,
+      userId: input.userId,
+      cashRegisterTurnId: activeBox.clientTurnId,
+
+      type: FinancialMovementType.COGS,
+      status: FinancialMovementStatus.CONFIRMED,
+
+      amount: input.amount,
+      description: input.description,
+      notes: input.notes,
+
+      date: new Date(),
+      orderId: input.orderId,
+    };
+
+    return this.movement.save(financialMovement);
+  }
+
+  async registerMerma(input: RegisterCogsInput): Promise<FinancialMovement> {
+    const activeBox = await this.getActiveCashRegisterOrThrow(input.businessId);
+
+    const financialMovement: FinancialMovement = {
+      clientMovementId: input.clientMovementId,
+      businessId: input.businessId,
+      userId: input.userId,
+      cashRegisterTurnId: activeBox.clientTurnId,
+
+      type: FinancialMovementType.MERMAS,
+      status: FinancialMovementStatus.CONFIRMED,
+
+      amount: input.amount,
+      description: input.description,
+      notes: input.notes,
+
+      date: new Date(),
+      orderId: input.orderId,
     };
 
     return this.movement.save(financialMovement);

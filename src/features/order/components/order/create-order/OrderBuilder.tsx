@@ -106,6 +106,7 @@ export default function OrderBuilder({
           priceAtPurchase: product.finalPrice + extra,
           optionGroups: options,
           notes: cleanNotes,
+          costAtPurchase: product.cost,
         },
       ];
     });

@@ -14,7 +14,7 @@ export interface FinancialMovement {
 
   amount: number;
 
-  paymentMethod: PaymentMethodTypeFinancial;
+  paymentMethod?: PaymentMethodTypeFinancial;
 
   description: string;
 

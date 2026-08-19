@@ -37,6 +37,7 @@ export default function NewMenuProduct({
     originalPrice: "",
     finalPrice: "",
     discountPercentage: "",
+    cost: "",
   });
 
   const [stock, setStock] = useState(1);
@@ -87,6 +88,7 @@ export default function NewMenuProduct({
       originalPrice: prices.originalPrice,
       finalPrice: prices.finalPrice,
       discountPercentage: prices.discountPercentage,
+      cost: prices.cost ? Number(prices.cost) : 0,
       stock,
       available,
       isMostOrdered: flags.isMostOrdered,
@@ -110,6 +112,7 @@ export default function NewMenuProduct({
       originalPrice: prices.originalPrice,
       finalPrice: prices.finalPrice,
       discountPercentage: prices.discountPercentage,
+      cost: prices.cost ? Number(prices.cost) : 0,
       stock,
       available,
       isMostOrdered: flags.isMostOrdered,
@@ -220,11 +223,13 @@ return (
           finalPrice={prices.finalPrice}
           discountPercentage={prices.discountPercentage}
           originalPrice={prices.originalPrice}
+          cost={prices.cost}
           onUpdate={(data) =>
             setPrices({
               finalPrice: `${data.finalPrice}`,
               originalPrice: `${data.originalPrice}`,
               discountPercentage: `${data.discountPercentage}`,
+              cost: `${data.cost}`,
             })
           }
         />

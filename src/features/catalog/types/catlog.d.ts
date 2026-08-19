@@ -54,6 +54,7 @@ interface MenuProductBase {
   acceptsCash: boolean;
   acceptsTransfer: boolean;
   acceptsQr: boolean;
+  cost: number;
 }
 
 // -----------------------------
