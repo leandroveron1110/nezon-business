@@ -130,12 +130,10 @@ export class CashAdminRepository implements CashQueryPort {
       )
       .each((movement) => {
         const method = movement.paymentMethod;
-        if(method) {
-          
-                  const currentAmount = paymentMap.get(method) ?? 0;
-          
-                  paymentMap.set(method, currentAmount + movement.amount);
+        if (method) {
+          const currentAmount = paymentMap.get(method) ?? 0;
 
+          paymentMap.set(method, currentAmount + movement.amount);
         }
       });
 

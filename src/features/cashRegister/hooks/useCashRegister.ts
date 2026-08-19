@@ -26,7 +26,14 @@ export function useCashRegister(businessId: string) {
     const rawMovements = await db.financialMovement
       .where("cashRegisterTurnIdTemp")
       .equals(turnIdTemp)
-      .filter((movement) => movement.type !== FinancialMovementType.COGS)
+      .filter((movement) => {
+        // Excluimos registros puramente contables o de inventario
+        const isInternalAccounting =
+          movement.type === FinancialMovementType.COGS ||
+          movement.type === FinancialMovementType.MERMAS;
+
+        return !isInternalAccounting;
+      })
       .sortBy("sequence");
 
     return rawMovements;

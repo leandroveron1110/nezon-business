@@ -1,12 +1,16 @@
+export interface SalesSummaryResult {
+  totalSales: number;
+  totalRefunds: number;
+  totalCogs: number;  // 📦 Costo de lo vendido
+  totalWaste: number; // 🗑️ Pérdidas por merma en cocina
+}
+
 export interface SalesCashQueryPort {
   getSalesSummary(
     businessId: string,
     from: Date,
     to: Date,
-  ): Promise<{
-    totalSales: number;
-    totalRefunds: number;
-  }>;
+  ): Promise<SalesSummaryResult>;
 
   getSalesEvolution(
     businessId: string,

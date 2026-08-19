@@ -131,35 +131,24 @@ export class SummaryService implements IAdminSummaryService {
       prevMonthFinancial,
     ] = await Promise.all([
       this.cashQuery.getFinancialSummary(businessId, from, to),
-
       this.ordersQuery.getOrderCount(businessId, from, to),
-
       this.cashQuery.getSalesEvolution(businessId, from, to),
-
       this.cashQuery.getPaymentMethodSummary(businessId, from, to),
-
       this.ordersQuery.getTopSellingProducts(businessId, from, to),
-
       this.cashQuery.getExpensesGroupedByCategory(businessId, from, to),
-
       this.cashQuery.getFinancialSummary(businessId, todayStart, todayEnd),
-
       this.cashQuery.getFinancialSummary(
         businessId,
         yesterdayStart,
         yesterdayEnd,
       ),
-
       this.cashQuery.getFinancialSummary(businessId, weekStart, todayEnd),
-
       this.cashQuery.getFinancialSummary(
         businessId,
         prevWeekStart,
         prevWeekEnd,
       ),
-
       this.cashQuery.getFinancialSummary(businessId, monthStart, todayEnd),
-
       this.cashQuery.getFinancialSummary(
         businessId,
         prevMonthStart,

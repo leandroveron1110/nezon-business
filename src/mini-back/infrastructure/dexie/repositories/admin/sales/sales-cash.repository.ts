@@ -1,48 +1,53 @@
-import { SalesCashQueryPort } from "@/mini-back/core/admin-core/port/sales/sales-cash-query.port";
+import {
+  SalesCashQueryPort,
+  SalesSummaryResult,
+} from "@/mini-back/core/admin-core/port/sales/sales-cash-query.port";
 import { db } from "../../../db";
 
 export class SalesCashRepository implements SalesCashQueryPort {
   /**
-   * Resumen financiero de ventas.
-   *
+   * Resumen financiero de administración.
    * La fuente de verdad es financialMovement.
    *
-   * SALE    -> dinero efectivamente cobrado.
-   * REFUND  -> dinero efectivamente devuelto.
+   * SALE    -> Dinero ingresado
+   * REFUND  -> Dinero devuelto
+   * COGS    -> Costo de productos vendidos
+   * EXPENSE / MERMAS -> Pérdida por desperdicio en cocina
    */
   async getSalesSummary(
     businessId: string,
     from: Date,
     to: Date,
-  ): Promise<{
-    totalSales: number;
-    totalRefunds: number;
-  }> {
+  ): Promise<SalesSummaryResult> {
     let totalSales = 0;
     let totalRefunds = 0;
+    let totalCogs = 0;
+    let totalWaste = 0;
 
     await db.financialMovement
       .where("date")
       .between(from, to, true, true)
       .filter(
         (movement) =>
-          movement.businessId === businessId &&
-          movement.status === "CONFIRMED" &&
-          (movement.type === "SALE" || movement.type === "REFUND"),
+          movement.businessId === businessId && movement.status === "CONFIRMED",
       )
       .each((movement) => {
         if (movement.type === "SALE") {
           totalSales += movement.amount;
-        }
-
-        if (movement.type === "REFUND") {
+        } else if (movement.type === "REFUND") {
           totalRefunds += movement.amount;
+        } else if (movement.type === "COGS") {
+          totalCogs += movement.amount;
+        } else if (movement.type === "MERMAS" || movement.type === "EXPENSE") {
+          totalWaste += movement.amount;
         }
       });
 
     return {
       totalSales,
       totalRefunds,
+      totalCogs,
+      totalWaste,
     };
   }
 
@@ -164,13 +169,11 @@ export class SalesCashRepository implements SalesCashQueryPort {
       )
       .each((movement) => {
         const paymentMethod = movement.paymentMethod;
-        if(paymentMethod) {
-
+        if (paymentMethod) {
           const current = paymentMap.get(paymentMethod) ?? 0;
-  
+
           paymentMap.set(paymentMethod, current + movement.amount);
         }
-
       });
 
     return Array.from(paymentMap.entries())

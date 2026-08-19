@@ -19,14 +19,8 @@ export class AdminSalesService implements IAdminSalesService {
     private readonly ordersQuery: SalesOrdersQueryPort,
   ) {}
 
-  async execute(
-    input: GetAdminSalesInput,
-  ): Promise<AdminSales> {
-    const {
-      businessId,
-      from,
-      to,
-    } = input;
+async execute(input: GetAdminSalesInput): Promise<AdminSales> {
+    const { businessId, from, to } = input;
 
     const [
       financialSummary,
@@ -37,109 +31,48 @@ export class AdminSalesService implements IAdminSalesService {
       salesByOrderTypeRaw,
       salesByCashRegisterRaw,
     ] = await Promise.all([
-      // -----------------------------------------
-      // CASH
-      // -----------------------------------------
-
-      this.cashQuery.getSalesSummary(
-        businessId,
-        from,
-        to,
-      ),
-
-      // -----------------------------------------
-      // ORDERS
-      // -----------------------------------------
-
-      this.ordersQuery.getOrderCount(
-        businessId,
-        from,
-        to,
-      ),
-
-      // -----------------------------------------
-      // CASH
-      // -----------------------------------------
-
-      this.cashQuery.getSalesEvolution(
-        businessId,
-        from,
-        to,
-      ),
-
-      this.cashQuery.getSalesByHour(
-        businessId,
-        from,
-        to,
-      ),
-
-      this.cashQuery.getPaymentMethodSummary(
-        businessId,
-        from,
-        to,
-      ),
-
-      // -----------------------------------------
-      // ORDERS
-      // -----------------------------------------
-
-      this.ordersQuery.getSalesByOrderType(
-        businessId,
-        from,
-        to,
-      ),
-
-      // -----------------------------------------
-      // CASH
-      // -----------------------------------------
-
-      this.cashQuery.getSalesByCashRegister(
-        businessId,
-        from,
-        to,
-      ),
+      this.cashQuery.getSalesSummary(businessId, from, to),
+      this.ordersQuery.getOrderCount(businessId, from, to),
+      this.cashQuery.getSalesEvolution(businessId, from, to),
+      this.cashQuery.getSalesByHour(businessId, from, to),
+      this.cashQuery.getPaymentMethodSummary(businessId, from, to),
+      this.ordersQuery.getSalesByOrderType(businessId, from, to),
+      this.cashQuery.getSalesByCashRegister(businessId, from, to),
     ]);
 
     // ============================================================
-    // FINANCIAL CALCULATIONS
+    // ECUAClONES FINANCIERAS ADMINISTRATIVAS
     // ============================================================
 
-    const netSales =
-      financialSummary.totalSales -
-      financialSummary.totalRefunds;
+    // 1. Ventas Netas = Ventas Brutas - Devoluciones
+    const netSales = financialSummary.totalSales - financialSummary.totalRefunds;
 
-    const averageTicket =
-      this.calculateAverageTicket(
-        financialSummary.totalSales,
-        orderCount,
-      );
+    // 2. Margen Bruto ($) = Ventas Netas - COGS
+    const grossMargin = netSales - financialSummary.totalCogs;
+
+    // 3. Porcentaje de Margen Bruto (%)
+    const grossMarginPercentage = netSales > 0 ? (grossMargin / netSales) * 100 : 0;
+
+    // 4. Ganancia Operativa ($) = Margen Bruto - Mermas
+    const grossProfit = grossMargin - financialSummary.totalWaste;
+
+    const averageTicket = this.calculateAverageTicket(
+      financialSummary.totalSales,
+      orderCount,
+    );
 
     // ============================================================
     // ANALYTICS
     // ============================================================
 
-    const paymentMethods =
-      this.calculatePaymentMethodPercentages(
-        paymentMethodsRaw,
-      );
+    const paymentMethods = this.calculatePaymentMethodPercentages(paymentMethodsRaw);
+    const salesByCashRegister = this.calculateCashRegisterPercentages(salesByCashRegisterRaw);
+    const salesByOrderType = this.calculateOrderTypePercentages(salesByOrderTypeRaw);
 
-    const salesByCashRegister =
-      this.calculateCashRegisterPercentages(
-        salesByCashRegisterRaw,
-      );
-
-    const salesByOrderType =
-      this.calculateOrderTypePercentages(
-        salesByOrderTypeRaw,
-      );
-
-    const evolution =
-      salesEvolution.map((item) => ({
-        date: this.formatDateToLocalISO(
-          item.date,
-        ),
-        amount: item.amount,
-      }));
+    const evolution = salesEvolution.map((item) => ({
+      date: this.formatDateToLocalISO(item.date),
+      amount: item.amount,
+    }));
 
     // ============================================================
     // RESULT
@@ -147,29 +80,22 @@ export class AdminSalesService implements IAdminSalesService {
 
     return {
       summary: {
-        totalSales:
-          financialSummary.totalSales,
-
-        orderCount,
-
-        averageTicket,
-
-        totalRefunds:
-          financialSummary.totalRefunds,
-
+        totalSales: financialSummary.totalSales,
+        totalRefunds: financialSummary.totalRefunds,
         netSales,
+        totalCogs: financialSummary.totalCogs,
+        totalWaste: financialSummary.totalWaste,
+        grossMargin,
+        grossMarginPercentage,
+        grossProfit,
+        orderCount,
+        averageTicket,
       },
-
       paymentMethods,
-
       evolution,
-
       byHour: salesByHour,
-
       byOrderType: salesByOrderType,
-
-      byCashRegister:
-        salesByCashRegister,
+      byCashRegister: salesByCashRegister,
     };
   }
 

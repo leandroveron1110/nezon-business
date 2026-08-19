@@ -20,6 +20,16 @@ export interface SalesSummary {
 
   orderCount: number;
 
+  totalCogs: number;
+
+  totalWaste: number;
+
+  grossMargin: number;
+
+  grossMarginPercentage: number;
+
+  grossProfit: number;
+
   averageTicket: number;
 
   totalRefunds: number;
