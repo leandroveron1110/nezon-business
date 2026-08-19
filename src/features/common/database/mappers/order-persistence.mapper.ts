@@ -29,6 +29,7 @@ export class OrderPersistenceMapper {
     const items = apiOrder.items.map((item) => ({
       productId: item.id,
       productName: item.productName,
+      costAtPurchase: item.costAtPurchase,
       quantity: item.quantity,
       priceAtPurchase: Number(item.priceAtPurchase),
       notes: item.notes ?? undefined,
