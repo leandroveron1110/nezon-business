@@ -164,10 +164,13 @@ export class SalesCashRepository implements SalesCashQueryPort {
       )
       .each((movement) => {
         const paymentMethod = movement.paymentMethod;
+        if(paymentMethod) {
 
-        const current = paymentMap.get(paymentMethod) ?? 0;
+          const current = paymentMap.get(paymentMethod) ?? 0;
+  
+          paymentMap.set(paymentMethod, current + movement.amount);
+        }
 
-        paymentMap.set(paymentMethod, current + movement.amount);
       });
 
     return Array.from(paymentMap.entries())

@@ -194,7 +194,7 @@ export function CashRegisterMovementsTable({
                   {/* Medio de pago */}
                   <td className="px-5 py-3.5">
                     <span className="rounded-md bg-slate-100 px-2 py-1 font-medium text-slate-600">
-                      {paymentMethodLabels[m.paymentMethod] || m.paymentMethod}
+                      {m.paymentMethod ? paymentMethodLabels[m.paymentMethod] : m.paymentMethod}
                     </span>
                   </td>
 

@@ -69,7 +69,7 @@ export interface LocalFinancialMovement {
 
   amount: number;
 
-  paymentMethod: PaymentMethodTypeFinancial;
+  paymentMethod?: PaymentMethodTypeFinancial;
 
   description: string;
 
