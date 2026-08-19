@@ -1,6 +1,6 @@
 import { OrdersQueryPort, TopSellingProduct } from "@/mini-back/core/admin-core/port/summary/orders-query.port";
-import { HunayDB } from "../../db";
-import { LocalOrder } from "../../shcema/orders.schema";
+import { HunayDB } from "../../../db";
+import { LocalOrder } from "../../../shcema/orders.schema";
 
 export class OrderAdminRepository implements OrdersQueryPort {
   constructor(private readonly db: HunayDB) {}

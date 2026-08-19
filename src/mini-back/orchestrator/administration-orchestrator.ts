@@ -5,8 +5,8 @@ import {
   IAdminSummaryService,
 } from "../core/admin-core/public";
 import { db } from "../infrastructure/dexie/db";
-import { CashAdminRepository } from "../infrastructure/dexie/repositories/admin/cash-admin.repository";
-import { OrderAdminRepository } from "../infrastructure/dexie/repositories/admin/order-admin.repository";
+import { CashAdminRepository } from "../infrastructure/dexie/repositories/admin/summary/cash-admin.repository";
+import { OrderAdminRepository } from "../infrastructure/dexie/repositories/admin/summary/order-admin.repository";
 
 export class AdministrationOrchestrator {
   private readonly summaryService: IAdminSummaryService;

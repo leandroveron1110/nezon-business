@@ -1,4 +1,4 @@
-import { HunayDB } from "../../db";
+import { HunayDB } from "../../../db";
 import {
   CashQueryPort,
   CategoryExpenseDTO,
