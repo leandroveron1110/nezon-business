@@ -1,6 +1,7 @@
 "use client";
 // src/features/orders/hooks/useSyncOrders.ts
 import { syncOrdersInteractor } from "@/features/common/database/interactors/sync-orders.interactor";
+import { syncCatalogIfNeeded } from "@/features/common/database/sync/sync";
 import { useEffect, useRef } from "react";
 
 export function useSyncOrders(businessId: string, daysBack?: number, specificDate?: string) {
@@ -11,6 +12,8 @@ export function useSyncOrders(businessId: string, daysBack?: number, specificDat
     
     try {
       isSyncingRef.current = true;
+      
+
       await syncOrdersInteractor(businessId, { force, daysBack, specificDate });
     } finally {
       isSyncingRef.current = false;

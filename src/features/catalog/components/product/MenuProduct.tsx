@@ -1,17 +1,13 @@
 "use client";
-import React, { useState } from "react";
+import { useState } from "react";
 import {
-  Plus,
   Save,
-  Layers,
   CreditCard,
   Tag,
   PackageCheck,
 } from "lucide-react";
 import {
   IMenuProduct,
-  IOptionGroup,
-  OptionGroupCreate,
 } from "../../types/catlog";
 import MenuProductImage from "./components/ImageProdct/MenuProducImage";
 import MenuGroup from "./components/MenuGroup";
@@ -53,7 +49,7 @@ export default function MenuProduct({
   onClose,
 }: Props) {
   const [saving, setSaving] = useState(false);
-  const [showNewGroup, setShowNewGroup] = useState(false);
+  // const [showNewGroup, setShowNewGroup] = useState(false);
   const { addAlert } = useAlert();
 
   const product = useMenuStore((state) =>
@@ -65,6 +61,7 @@ export default function MenuProduct({
 
   const [initialProduct] = useState(() => (product ? { ...product } : null));
   const updateProduct = useMenuStore((state) => state.updateProduct);
+  const deleteProductStore = useMenuStore((state) => state.deleteProduct);
   // const updateGroupStore = useMenuStore((state) => state.updateGroup);
   // const deleteGroupStore = useMenuStore((state) => state.deleteGroup);
   // const addGroupStore = useMenuStore((state) => state.addGroup);
@@ -73,10 +70,10 @@ export default function MenuProduct({
 
   const deleteProduct = useDeleteMenuProduct(businessId);
 
-  const createGroup = useCreateOptionGroup(businessId);
-  const updateGroup = useUpdateOptionGroup(businessId);
-  const deleteGroup = useDeleteOptionGroup(businessId);
-  const deleteManyOptionsMutate = useDeleteManyOption(businessId);
+  // const createGroup = useCreateOptionGroup(businessId);
+  // const updateGroup = useUpdateOptionGroup(businessId);
+  // const deleteGroup = useDeleteOptionGroup(businessId);
+  // const deleteManyOptionsMutate = useDeleteManyOption(businessId);
   const updateMenuProductMutate = useUpdateMenuProduct(businessId);
 
   if (!product) return null;
@@ -86,7 +83,13 @@ export default function MenuProduct({
   };
 
   const handleDeleteProduct = async () => {
-    await deleteProduct.mutate(product.id);
+    deleteProduct.mutate(product.id);
+    deleteProductStore({
+      menuId,
+      sectionId,
+      productId,
+    });
+    onClose();
   };
 
   const getModifiedFields = (): Partial<IMenuProduct> => {

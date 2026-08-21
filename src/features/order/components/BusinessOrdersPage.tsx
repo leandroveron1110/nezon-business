@@ -30,6 +30,7 @@ import { CashRegisterStatusBadge } from "@/features/cashRegister/components/Cash
 import { OpenCashModal } from "@/features/cashRegister/components/OpenCashModal";
 import { useCashRegisterStatus } from "@/features/cashRegister/hooks/useCashRegisterStatus";
 import { OrderCard } from "./order/order-card/OrderCard";
+import { syncCatalogIfNeeded } from "@/features/common/database/sync/sync";
 
 interface Props {
   businessId: string;
@@ -39,6 +40,7 @@ export default function BusinessOrdersPage({ businessId }: Props) {
   const { addAlert } = useAlert();
   const { print } = usePrintTicket();
   const printRef = useRef<HTMLDivElement>(null);
+
 
   // 1. Sincronización en background y consumo de datos en UI
   useSyncOrders(businessId);
@@ -87,6 +89,10 @@ export default function BusinessOrdersPage({ businessId }: Props) {
     const interval = setInterval(() => setNow(Date.now()), 60000); // Sincroniza cada 1 min
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(()=> {
+    syncCatalogIfNeeded(businessId);
+  }, [businessId])
 
   // Custom hook que busca la orden por ID para imprimir
   const { order } = useGetOrderById(selectedPrintOrderId ?? "");
