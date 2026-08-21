@@ -28,7 +28,7 @@ import { IGlobalImage } from "@/types/global-image";
 // -----------------------------
 
 export const fetchCatalogByBusinessID = async (
-  businessId: string
+  businessId: string,
 ): Promise<ApiResult<IMenu[]>> => {
   try {
     const res = await apiGet<IMenu[]>(`/menus/business/all/${businessId}`);
@@ -39,11 +39,11 @@ export const fetchCatalogByBusinessID = async (
 };
 
 export const fetchMenuProducDetaillByProductId = async (
-  productId: string
+  productId: string,
 ): Promise<ApiResult<IMenuProduct>> => {
   try {
     const res = await apiGet<IMenuProduct>(
-      `/menu-products/product/${productId}`
+      `/menu-products/product/${productId}`,
     );
     return res.data;
   } catch (error: unknown) {
@@ -52,7 +52,7 @@ export const fetchMenuProducDetaillByProductId = async (
 };
 
 export const fetchCreateOrder = async (
-  payload: CreateOrderFull
+  payload: CreateOrderFull,
 ): Promise<unknown> => {
   try {
     const data = await apiPost("/orders/full", payload);
@@ -63,7 +63,7 @@ export const fetchCreateOrder = async (
 };
 
 export const fetchCreateAddress = async (
-  payload: Address
+  payload: Address,
 ): Promise<ApiResult<AddressCreateDto>> => {
   try {
     const data = await apiPost<AddressCreateDto>("/address", payload);
@@ -74,7 +74,7 @@ export const fetchCreateAddress = async (
 };
 
 export const fetchUserAddresses = async (
-  userId: string
+  userId: string,
 ): Promise<ApiResult<AddressCreateDto[]>> => {
   try {
     const res = await apiGet<AddressCreateDto[]>(`/address/user/${userId}`);
@@ -89,7 +89,7 @@ export const fetchUserAddresses = async (
 // -----------------------------
 
 export const fetchMenuByBusinessId = async (
-  businessId: string
+  businessId: string,
 ): Promise<ApiResult<IMenu[]>> => {
   try {
     const res = await apiGet<IMenu[]>(`menus/business/${businessId}`);
@@ -100,7 +100,7 @@ export const fetchMenuByBusinessId = async (
 };
 
 export const createMenu = async (
-  newMenu: MenuCreate
+  newMenu: MenuCreate,
 ): Promise<ApiResult<IMenu>> => {
   try {
     const res = await apiPost<IMenu>(`menus/`, newMenu);
@@ -112,7 +112,7 @@ export const createMenu = async (
 
 export const updateMenu = async (
   menuId: string,
-  data: Partial<MenuCreate>
+  data: Partial<MenuCreate>,
 ): Promise<ApiResult<IMenu>> => {
   try {
     const res = await apiPut<IMenu>(`menus/${menuId}`, data);
@@ -135,12 +135,12 @@ export const deleteMenu = async (menuId: string): Promise<void> => {
 // -----------------------------
 
 export const createSection = async (
-  section: SectionCreate
+  section: SectionCreate,
 ): Promise<ApiResult<IMenuSectionWithProducts>> => {
   try {
     const res = await apiPost<IMenuSectionWithProducts>(
       `menu/secciones`,
-      section
+      section,
     );
     return res.data;
   } catch (error: unknown) {
@@ -150,12 +150,12 @@ export const createSection = async (
 
 export const updateSection = async (
   sectionId: string,
-  data: Partial<SectionCreate>
+  data: Partial<SectionCreate>,
 ): Promise<ApiResult<IMenuSectionWithProducts>> => {
   try {
     const res = await apiPatch<IMenuSectionWithProducts>(
       `menu/secciones/${sectionId}`,
-      data
+      data,
     );
     return res.data;
   } catch (error: unknown) {
@@ -176,7 +176,7 @@ export const deleteSection = async (sectionId: string): Promise<void> => {
 // -----------------------------
 
 export const createMenuProduct = async (
-  product: MenuProductCreate
+  product: MenuProductCreate,
 ): Promise<ApiResult<IMenuProduct>> => {
   try {
     const res = await apiPost<IMenuProduct>(`menu-products/`, product);
@@ -188,12 +188,12 @@ export const createMenuProduct = async (
 
 export const updateMenuProduct = async (
   productId: string,
-  data: Partial<MenuProductCreate>
+  data: Partial<MenuProductCreate>,
 ): Promise<ApiResult<IMenuProduct>> => {
   try {
     const res = await apiPatch<IMenuProduct>(
       `menu-products/${productId}`,
-      data
+      data,
     );
     return res.data;
   } catch (error: unknown) {
@@ -216,8 +216,8 @@ interface FetchImageGlobalParams {
 
 // El hook espera { items: T[], latestTimestamp: string }
 interface FetchImageGlobalResponse {
-    items: IGlobalImage[]; 
-    latestTimestamp: string;
+  items: IGlobalImage[];
+  latestTimestamp: string;
 }
 
 export const fetchImageGlobal = async ({
@@ -229,28 +229,32 @@ export const fetchImageGlobal = async ({
     const params: Record<string, string | undefined> = {};
     if (query) params.query = query;
     if (lastSyncTime) params.lastSyncTime = lastSyncTime;
-    
+
     const res = await apiGet<IGlobalImage[]>(`uploads/global`, {
       params,
     });
-    
-    
-    if ( !res.timestamp || !res.data) {
-        throw new Error("Respuesta de API con formato incorrecto para sincronización.");
+
+    if (!res.timestamp || !res.data) {
+      throw new Error(
+        "Respuesta de API con formato incorrecto para sincronización.",
+      );
     }
 
     return {
-        items: res.data, // Los items (IGlobalImage[])
-        latestTimestamp: res.timestamp, // El timestamp del servidor (newSyncTime)
+      items: res.data, // Los items (IGlobalImage[])
+      latestTimestamp: res.timestamp, // El timestamp del servidor (newSyncTime)
     };
   } catch (error: unknown) {
-    throw handleApiError(error, "Error al buscar o sincronizar las imágenes globales");
+    throw handleApiError(
+      error,
+      "Error al buscar o sincronizar las imágenes globales",
+    );
   }
 };
 
 export const uploadMenuProductImageGlobal = async (
   menuProductId: string,
-  imageId: string
+  imageId: string,
 ) => {
   try {
     await apiPost(`menu-product-images/link`, {
@@ -264,7 +268,7 @@ export const uploadMenuProductImageGlobal = async (
 
 export const uploadMenuProductImage = async (
   menuProductId: string,
-  file: File
+  file: File,
 ): Promise<ApiResult<{ url: string }>> => {
   try {
     const formData = new FormData();
@@ -272,7 +276,7 @@ export const uploadMenuProductImage = async (
     const res = await apiPost<{ url: string }>(
       `menu-product-images/upload?menuProductId=${menuProductId}`,
       formData,
-      { headers: { "Content-Type": "multipart/form-data" } }
+      { headers: { "Content-Type": "multipart/form-data" } },
     );
     return res.data;
   } catch (error: unknown) {
@@ -293,7 +297,7 @@ export const deleteMenuProductImage = async (menuProductId: string) => {
 // -----------------------------
 
 export const createOptionGroup = async (
-  group: OptionGroupCreate
+  group: OptionGroupCreate,
 ): Promise<ApiResult<IOptionGroup>> => {
   try {
     const res = await apiPost<IOptionGroup>(`option-groups/`, group);
@@ -305,7 +309,7 @@ export const createOptionGroup = async (
 
 export const updateOptionGroup = async (
   groupId: string,
-  data: Partial<OptionGroupCreate>
+  data: Partial<OptionGroupCreate>,
 ): Promise<ApiResult<IOptionGroup>> => {
   try {
     const res = await apiPatch<IOptionGroup>(`option-groups/${groupId}`, data);
@@ -328,7 +332,7 @@ export const deleteOptionGroup = async (groupId: string): Promise<void> => {
 // -----------------------------
 
 export const createOption = async (
-  option: OptionCreate
+  option: OptionCreate,
 ): Promise<ApiResult<IOption>> => {
   try {
     const res = await apiPost<IOption>(`options/`, option);
@@ -340,7 +344,7 @@ export const createOption = async (
 
 export const updateOption = async (
   optionId: string,
-  data: Partial<OptionCreate>
+  data: Partial<OptionCreate>,
 ): Promise<ApiResult<IOption>> => {
   try {
     const res = await apiPatch<IOption>(`options/${optionId}`, data);

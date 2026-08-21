@@ -52,7 +52,7 @@ const updateCatalogCache = <T>(
   businessId: string,
   itemId: string, // ID del elemento actualizado (producto, opción, etc.)
   updatedData: T, // El objeto actualizado devuelto por la API
-  updateType: "menu" | "section" | "product" | "optionGroup" | "option"
+  updateType: "menu" | "section" | "product" | "optionGroup" | "option",
 ) => {
   queryClient.setQueryData<ApiResult<IMenu[]> | undefined>(
     CATALOG_QUERY_KEY(businessId),
@@ -73,7 +73,7 @@ const updateCatalogCache = <T>(
       // Si no se puede hacer la actualización in-place de forma segura,
       // se vuelve al invalidateQueries para garantizar la coherencia de los datos.
       return undefined; // Devolver undefined fuerza el re-fetch (comportamiento de fallback)
-    }
+    },
   );
 };
 
@@ -129,7 +129,7 @@ export const useUpdateMenu = (businessId: string) => {
         businessId,
         menuId,
         updatedMenuResult,
-        "menu"
+        "menu",
       );
       queryClient.invalidateQueries({
         queryKey: CATALOG_QUERY_KEY(businessId),
@@ -195,7 +195,7 @@ export const useUpdateSection = (businessId: string) => {
         businessId,
         sectionId,
         updatedSectionResult,
-        "section"
+        "section",
       );
       queryClient.invalidateQueries({
         queryKey: CATALOG_QUERY_KEY(businessId),
@@ -256,7 +256,7 @@ export const useUpdateMenuProduct = (businessId: string) => {
         businessId,
         productId,
         updatedProductResult,
-        "product"
+        "product",
       );
       queryClient.invalidateQueries({
         queryKey: CATALOG_QUERY_KEY(businessId),
@@ -306,7 +306,7 @@ export const useUploadMenuProductImage = (businessId: string) => {
         businessId,
         menuProductId,
         result,
-        "product"
+        "product",
       );
       queryClient.invalidateQueries({
         queryKey: CATALOG_QUERY_KEY(businessId),
@@ -379,7 +379,7 @@ export const useUpdateOptionGroup = (businessId: string) => {
         businessId,
         groupId,
         updatedGroupResult,
-        "optionGroup"
+        "optionGroup",
       );
       queryClient.invalidateQueries({
         queryKey: CATALOG_QUERY_KEY(businessId),
@@ -438,7 +438,7 @@ export const useUpdateOption = (businessId: string) => {
           businessId,
           optionId,
           updatedOptionResult,
-          "option"
+          "option",
         );
       queryClient.invalidateQueries({
         queryKey: CATALOG_QUERY_KEY(businessId),

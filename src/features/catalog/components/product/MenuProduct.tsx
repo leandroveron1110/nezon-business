@@ -1,6 +1,13 @@
 "use client";
 import React, { useState } from "react";
-import { Plus, Save, Layers, CreditCard, Tag, PackageCheck } from "lucide-react";
+import {
+  Plus,
+  Save,
+  Layers,
+  CreditCard,
+  Tag,
+  PackageCheck,
+} from "lucide-react";
 import {
   IMenuProduct,
   IOptionGroup,
@@ -13,10 +20,10 @@ import MenuProductPrice from "./components/MenuProductPrice";
 import MenuProductStock from "./components/MenuProductStock";
 import MenuProductFlags from "./components/MenuProductFlags";
 import EnabledSwitch from "./components/EnabledSwitch";
-import NewMenuGroup from "./components/news/NewMenuGroup";
 import {
   useCreateOptionGroup,
   useDeleteManyOption,
+  useDeleteMenuProduct,
   useDeleteOptionGroup,
   useUpdateMenuProduct,
   useUpdateOptionGroup,
@@ -53,16 +60,18 @@ export default function MenuProduct({
     state.menus
       .find((m) => m.id === menuId)
       ?.sections.find((s) => s.id === sectionId)
-      ?.products.find((p) => p.id === productId)
+      ?.products.find((p) => p.id === productId),
   );
 
   const [initialProduct] = useState(() => (product ? { ...product } : null));
   const updateProduct = useMenuStore((state) => state.updateProduct);
-  const updateGroupStore = useMenuStore((state) => state.updateGroup);
-  const deleteGroupStore = useMenuStore((state) => state.deleteGroup);
-  const addGroupStore = useMenuStore((state) => state.addGroup);
-  const replaceTempId = useMenuStore((state) => state.replaceTempId);
-  const restoreGroup = useMenuStore((state) => state.restoreGroup);
+  // const updateGroupStore = useMenuStore((state) => state.updateGroup);
+  // const deleteGroupStore = useMenuStore((state) => state.deleteGroup);
+  // const addGroupStore = useMenuStore((state) => state.addGroup);
+  // const replaceTempId = useMenuStore((state) => state.replaceTempId);
+  // const restoreGroup = useMenuStore((state) => state.restoreGroup);
+
+  const deleteProduct = useDeleteMenuProduct(businessId);
 
   const createGroup = useCreateOptionGroup(businessId);
   const updateGroup = useUpdateOptionGroup(businessId);
@@ -74,6 +83,10 @@ export default function MenuProduct({
 
   const handleUpdate = (data: Partial<IMenuProduct>) => {
     updateProduct({ menuId, sectionId, productId }, { ...product, ...data });
+  };
+
+  const handleDeleteProduct = async () => {
+    await deleteProduct.mutate(product.id);
   };
 
   const getModifiedFields = (): Partial<IMenuProduct> => {
@@ -133,114 +146,114 @@ export default function MenuProduct({
     }
   };
 
-  const handleGroupUpdate = async (
-    groupId: string,
-    updatedData: Partial<OptionGroupCreate>
-  ) => {
-    const group = product.optionGroups.find((g) => g.id === groupId);
-    if (!group) return;
+  // const handleGroupUpdate = async (
+  //   groupId: string,
+  //   updatedData: Partial<OptionGroupCreate>,
+  // ) => {
+  //   const group = product.optionGroups.find((g) => g.id === groupId);
+  //   if (!group) return;
 
-    const previousValues = getPreviousValues<IOptionGroup>(
-      group,
-      updatedData as Partial<IOptionGroup>
-    );
+  //   const previousValues = getPreviousValues<IOptionGroup>(
+  //     group,
+  //     updatedData as Partial<IOptionGroup>,
+  //   );
 
-    updateGroupStore({ menuId, groupId, sectionId, productId }, updatedData);
+  //   updateGroupStore({ menuId, groupId, sectionId, productId }, updatedData);
 
-    try {
-      const result = await updateGroup.mutateAsync({
-        groupId,
-        data: updatedData,
-      });
-      if (result) {
-        updateGroupStore({ menuId, groupId, sectionId, productId }, result);
-        addAlert({
-          message: `Grupo "${result.name}" actualizado.`,
-          type: "success",
-        });
-      } else {
-        throw new Error(`La API no devolvió el grupo actualizado.`);
-      }
-    } catch (error) {
-      updateGroupStore(
-        { menuId, groupId, sectionId, productId },
-        previousValues
-      );
-      addAlert({
-        message: getDisplayErrorMessage(error),
-        type: "error",
-      });
-    }
-  };
+  //   try {
+  //     const result = await updateGroup.mutateAsync({
+  //       groupId,
+  //       data: updatedData,
+  //     });
+  //     if (result) {
+  //       updateGroupStore({ menuId, groupId, sectionId, productId }, result);
+  //       addAlert({
+  //         message: `Grupo "${result.name}" actualizado.`,
+  //         type: "success",
+  //       });
+  //     } else {
+  //       throw new Error(`La API no devolvió el grupo actualizado.`);
+  //     }
+  //   } catch (error) {
+  //     updateGroupStore(
+  //       { menuId, groupId, sectionId, productId },
+  //       previousValues,
+  //     );
+  //     addAlert({
+  //       message: getDisplayErrorMessage(error),
+  //       type: "error",
+  //     });
+  //   }
+  // };
 
-  const deleteGroupWithOptions = async (
-    groupId: string,
-    optionIds: string[]
-  ) => {
-    const groupToDelete = product.optionGroups.find((g) => g.id === groupId);
-    if (!groupToDelete) return;
+  // const deleteGroupWithOptions = async (
+  //   groupId: string,
+  //   optionIds: string[],
+  // ) => {
+  //   const groupToDelete = product.optionGroups.find((g) => g.id === groupId);
+  //   if (!groupToDelete) return;
 
-    const groupToRestore = deepCopy(groupToDelete);
+  //   const groupToRestore = deepCopy(groupToDelete);
 
-    deleteGroupStore({ groupId, menuId, productId, sectionId });
-    try {
-      await deleteManyOptionsMutate.mutateAsync(optionIds);
-      await deleteGroup.mutateAsync(groupId);
-      addAlert({
-        message: `Grupo de opciones "${groupToRestore.name}" eliminado con éxito.`,
-        type: "info",
-      });
-    } catch (error) {
-      restoreGroup({ menuId, sectionId, productId }, groupToRestore);
-      addAlert({
-        message: getDisplayErrorMessage(error),
-        type: "error",
-      });
-    }
-  };
+  //   deleteGroupStore({ groupId, menuId, productId, sectionId });
+  //   try {
+  //     await deleteManyOptionsMutate.mutateAsync(optionIds);
+  //     await deleteGroup.mutateAsync(groupId);
+  //     addAlert({
+  //       message: `Grupo de opciones "${groupToRestore.name}" eliminado con éxito.`,
+  //       type: "info",
+  //     });
+  //   } catch (error) {
+  //     restoreGroup({ menuId, sectionId, productId }, groupToRestore);
+  //     addAlert({
+  //       message: getDisplayErrorMessage(error),
+  //       type: "error",
+  //     });
+  //   }
+  // };
 
-  const handleNewGroupCreate = async (group: OptionGroupCreate) => {
-    const tempId = generateTempId();
-    const optimisticGroup: IOptionGroup = {
-      id: tempId,
-      name: group.name,
-      maxQuantity: group.maxQuantity || 1,
-      minQuantity: group.minQuantity || 1,
-      options: group.options || [],
-      quantityType: group.quantityType,
-    };
+  // const handleNewGroupCreate = async (group: OptionGroupCreate) => {
+  //   const tempId = generateTempId();
+  //   const optimisticGroup: IOptionGroup = {
+  //     id: tempId,
+  //     name: group.name,
+  //     maxQuantity: group.maxQuantity || 1,
+  //     minQuantity: group.minQuantity || 1,
+  //     options: group.options || [],
+  //     quantityType: group.quantityType,
+  //   };
 
-    addGroupStore({ menuId, productId, sectionId }, optimisticGroup);
-    setShowNewGroup(false);
-    try {
-      const result = await createGroup.mutateAsync(group);
+  //   addGroupStore({ menuId, productId, sectionId }, optimisticGroup);
+  //   setShowNewGroup(false);
+  //   try {
+  //     const result = await createGroup.mutateAsync(group);
 
-      if (result) {
-        replaceTempId(
-          "group",
-          { menuId, sectionId, productId },
-          tempId,
-          result.id
-        );
-        updateGroupStore(
-          { menuId, sectionId, productId, groupId: result.id },
-          result
-        );
-        addAlert({
-          message: `Grupo "${result.name}" creado con éxito.`,
-          type: "success",
-        });
-      } else {
-        throw new Error("El grupo se creó pero no se recibió el ID real.");
-      }
-    } catch (error) {
-      deleteGroupStore({ groupId: tempId, menuId, productId, sectionId });
-      addAlert({
-        message: getDisplayErrorMessage(error),
-        type: "error",
-      });
-    }
-  };
+  //     if (result) {
+  //       replaceTempId(
+  //         "group",
+  //         { menuId, sectionId, productId },
+  //         tempId,
+  //         result.id,
+  //       );
+  //       updateGroupStore(
+  //         { menuId, sectionId, productId, groupId: result.id },
+  //         result,
+  //       );
+  //       addAlert({
+  //         message: `Grupo "${result.name}" creado con éxito.`,
+  //         type: "success",
+  //       });
+  //     } else {
+  //       throw new Error("El grupo se creó pero no se recibió el ID real.");
+  //     }
+  //   } catch (error) {
+  //     deleteGroupStore({ groupId: tempId, menuId, productId, sectionId });
+  //     addAlert({
+  //       message: getDisplayErrorMessage(error),
+  //       type: "error",
+  //     });
+  //   }
+  // };
 
   return (
     <div className="space-y-6 text-slate-800">
@@ -271,6 +284,7 @@ export default function MenuProduct({
         <MenuProductPrice
           finalPrice={product.finalPrice}
           originalPrice={product.originalPrice}
+          cost={product.cost}
           discountPercentage={product.discountPercentage}
           currencyMask={product.currencyMask}
           onUpdate={(data) => handleUpdate(data)}
@@ -399,23 +413,34 @@ export default function MenuProduct({
       </section> */}
 
       {/* BOTONES ACCIÓN (Renderizados abajo) */}
-      <div className="flex items-center justify-end gap-3 pt-2">
+      <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3 pt-3">
         <button
           type="button"
-          onClick={onClose}
-          className="px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors"
+          onClick={handleDeleteProduct}
+          className="w-full sm:w-auto px-4 py-2.5 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-xl hover:bg-red-50 active:bg-red-100 transition-colors"
         >
-          Cancelar
+          Eliminar
         </button>
-        <button
-          type="button"
-          onClick={handleSaveAll}
-          disabled={saving}
-          className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-xl hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 shadow-sm shadow-blue-500/20 transition-all"
-        >
-          <Save className="w-4 h-4" />
-          {saving ? "Guardando..." : "Guardar cambios"}
-        </button>
+
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full sm:w-auto px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 active:bg-slate-100 transition-colors"
+          >
+            Cancelar
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSaveAll}
+            disabled={saving}
+            className="inline-flex w-full sm:w-auto items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-xl hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 shadow-sm shadow-blue-500/20 transition-all"
+          >
+            <Save className="w-4 h-4" />
+            {saving ? "Guardando..." : "Guardar cambios"}
+          </button>
+        </div>
       </div>
     </div>
   );

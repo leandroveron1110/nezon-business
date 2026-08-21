@@ -5,29 +5,6 @@ import {
 } from "@/mini-back/shared/enums/financial-movement-status.enum";
 import { SyncStatus } from "@/mini-back/shared/types/sync-status.type";
 
-// ============================================================================
-// MOVIMIENTO FINANCIERO LOCAL
-// ============================================================================
-//
-// Esta entidad NO representa el dominio FinancialMovement.
-//
-// Representa el snapshot persistente de todos los movimientos registrados
-// por Caja.
-//
-// Permite reconstruir completamente:
-//
-// - ventas
-// - devoluciones
-// - ingresos
-// - gastos
-// - arqueos
-// - cierres de caja
-//
-// incluso trabajando completamente offline.
-//
-// La sincronización con el servidor ocurre posteriormente mediante el
-// SyncQueueWorker.
-// ============================================================================
 
 export interface LocalFinancialMovement {
   // ==========================================================================
@@ -35,7 +12,6 @@ export interface LocalFinancialMovement {
   // ==========================================================================
 
   // UUID local generado inmediatamente.
-  // Es la clave primaria real dentro de IndexedDB.
   idTemp: string;
 
   // UUID definitivo asignado por el servidor.

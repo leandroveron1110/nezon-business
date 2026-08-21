@@ -176,7 +176,7 @@ export default function ViewCatalogSection({
       </section>
 
       {selectedProduct && (
-        <Modal onClose={handleCloseModal} title="Producto">
+        <Modal onClose={handleCloseModal} title={`${selectedProduct.name}`}>
           <MenuProduct
             productId={selectedProduct.id}
             onClose={handleCloseModal}

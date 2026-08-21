@@ -53,15 +53,15 @@ export default function CatalogProduct({ product, onClick }: Props) {
 
   return (
     <div
-      onClick={isAvailable ? onClick : undefined}
+      onClick={onClick}
       aria-disabled={!isAvailable}
       role="listitem"
       className={`
-        rounded-2xl border border-gray-200 p-3 h-auto transition
+        rounded-2xl border border-gray-200 p-3 h-auto transition hover:shadow-md 
         ${
           isAvailable
-            ? "cursor-pointer hover:shadow-md"
-            : "cursor-not-allowed opacity-50"
+            ? "cursor-pointer"
+            : "opacity-50"
         }
       `}
     >
