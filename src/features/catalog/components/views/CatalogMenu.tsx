@@ -4,7 +4,11 @@ import React, { useMemo, useState } from "react";
 import { IMenuSectionWithProducts, SectionCreate } from "../../types/catlog";
 import CatalogSection from "./CatalogSection";
 import NewCatalogSection from "../news/NewCatalogSection";
-import { useCreateSection, useUpdateMenu } from "../../hooks/useMenuHooks";
+import {
+  useCreateSection,
+  useDeleteMenu,
+  useUpdateMenu,
+} from "../../hooks/useMenuHooks";
 import EditCatalogMenu from "../edits/EditCatalogMenu";
 import { useMenuStore } from "../../stores/menuStore";
 import { Pencil } from "lucide-react";
@@ -31,10 +35,12 @@ export default function CatalogMenu({ menuId, ownerId, businessId }: Props) {
 
   const addSection = useMenuStore((state) => state.addSection);
   const updateSection = useMenuStore((state) => state.updateSection);
+  const deleteMenuStore = useMenuStore((state) => state.deleteMenu);
   const { addAlert } = useAlert();
 
   const createSectionMutation = useCreateSection(businessId);
   const updateMenuMutation = useUpdateMenu(businessId);
+  const deleteMenu = useDeleteMenu(businessId);
 
   const sortedSections = useMemo(() => {
     return menu
@@ -76,6 +82,15 @@ export default function CatalogMenu({ menuId, ownerId, businessId }: Props) {
         type: "error",
       });
     }
+  };
+
+  const handleDelteMenu = async () => {
+    if (!menu) return;
+    try {
+      await deleteMenu.mutateAsync(menuId);
+      deleteMenuStore(menuId);
+      setShowEditMenuModal(false);
+    } catch (error) {}
   };
 
   const handleAddSection = async (newSection: SectionCreate) => {
@@ -221,7 +236,7 @@ export default function CatalogMenu({ menuId, ownerId, businessId }: Props) {
               ownerId={ownerId}
               onSave={handleSaveMenu}
               onCancel={() => setShowEditMenuModal(false)}
-              onDelete={() => console.log("Eliminar menú")}
+              onDelete={handleDelteMenu}
             />
           </div>
         </div>
