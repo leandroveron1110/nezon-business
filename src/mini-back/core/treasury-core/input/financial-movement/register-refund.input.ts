@@ -1,4 +1,4 @@
-import { PaymentMethodTypeFinancial } from "../domain/financial-movement-status.enum";
+import { PaymentMethodTypeFinancial } from "../../domain/financial-movement/financial-movement-status.enum";
 
 export interface RegisterRefundInput {
   businessId: string;
@@ -20,4 +20,6 @@ export interface RegisterRefundInput {
   externalReference?: string;
   
   referenceCashRegisterTurnId?: string;
+
+  clientTurnId?: string;
 }

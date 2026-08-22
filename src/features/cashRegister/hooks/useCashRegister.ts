@@ -2,9 +2,9 @@
 
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/mini-back/infrastructure/dexie/db";
-import { cashRegisterOrchestrator } from "@/mini-back/orchestrator/cash-register.orchestrator";
 import { CashRegisterTotals } from "@/mini-back/core/cash-register-core/public";
 import { FinancialMovementType } from "@/mini-back/shared/enums/financial-movement-status.enum";
+import { financialMovementOrchestrator } from "@/mini-back/orchestrator/financial-movement-orchestrator";
 
 export function useCashRegister(businessId: string) {
   // 1. Escuchar el turno activo en Dexie
@@ -46,8 +46,8 @@ export function useCashRegister(businessId: string) {
       return { cash: 0, card: 0, transfer: 0, total: 0 };
     }
 
-    return await cashRegisterOrchestrator.getActiveTurnTotals(businessId);
-  }, [businessId, activeTurn?.id, movements]);
+    return await financialMovementOrchestrator.getActiveTurnTotals(activeTurn.clientTurnId);
+  }, [businessId, activeTurn?.clientTurnId, movements]);
 
   const defaultTotals: CashRegisterTotals = {
     cash: 0,

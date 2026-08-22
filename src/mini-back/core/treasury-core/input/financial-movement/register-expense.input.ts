@@ -1,4 +1,4 @@
-import { PaymentMethodTypeFinancial } from "../domain/financial-movement-status.enum";
+import { PaymentMethodTypeFinancial } from "../../domain/financial-movement/financial-movement-status.enum";
 
 export interface RegisterExpenseInput {
   businessId: string;
@@ -13,6 +13,8 @@ export interface RegisterExpenseInput {
   paymentMethod: PaymentMethodTypeFinancial;
 
   description: string;
+
+  clientTurnId?: string;
 
   orderId?: string;
 

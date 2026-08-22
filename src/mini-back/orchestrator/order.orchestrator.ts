@@ -14,6 +14,7 @@ import { cashRegisterOrchestrator } from "./cash-register.orchestrator";
 import { quoteDeliveryOrchestrator } from "./delivery.orchestrator";
 import { DeliveryStatus, PaymentStatus } from "@/types/order-state-machine";
 import { OrderStatus } from "../core/orders-core/domain/order-state-machine";
+import { financialMovementOrchestrator } from "./financial-movement-orchestrator";
 // import { syncQueueWorker } from "../infrastructure/network/SyncQueueWorker";
 
 const MAX_RETRIES = 3;
@@ -121,39 +122,45 @@ export const updateOrderStatusOrchestrator = async (
     // ---------------------------------------------------------------
     // 1. ESCENARIO HILO DE PAGO (PAYMENT)
     // ---------------------------------------------------------------
+    const turnId = await cashRegisterOrchestrator.getCashTurn(
+      result.data.businessId,
+    );
     if (input.thread === "PAYMENT") {
       const paymentValue = input.nextValue as PaymentStatus;
 
       if (paymentValue === PaymentStatus.CONFIRMED) {
         // A) Registrar la entrada de dinero a Caja
-        await cashRegisterOrchestrator.processSaleMovement({
+        await financialMovementOrchestrator.processSaleMovement({
           businessId: order.businessId,
           userId: order.userId || "system",
           amount: order.total - (order.totalDeliveryCost ?? 0),
           paymentMethod: order.orderPaymentMethod,
           orderId: order.idTemp,
+          clientTurnId: turnId.clientTurnId,
           description: `Cobro de pedido #${order.shortCode || order.idTemp.slice(-4)}`,
         });
 
         // B) Reconocer el COGS al concretarse la Venta
         if (totalCogs > 0) {
-          await cashRegisterOrchestrator.processCogsMovement({
+          await financialMovementOrchestrator.processCogsMovement({
             businessId: order.businessId,
             userId: order.userId || "system",
             approvedByUserId: order.userId || "system",
             amount: totalCogs,
             orderId: order.idTemp,
+            clientTurnId: turnId.clientTurnId,
             description: `Costo de mercadería (COGS) pedido #${order.shortCode || order.idTemp.slice(-4)}`,
           });
         }
       } else if (paymentValue === PaymentStatus.PENDING) {
         // Reversión del pago en Caja
-        await cashRegisterOrchestrator.processRefundMovement({
+        await financialMovementOrchestrator.processRefundMovement({
           businessId: order.businessId,
           userId: order.userId || "system",
           amount: order.total - (order.totalDeliveryCost ?? 0),
           paymentMethod: order.orderPaymentMethod,
           orderId: order.idTemp,
+          clientTurnId: turnId.clientTurnId,
           description: `Reversión de cobro pedido #${order.shortCode || order.idTemp.slice(-4)}`,
         });
       }
@@ -172,13 +179,14 @@ export const updateOrderStatusOrchestrator = async (
       ) {
         // 1. Devolución de dinero si la orden estaba cobrada
         if (order.paymentStatus === PaymentStatus.CONFIRMED) {
-          await cashRegisterOrchestrator.processRefundMovement({
+          await financialMovementOrchestrator.processRefundMovement({
             businessId: order.businessId,
             referenceCashRegisterTurnId: order.cashRegisterTurnIdTemp,
             userId: order.userId || "system",
             amount: order.total - (order.totalDeliveryCost ?? 0),
             paymentMethod: order.orderPaymentMethod,
             orderId: order.idTemp,
+            clientTurnId: turnId.clientTurnId,
             description: `Devolución por cancelación de pedido #${order.shortCode || order.idTemp.slice(-4)}`,
           });
         }
@@ -189,12 +197,13 @@ export const updateOrderStatusOrchestrator = async (
           previousOrder?.status === OrderStatus.READY;
 
         if (wasInProduction && totalCogs > 0) {
-          await cashRegisterOrchestrator.processMermaMovement({
+          await financialMovementOrchestrator.processMermaMovement({
             businessId: order.businessId,
             userId: order.userId || "system",
             approvedByUserId: order.userId || "system",
             amount: totalCogs,
             orderId: order.idTemp,
+            clientTurnId: turnId.clientTurnId,
             description: `Merma por cancelación de pedido en cocina #${order.shortCode || order.idTemp.slice(-4)}`,
           });
         }

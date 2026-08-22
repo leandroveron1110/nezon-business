@@ -15,6 +15,7 @@ import {
 } from "@/mini-back/shared/enums/financial-movement-status.enum";
 import { cashRegisterOrchestrator } from "@/mini-back/orchestrator/cash-register.orchestrator";
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { financialMovementOrchestrator } from "@/mini-back/orchestrator/financial-movement-orchestrator";
 
 interface Props {
   businessId: string;
@@ -37,7 +38,7 @@ const MOVEMENT_TYPE_LABELS: Record<string, string> = {
   INCOME: "Ingreso Manual",
   EXPENSE: "Egreso / Gasto",
   REFUND: "Devolución",
-  MERMAS: "MERMAS"
+  MERMAS: "MERMAS",
 };
 
 export default function CashRegisterPage({ businessId }: Props) {
@@ -58,14 +59,13 @@ export default function CashRegisterPage({ businessId }: Props) {
 
   // Handler: Abrir Turno
   const handleOpenTurn = async (openingAmount: number) => {
-    if(user?.id) {
+    if (user?.id) {
       await cashRegisterOrchestrator.openCashRegister({
         businessId,
         userId: user?.id,
         openingAmount,
         openingNotes: "",
       });
-
     }
   };
 
@@ -76,8 +76,8 @@ export default function CashRegisterPage({ businessId }: Props) {
     description: string;
     notes?: string;
   }) => {
-    if(user?.id && activeTurn?.clientTurnId){
-      await cashRegisterOrchestrator.processIncomeMovement({
+    if (user?.id && activeTurn?.clientTurnId) {
+      await financialMovementOrchestrator.processIncomeMovement({
         businessId,
         amount: data.amount,
         paymentMethod: data.paymentMethod,
@@ -85,9 +85,8 @@ export default function CashRegisterPage({ businessId }: Props) {
         notes: data.notes,
         approvedByUserId: user?.id,
         userId: user?.id,
-        
+        clientTurnId: activeTurn.clientTurnId,
       });
-
     }
   };
 
@@ -98,8 +97,8 @@ export default function CashRegisterPage({ businessId }: Props) {
     description: string;
     notes?: string;
   }) => {
-    if(user?.id && activeTurn?.clientTurnId) {
-      await cashRegisterOrchestrator.processExpenseMovement({
+    if (user?.id && activeTurn?.clientTurnId) {
+      await financialMovementOrchestrator.processExpenseMovement({
         businessId,
         userId: user.id,
         amount: data.amount,
@@ -107,8 +106,8 @@ export default function CashRegisterPage({ businessId }: Props) {
         description: data.description,
         notes: data.notes,
         approvedByUserId: user?.id,
+        clientTurnId: activeTurn.clientTurnId,
       });
-
     }
   };
 
@@ -120,15 +119,13 @@ export default function CashRegisterPage({ businessId }: Props) {
   }) => {
     if (!activeTurn?.id) return;
 
-    if(user?.id) {
-
+    if (user?.id) {
       await cashRegisterOrchestrator.closeCashRegister({
         businessId,
         userId: user.id,
         declaredClosingAmount: data.declaredCash,
       });
     }
-
   };
 
   if (isLoading) {

@@ -1,13 +1,28 @@
-import { FinancialMovement } from "../domain/financial-movement";
+import { PaymentMethodTypeFinancial } from "../domain/payment-summary";
+
+export enum FinancialMovementStatus {
+  PENDING = "PENDING",
+  CONFIRMED = "CONFIRMED",
+  FAILED = "FAILED",
+  CANCELLED = "CANCELLED",
+}
+
+export enum FinancialMovementType {
+  SALE = "SALE", // 💵 Entrada de dinero por venta (+ $5.000) -> Afecta Caja
+  REFUND = "REFUND", // 💸 Devolución de dinero al cliente (- $1.000) -> Afecta Caja
+  INCOME = "INCOME", // 📥 Otros ingresos en efectivo (+ $10.000) -> Afecta Caja
+  EXPENSE = "EXPENSE", // 📤 Gastos operativos generales / MERMAS (- $3.000) -> Afecta Caja o Ganancia
+  COGS = "COGS", // 📦 Costo de la mercadería vendida (- $2.000) -> NO afecta saldo de Caja
+  MERMAS = "MERMAS",
+}
+
+export interface FinancialMovementDto {
+  status: FinancialMovementStatus;
+  type: FinancialMovementType;
+  amount: number;
+  paymentMethod: PaymentMethodTypeFinancial;
+}
 
 export interface FinancialMovementPort {
-  save(movement: FinancialMovement): Promise<FinancialMovement>;
-
-  update(movement: FinancialMovement): Promise<FinancialMovement>;
-
-  findByCashRegister(cashRegisterId: string): Promise<FinancialMovement[]>;
-
-  // 💡 Necesarios para evitar duplicados en sincronización y reportes del día
-  findByClientMovementId(clientMovementId: string): Promise<FinancialMovement | null>;
-  findByBusinessAndDateRange(businessId: string, from: Date, to: Date): Promise<FinancialMovement[]>;
+  findByCashRegister(cashRegisterId: string): Promise<FinancialMovementDto[]>;
 }

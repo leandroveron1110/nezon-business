@@ -1,4 +1,4 @@
-import { PaymentMethodTypeFinancial } from "../domain/financial-movement-status.enum";
+import { PaymentMethodTypeFinancial } from "../../domain/financial-movement/financial-movement-status.enum";
 
 export interface ExpenseRegisteredSignal {
   readonly type: 'EXPENSE_REGISTERED';

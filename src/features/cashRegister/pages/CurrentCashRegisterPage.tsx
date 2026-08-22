@@ -7,7 +7,6 @@ import {
   PaymentMethodTypeFinancial,
 } from "@/mini-back/shared/enums/financial-movement-status.enum";
 import { Lock, RefreshCw } from "lucide-react";
-import { OpenTurnModal } from "../components/OpenTurnModal";
 import { CashRegisterHeader } from "../components/CashRegisterHeader";
 import { CashRegisterMetrics } from "../components/CashRegisterMetrics";
 import { CashRegisterMovementsTable } from "../components/CashRegisterMovementsTable";
@@ -15,6 +14,7 @@ import { CashMovementModal } from "../components/CashMovementModal";
 import { CloseTurnModal } from "../components/CloseTurnModal";
 import { useCashRegisterStatus } from "../hooks/useCashRegisterStatus";
 import { OpenCashModal } from "../components/OpenCashModal";
+import { financialMovementOrchestrator } from "@/mini-back/orchestrator/financial-movement-orchestrator";
 
 interface Props {
   businessId: string;
@@ -83,7 +83,7 @@ export default function CurrentCashRegisterPage({ businessId }: Props) {
     notes?: string;
   }) => {
     if (user?.id && activeTurn?.clientTurnId) {
-      await cashRegisterOrchestrator.processIncomeMovement({
+      await financialMovementOrchestrator.processIncomeMovement({
         businessId,
         amount: data.amount,
         paymentMethod: data.paymentMethod,
@@ -91,6 +91,7 @@ export default function CurrentCashRegisterPage({ businessId }: Props) {
         notes: data.notes,
         approvedByUserId: user?.id,
         userId: user?.id,
+        clientTurnId: activeTurn.clientTurnId
       });
     }
   };
@@ -103,13 +104,14 @@ export default function CurrentCashRegisterPage({ businessId }: Props) {
     notes?: string;
   }) => {
     if (user?.id && activeTurn?.clientTurnId) {
-      await cashRegisterOrchestrator.processExpenseMovement({
+      await financialMovementOrchestrator.processExpenseMovement({
         businessId,
         userId: user.id,
         amount: data.amount,
         paymentMethod: data.paymentMethod,
         description: data.description,
         notes: data.notes,
+        clientTurnId: activeTurn.clientTurnId,
         approvedByUserId: user?.id,
       });
     }

@@ -1,5 +1,3 @@
-import { PaymentMethodTypeFinancial } from "../public";
-
 export interface RegisterCogsInput {
   businessId: string;
 
@@ -9,6 +7,8 @@ export interface RegisterCogsInput {
   clientMovementId?: string;
 
   amount: number;
+
+  clientTurnId?: string;
 
   description: string;
 

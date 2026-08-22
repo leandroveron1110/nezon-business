@@ -198,11 +198,10 @@ export class SalesCashRepository implements SalesCashQueryPort {
   ): Promise<
     {
       cashRegisterId: string;
-      cashRegisterName: string; // Ejemplo: "Caja 1 (08:00 hs - 16:30 hs)" o "Turno Mañana (08:00 - 16:30)"
+      cashRegisterName: string;
       amount: number;
     }[]
   > {
-    // 1. Obtener los movimientos filtrados
     const movements = await db.financialMovement
       .where("date")
       .between(from, to, true, true)
@@ -216,37 +215,62 @@ export class SalesCashRepository implements SalesCashQueryPort {
 
     if (movements.length === 0) return [];
 
-    // 2. Obtener los IDs de las sesiones/cajas involucradas
+    // Solo buscamos sesiones de caja cuando el movimiento
+    // realmente está asociado a una caja.
     const sessionIds = Array.from(
-      new Set(movements.map((m) => m.cashRegisterTurnIdTemp /* o idTemp */)),
+      new Set(
+        movements
+          .map((m) => m.cashRegisterTurnIdTemp)
+          .filter((id): id is string => !!id),
+      ),
     );
 
-    // 3. Consultar los datos de apertura/cierre de esas sesiones
-    const sessions = await db.cashRegisterTurn
-      .where("clientTurnId")
-      .anyOf(sessionIds)
-      .toArray();
+    const sessions =
+      sessionIds.length > 0
+        ? await db.cashRegisterTurn
+            .where("clientTurnId")
+            .anyOf(sessionIds)
+            .toArray()
+        : [];
 
     const sessionMap = new Map(sessions.map((s) => [s.clientTurnId, s]));
 
-    // 4. Agrupar montos y formatear el rango horario
     const cashRegisterMap = new Map<
       string,
-      { cashRegisterName: string; amount: number }
+      {
+        cashRegisterName: string;
+        amount: number;
+      }
     >();
 
     for (const movement of movements) {
       const sessionId = movement.cashRegisterTurnIdTemp;
+
+      // Movimiento sin caja
+      if (!sessionId) {
+        const existing = cashRegisterMap.get("WITHOUT_CASH_REGISTER") ?? {
+          cashRegisterName: "Sin caja",
+          amount: 0,
+        };
+
+        cashRegisterMap.set("WITHOUT_CASH_REGISTER", {
+          cashRegisterName: existing.cashRegisterName,
+          amount: existing.amount + movement.amount,
+        });
+
+        continue;
+      }
+
+      // Movimiento asociado a una caja
       const session = sessionMap.get(sessionId);
 
-      console.log(sessionId, session);
       const label = session
         ? this.formatSessionLabel({
             openedAt: session.openingDate,
             closedAt: session.closingDate,
-            registerName: session.openingNotes, // o session.registerName si existe
+            registerName: session.openingNotes,
           })
-        : `Caja`;
+        : "Caja";
 
       const existing = cashRegisterMap.get(sessionId) ?? {
         cashRegisterName: label,

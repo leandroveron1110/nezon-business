@@ -1,4 +1,5 @@
 import { CashRegister } from "../domain/cash-register";
+import { CashRegisterTotals } from "../public";
 
 export interface CashRegisterPort {
   findActive(businessId: string): Promise<CashRegister | null>;
@@ -14,4 +15,8 @@ export interface CashRegisterPort {
   close(cashRegister: CashRegister): Promise<CashRegister>;
 
   findByBusinessId(businessId: string): Promise<CashRegister[]>
+}
+
+export interface CashRegisterActiveTurnTotals {
+  getActiveTurnTotals(clientTurnId: string): Promise<CashRegisterTotals>
 }

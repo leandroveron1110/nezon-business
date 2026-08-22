@@ -1,46 +1,74 @@
-// mini-back/core/cash-register-core/service/financial-movement.service.ts
+// mini-back/core/tresury-core/service/financial-movement.service.ts
 
-import { FinancialMovement } from "../domain/financial-movement";
+import { FinancialMovement } from "../../domain/financial-movement/financial-movement";
 import {
   FinancialMovementStatus,
   FinancialMovementType,
   PaymentMethodTypeFinancial,
-} from "../domain/financial-movement-status.enum";
-
-import { CashRegisterPort } from "../port/cash-register.port";
-import { FinancialMovementPort } from "../port/financial-movement.port";
-
-import { RegisterExpenseInput } from "../input/register-expense.input";
-import { RegisterIncomeInput } from "../input/register-income.input";
-import { RegisterRefundInput } from "../input/register-refund.input";
-import { RegisterSaleInput } from "../input/register-sale.input";
-import { IFinancialMovementPublicService } from "../public/financial-movement-service.interface";
-import { RegisterCogsInput } from "../input/register-cogs.Input";
+} from "../../domain/financial-movement/financial-movement-status.enum";
+import { RegisterCogsInput } from "../../input/financial-movement/register-cogs.Input";
+import { RegisterExpenseInput } from "../../input/financial-movement/register-expense.input";
+import { RegisterIncomeInput } from "../../input/financial-movement/register-income.input";
+import { RegisterRefundInput } from "../../input/financial-movement/register-refund.input";
+import { RegisterSaleInput } from "../../input/financial-movement/register-sale.input";
+import { FinancialMovementPort } from "../../port/financial-movement/financial-movement.port";
+import { IFinancialMovementPublicService } from "../../public/financial-movement-service.interface";
+import { FianancialTotals } from "../../signal/financial-movement/financial-movement-totals.signal";
 
 export class FinancialMovementService implements IFinancialMovementPublicService {
-  constructor(
-    private readonly cashRegister: CashRegisterPort,
-    private readonly movement: FinancialMovementPort,
-  ) {}
+  constructor(private readonly movement: FinancialMovementPort) {}
 
-  private async getActiveCashRegisterOrThrow(businessId: string) {
-    const cashRegister = await this.cashRegister.findActive(businessId);
+  async getActiveTurnTotals(clientTurnId: string): Promise<FianancialTotals> {
+    const movements = await this.movement.findByCashRegister(clientTurnId);
 
-    if (!cashRegister) {
-      throw new Error("No existe una caja abierta para este negocio.");
-    }
+    return movements.reduce(
+      (acc, m) => {
+        if (m.status !== FinancialMovementStatus.CONFIRMED) return acc;
 
-    return cashRegister;
+        if(m.cashRegisterTurnId !== clientTurnId) return acc;
+
+        if(m.type === FinancialMovementType.COGS ) return acc;
+
+        console.log(m.amount, m.cashRegisterTurnId)
+
+        const isExpenseOrRefund =
+          m.type === FinancialMovementType.EXPENSE ||
+          m.type === FinancialMovementType.REFUND;
+
+        const amount = isExpenseOrRefund ? -m.amount : m.amount;
+
+        acc.total += amount;
+
+        switch (m.paymentMethod) {
+          case PaymentMethodTypeFinancial.CASH:
+            acc.cash += amount;
+            break;
+          case PaymentMethodTypeFinancial.CREDIT_CARD:
+          case PaymentMethodTypeFinancial.DEBIT_CARD:
+            acc.card += amount;
+            break;
+          case PaymentMethodTypeFinancial.TRANSFER:
+            acc.transfer += amount;
+            break;
+        }
+
+        return acc;
+      },
+      {
+        cash: 0,
+        card: 0,
+        transfer: 0,
+        total: 0,
+      },
+    );
   }
 
   async registerSale(input: RegisterSaleInput): Promise<FinancialMovement> {
-    const activeBox = await this.getActiveCashRegisterOrThrow(input.businessId);
-
     const financialMovement: FinancialMovement = {
       clientMovementId: input.clientMovementId,
       businessId: input.businessId,
       userId: input.userId,
-      cashRegisterTurnId: activeBox.clientTurnId,
+      cashRegisterTurnId: input.clientTurnId,
 
       type: FinancialMovementType.SALE,
       status: FinancialMovementStatus.CONFIRMED,
@@ -59,19 +87,13 @@ export class FinancialMovementService implements IFinancialMovementPublicService
   }
 
   async registerRefund(input: RegisterRefundInput): Promise<FinancialMovement> {
-    const activeBox = await this.getActiveCashRegisterOrThrow(input.businessId);
-
-    const isFromPreviousTurn =
-      input.referenceCashRegisterTurnId &&
-      input.referenceCashRegisterTurnId !== activeBox.clientTurnId;
-
     const financialMovement: FinancialMovement = {
       clientMovementId: input.clientMovementId,
       businessId: input.businessId,
       userId: input.userId,
       approvedByUserId: input.userId,
 
-      cashRegisterTurnId: activeBox.clientTurnId,
+      cashRegisterTurnId: input.clientTurnId,
 
       type: FinancialMovementType.REFUND,
       status: FinancialMovementStatus.CONFIRMED,
@@ -85,23 +107,19 @@ export class FinancialMovementService implements IFinancialMovementPublicService
       date: new Date(),
       orderId: input.orderId,
 
-      referenceCashRegisterTurnId: isFromPreviousTurn
-        ? input.referenceCashRegisterTurnId
-        : undefined,
+      referenceCashRegisterTurnId: input.referenceCashRegisterTurnId,
     };
 
     return this.movement.save(financialMovement);
   }
 
   async registerIncome(input: RegisterIncomeInput): Promise<FinancialMovement> {
-    const activeBox = await this.getActiveCashRegisterOrThrow(input.businessId);
-
     const financialMovement: FinancialMovement = {
       clientMovementId: input.clientMovementId,
       businessId: input.businessId,
       userId: input.userId,
       approvedByUserId: input.approvedByUserId,
-      cashRegisterTurnId: activeBox.clientTurnId,
+      cashRegisterTurnId: input.clientTurnId,
 
       type: FinancialMovementType.INCOME,
       status: FinancialMovementStatus.CONFIRMED,
@@ -121,14 +139,12 @@ export class FinancialMovementService implements IFinancialMovementPublicService
   async registerExpense(
     input: RegisterExpenseInput,
   ): Promise<FinancialMovement> {
-    const activeBox = await this.getActiveCashRegisterOrThrow(input.businessId);
-
     const financialMovement: FinancialMovement = {
       clientMovementId: input.clientMovementId,
       businessId: input.businessId,
       userId: input.userId,
       approvedByUserId: input.approvedByUserId,
-      cashRegisterTurnId: activeBox.clientTurnId,
+      cashRegisterTurnId: input.clientTurnId,
 
       type: FinancialMovementType.EXPENSE,
       status: FinancialMovementStatus.CONFIRMED,
@@ -148,13 +164,11 @@ export class FinancialMovementService implements IFinancialMovementPublicService
 
   // 📦 REGISTRO DE COSTO DE MERCADERÍA (COGS)
   async registerCogs(input: RegisterCogsInput): Promise<FinancialMovement> {
-    const activeBox = await this.getActiveCashRegisterOrThrow(input.businessId);
-
     const financialMovement: FinancialMovement = {
       clientMovementId: input.clientMovementId,
       businessId: input.businessId,
       userId: input.userId,
-      cashRegisterTurnId: activeBox.clientTurnId,
+      cashRegisterTurnId: input.clientTurnId,
 
       type: FinancialMovementType.COGS,
       status: FinancialMovementStatus.CONFIRMED,
@@ -171,13 +185,11 @@ export class FinancialMovementService implements IFinancialMovementPublicService
   }
 
   async registerMerma(input: RegisterCogsInput): Promise<FinancialMovement> {
-    const activeBox = await this.getActiveCashRegisterOrThrow(input.businessId);
-
     const financialMovement: FinancialMovement = {
       clientMovementId: input.clientMovementId,
       businessId: input.businessId,
       userId: input.userId,
-      cashRegisterTurnId: activeBox.clientTurnId,
+      cashRegisterTurnId: input.clientTurnId,
 
       type: FinancialMovementType.MERMAS,
       status: FinancialMovementStatus.CONFIRMED,

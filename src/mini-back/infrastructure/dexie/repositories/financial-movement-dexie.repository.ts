@@ -1,10 +1,7 @@
 // mini-back/infra/dexie/repositories/financial-movement.repository.ts
 
+import { FinancialMovement, FinancialMovementPort } from "@/mini-back/core/treasury-core/public";
 import { HunayDB } from "../db";
-import {
-  FinancialMovement,
-  FinancialMovementPort,
-} from "@/mini-back/core/cash-register-core/public";
 import { LocalFinancialMovement } from "../shcema/financial-movement.schema";
 
 export class FinancialMovementDexieRepository implements FinancialMovementPort {

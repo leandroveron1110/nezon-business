@@ -1,7 +1,7 @@
-import { PaymentMethodTypeFinancial } from "../domain/financial-movement-status.enum";
+import { PaymentMethodTypeFinancial } from "../../domain/financial-movement/financial-movement-status.enum";
 
-export interface RefundRegisteredSignal {
-  readonly type: 'REFUND_REGISTERED';
+export interface SaleRegisteredSignal {
+  readonly type: 'SALE_REGISTERED';
   readonly payload: {
     movementId: string;
     cashRegisterId: string;
