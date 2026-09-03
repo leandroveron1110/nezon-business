@@ -355,7 +355,6 @@ export function OrderPanel({
       </div>
 
       {/* 3. LISTA DE PRODUCTOS */}
-      {/* 3. LISTA DE PRODUCTOS */}
       <div className="flex-1 overflow-y-auto bg-white z-10 divide-y divide-slate-100">
         {items.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-slate-300 opacity-40 py-20 select-none">

@@ -47,7 +47,11 @@ const ProductCard = memo(function ProductCard({
           e.preventDefault();
           onClickCustomize(product);
         } else {
-          onClickDirect(product);
+          if (product.optionGroups && product.optionGroups.length > 0) {
+            onClickCustomize(product);
+          } else {
+            onClickDirect(product);
+          }
         }
       }}
       className={`

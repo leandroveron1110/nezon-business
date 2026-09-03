@@ -45,37 +45,29 @@ export function OrderTicket({ order, mode }: OrderTicketProps) {
 
   const date = new Date();
 
-  const getItemTotal = (item: OrderItem) => {
-    const optionsTotal =
-      item.optionGroups
-        ?.flatMap((g) => g.options)
-        .reduce((acc: number, o) => acc + (o.priceFinal || 0), 0) || 0;
-
-    return (item.priceAtPurchase + optionsTotal) * item.quantity;
+  // Muestra el costo base del producto x cantidad
+  const getProductBaseTotal = (item: OrderItem) => {
+    return (item.priceAtPurchase || 0) * item.quantity;
   };
 
   const widthCss = paperWidth === 58 ? "58mm" : "80mm";
 
   return (
-<div
-  data-ticket-root
-  style={{
-    width: widthCss,
-    minWidth: widthCss,
-    maxWidth: widthCss,
-    boxSizing: "border-box",
-  }}
-  className={`
-    text-black
-    font-mono
-    bg-white
-    leading-tight
-    ${paperWidth === 58
-      ? "p-2 text-[10px]"
-      : "p-3 text-[12px]"
-    }
-  `}
-
+    <div
+      data-ticket-root
+      style={{
+        width: widthCss,
+        minWidth: widthCss,
+        maxWidth: widthCss,
+        boxSizing: "border-box",
+      }}
+      className={`
+        text-black
+        font-mono
+        bg-white
+        leading-tight
+        ${paperWidth === 58 ? "p-2 text-[10px]" : "p-3 text-[12px]"}
+      `}
     >
       {/* HEADER */}
       <div className="text-center border-b-2 border-black pb-2 mb-2">
@@ -165,45 +157,48 @@ export function OrderTicket({ order, mode }: OrderTicketProps) {
           }`}
         >
           <span>DETALLE</span>
-          {!isKitchen && <span>TOTAL</span>}
+          {!isKitchen && <span>PRECIO</span>}
         </div>
 
         {order.items?.map((item) => (
-          <div key={item.id} className="mt-1">
-            <div className="flex justify-between">
+          <div key={item.id} className="mt-2">
+            {/* Cabecera del ítem: Nombre + Precio Base del producto */}
+            <div className="flex justify-between font-bold">
               <span>
                 {item.quantity} x {item.productName.toUpperCase()}
               </span>
 
               {!isKitchen && (
-                <span className="font-bold">
-                  {formatMoney(getItemTotal(item))}
-                </span>
+                <span>{formatMoney(getProductBaseTotal(item))}</span>
               )}
             </div>
 
+            {/* Opciones y Adicionales */}
             {item.optionGroups
               ?.flatMap((g) => g.options)
               .map((o) => (
                 <div
                   key={o.id}
-                  className={`flex justify-between ml-3 ${
+                  className={`flex justify-between ml-3 text-gray-700 ${
                     paperWidth === 58 ? "text-[8px]" : "text-[10px]"
                   }`}
                 >
                   <span>+ {o.optionName}</span>
 
-                  {!isKitchen && o.priceFinal > 0 && (
+                  {!isKitchen && (
                     <span>
-                      +{formatMoney(o.priceFinal * item.quantity)}
+                      {o.priceFinal > 0
+                        ? `+${formatMoney((o.priceFinal || 0) * item.quantity)}`
+                        : "$0"}
                     </span>
                   )}
                 </div>
               ))}
 
+            {/* Notas / Observaciones por ítem */}
             {item.notes && (
               <p
-                className={`ml-3 font-bold ${
+                className={`ml-3 font-semibold ${
                   paperWidth === 58 ? "text-[8px]" : "text-[10px]"
                 }`}
               >
@@ -223,7 +218,6 @@ export function OrderTicket({ order, mode }: OrderTicketProps) {
         >
           <div className="flex justify-between">
             <span>SUBTOTAL</span>
-
             <span>
               {formatMoney(order.total - (order.totalDeliveryCost || 0))}
             </span>
@@ -246,8 +240,7 @@ export function OrderTicket({ order, mode }: OrderTicketProps) {
           </div>
 
           <p>
-            <b>Pago:</b>{" "}
-            {PAYMENT_LABELS[order.orderPaymentMethod] || "N/A"}
+            <b>Pago:</b> {PAYMENT_LABELS[order.orderPaymentMethod] || "N/A"}
           </p>
         </div>
       )}

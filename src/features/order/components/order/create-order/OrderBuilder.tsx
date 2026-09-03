@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { v4 as uuid } from "uuid";
 import { useProducts } from "../../../hooks/useProducts";
 import { X, LayoutPanelLeft } from "lucide-react";
 
-import { OptionSelector } from "./OptionSelector";
+import { OptionSelector } from "./optionaSelector/OptionSelector";
 import { ProductPanel } from "./ProductPanel";
 import { OrderPanel } from "./OrderPanel";
 import { DeliveryStatus, PaymentStatus } from "@/types/order-state-machine";
@@ -92,18 +92,13 @@ export default function OrderBuilder({
         }
       }
 
-      const extra = options.reduce(
-        (a, g) => a + g.options.reduce((b, o) => b + o.priceFinal, 0),
-        0,
-      );
-
       return [
         ...prev,
         {
           productId: product.id,
           productName: product.name,
           quantity: 1,
-          priceAtPurchase: product.finalPrice + extra,
+          priceAtPurchase: product.finalPrice,
           optionGroups: options,
           notes: cleanNotes,
           costAtPurchase: product.cost,
@@ -147,10 +142,32 @@ export default function OrderBuilder({
     );
   };
 
-  const totalProducts = items.reduce(
-    (a, i) => a + i.priceAtPurchase * i.quantity,
-    0,
-  );
+  const calculateItemSubtotal = (item: LocalOrderItem): number => {
+    const basePrice = item.priceAtPurchase ?? 0;
+
+    // Suma de todas las opciones en todos los grupos de este ítem
+    const optionsPrice = (item.optionGroups ?? []).reduce((groupSum, group) => {
+      const groupOptionsSum = (group.options ?? []).reduce((optSum, opt) => {
+        return optSum + (opt.priceFinal ?? 0) * (opt.quantity ?? 1);
+      }, 0);
+
+      return groupSum + groupOptionsSum;
+    }, 0);
+
+    // El precio unitario total del ítem es (Precio Base + Opciones) * Cantidad del ítem
+    return (basePrice + optionsPrice) * item.quantity;
+  };
+
+  /**
+   * Calcula el total general de una lista de ítems de la orden
+   */
+  const calculateOrderProductsTotal = (items: LocalOrderItem[]): number => {
+    return items.reduce((acc, item) => acc + calculateItemSubtotal(item), 0);
+  };
+  // Dentro de tu componente de Caja / POS:
+  const totalProducts = useMemo(() => {
+    return calculateOrderProductsTotal(items);
+  }, [items]);
 
   const total =
     totalProducts + (deliveryType === "DELIVERY" ? deliveryCost : 0);
