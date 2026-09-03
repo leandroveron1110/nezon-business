@@ -85,14 +85,18 @@ export default function BusinessOrdersPage({ businessId }: Props) {
     }),
     [allowPhysicalPrinting, allowDigitalTicket],
   );
+
+  useEffect(()=> {
+    syncCatalogIfNeeded(businessId);
+  }, [businessId])
+
+
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 60000); // Sincroniza cada 1 min
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(()=> {
-    syncCatalogIfNeeded(businessId);
-  }, [businessId])
+
 
   // Custom hook que busca la orden por ID para imprimir
   const { order } = useGetOrderById(selectedPrintOrderId ?? "");

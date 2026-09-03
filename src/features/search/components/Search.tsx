@@ -32,23 +32,23 @@ export default function SearchPage() {
   }, [isError, error, addAlert]);
 
   // 🚀 REDIRECCIÓN AUTOMÁTICA AL POS SI TIENE SOLO 1 NEGOCIO
-  useEffect(() => {
-    if (data?.data && data.data.length === 1) {
-      const singleBusinessId = data.data[0].id;
-      router.replace(`/business/${singleBusinessId}/orders`);
-    }
-  }, [data, router]);
+  // useEffect(() => {
+  //   if (data?.data && data.data.length === 1) {
+  //     const singleBusinessId = data.data[0].id;
+  //     router.replace(`/business/${singleBusinessId}/orders`);
+  //   }
+  // }, [data, router]);
 
-  if (isLoading || (data?.data && data.data.length === 1)) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
-        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-sm font-medium text-gray-500">
-          {data?.data?.length === 1 ? "Redirigiendo a tu local..." : "Cargando negocios..."}
-        </p>
-      </div>
-    );
-  }
+  // if (isLoading || (data?.data && data.data.length === 1)) {
+  //   return (
+  //     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
+  //       <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+  //       <p className="text-sm font-medium text-gray-500">
+  //         {data?.data?.length === 1 ? "Redirigiendo a tu local..." : "Cargando negocios..."}
+  //       </p>
+  //     </div>
+  //   );
+  // }
 
   if (isError) {
     return (
