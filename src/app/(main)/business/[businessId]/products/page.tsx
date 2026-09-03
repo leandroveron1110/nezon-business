@@ -2,7 +2,6 @@
 
 import Catalog from "@/features/catalog/components/Catalog";
 import { syncCatalogIfNeeded } from "@/features/common/database/sync/product.sync";
-import BackButton from "@/features/common/ui/BackButton/BackButton";
 import Loader from "@/features/common/ui/Loader/Loader";
 import Header from "@/features/header/components/Header";
 import { useParams } from "next/navigation";
@@ -41,9 +40,6 @@ export default function BusinessCatalogPage() {
       <Header />
 
       <div className="bg-gray-50 min-h-[calc(100vh-60px)] pt-4 pb-12 relative">
-        <div className="ml-4 mb-4">
-          <BackButton />
-        </div>
         <Catalog businessId={businessId} />
       </div>
     </>

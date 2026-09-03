@@ -1,13 +1,18 @@
 "use client";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Save,
   CreditCard,
   Tag,
   PackageCheck,
+  Layers,
+  Plus,
 } from "lucide-react";
 import {
   IMenuProduct,
+  IOption,
+  IOptionGroup,
+  OptionGroupCreate,
 } from "../../types/catlog";
 import MenuProductImage from "./components/ImageProdct/MenuProducImage";
 import MenuGroup from "./components/MenuGroup";
@@ -17,11 +22,14 @@ import MenuProductStock from "./components/MenuProductStock";
 import MenuProductFlags from "./components/MenuProductFlags";
 import EnabledSwitch from "./components/EnabledSwitch";
 import {
+  useCreateOption,
   useCreateOptionGroup,
   useDeleteManyOption,
   useDeleteMenuProduct,
+  useDeleteOption,
   useDeleteOptionGroup,
   useUpdateMenuProduct,
+  useUpdateOption,
   useUpdateOptionGroup,
 } from "../../hooks/useMenuHooks";
 import { useMenuStore } from "../../stores/menuStore";
@@ -32,6 +40,13 @@ import {
   generateTempId,
   getPreviousValues,
 } from "@/features/common/utils/utilities-rollback";
+import NewMenuGroup from "./components/news/NewMenuGroup";
+import ProductOptions from "./components/group/ProductOptions";
+import {
+  AvailableMenuProduct,
+  CreateOptionData,
+  CreateOptionGroupData,
+} from "../../types/product-options";
 
 interface Props {
   businessId: string;
@@ -49,8 +64,10 @@ export default function MenuProduct({
   onClose,
 }: Props) {
   const [saving, setSaving] = useState(false);
-  // const [showNewGroup, setShowNewGroup] = useState(false);
+  const [showNewGroup, setShowNewGroup] = useState(false);
   const { addAlert } = useAlert();
+
+  const menus = useMenuStore((state) => state.menus);
 
   const product = useMenuStore((state) =>
     state.menus
@@ -59,22 +76,58 @@ export default function MenuProduct({
       ?.products.find((p) => p.id === productId),
   );
 
+  const menuProducts = useMemo(() => {
+    const menu = menus.find((m) => m.id === menuId);
+
+    if (!menu) {
+      return [];
+    }
+
+    const products = menu.sections.flatMap((section) => section.products);
+
+    return products.map((product) => ({
+      id: product.id,
+
+      name: product.name,
+
+      imageUrl: product.imageUrl,
+
+      finalPrice: String(product.finalPrice),
+
+      available: product.available,
+    }));
+  }, [menus, menuId]);
+
+  const groups = useMemo(() => {
+    if (!product) return [];
+    return product.optionGroups || [];
+  }, [product]);
+
   const [initialProduct] = useState(() => (product ? { ...product } : null));
   const updateProduct = useMenuStore((state) => state.updateProduct);
   const deleteProductStore = useMenuStore((state) => state.deleteProduct);
-  // const updateGroupStore = useMenuStore((state) => state.updateGroup);
-  // const deleteGroupStore = useMenuStore((state) => state.deleteGroup);
-  // const addGroupStore = useMenuStore((state) => state.addGroup);
-  // const replaceTempId = useMenuStore((state) => state.replaceTempId);
-  // const restoreGroup = useMenuStore((state) => state.restoreGroup);
+  const updateGroupStore = useMenuStore((state) => state.updateGroup);
+  const deleteGroupStore = useMenuStore((state) => state.deleteGroup);
+  const addGroupStore = useMenuStore((state) => state.addGroup);
+  const replaceTempId = useMenuStore((state) => state.replaceTempId);
+  const restoreGroup = useMenuStore((state) => state.restoreGroup);
 
   const deleteProduct = useDeleteMenuProduct(businessId);
 
-  // const createGroup = useCreateOptionGroup(businessId);
-  // const updateGroup = useUpdateOptionGroup(businessId);
-  // const deleteGroup = useDeleteOptionGroup(businessId);
-  // const deleteManyOptionsMutate = useDeleteManyOption(businessId);
+  const createGroup = useCreateOptionGroup(businessId);
+  const updateGroup = useUpdateOptionGroup(businessId);
+  const deleteGroup = useDeleteOptionGroup(businessId);
+  const deleteManyOptionsMutate = useDeleteManyOption(businessId);
   const updateMenuProductMutate = useUpdateMenuProduct(businessId);
+
+  const createOption = useCreateOption(businessId);
+  const updateOption = useUpdateOption(businessId);
+  const deleteOption = useDeleteOption(businessId);
+
+  const createOptionStore = useMenuStore((state) => state.addOption);
+  const updateOptionStore = useMenuStore((state) => state.updateOption);
+  const deleteOptionStore = useMenuStore((state) => state.deleteOption);
+  const restoreOption = useMenuStore((state) => state.restoreOption);
 
   if (!product) return null;
 
@@ -149,114 +202,306 @@ export default function MenuProduct({
     }
   };
 
-  // const handleGroupUpdate = async (
-  //   groupId: string,
-  //   updatedData: Partial<OptionGroupCreate>,
-  // ) => {
-  //   const group = product.optionGroups.find((g) => g.id === groupId);
-  //   if (!group) return;
+  const handleGroupUpdate = async (
+    groupId: string,
+    updatedData: Partial<OptionGroupCreate>,
+  ) => {
+    const group = groups.find((g) => g.id === groupId);
+    if (!group) return;
 
-  //   const previousValues = getPreviousValues<IOptionGroup>(
-  //     group,
-  //     updatedData as Partial<IOptionGroup>,
-  //   );
+    const previousValues = getPreviousValues<IOptionGroup>(
+      group,
+      updatedData as Partial<IOptionGroup>,
+    );
 
-  //   updateGroupStore({ menuId, groupId, sectionId, productId }, updatedData);
+    updateGroupStore({ menuId, groupId, sectionId, productId }, updatedData);
 
-  //   try {
-  //     const result = await updateGroup.mutateAsync({
-  //       groupId,
-  //       data: updatedData,
-  //     });
-  //     if (result) {
-  //       updateGroupStore({ menuId, groupId, sectionId, productId }, result);
-  //       addAlert({
-  //         message: `Grupo "${result.name}" actualizado.`,
-  //         type: "success",
-  //       });
-  //     } else {
-  //       throw new Error(`La API no devolvió el grupo actualizado.`);
-  //     }
-  //   } catch (error) {
-  //     updateGroupStore(
-  //       { menuId, groupId, sectionId, productId },
-  //       previousValues,
-  //     );
-  //     addAlert({
-  //       message: getDisplayErrorMessage(error),
-  //       type: "error",
-  //     });
-  //   }
-  // };
+    try {
+      const result = await updateGroup.mutateAsync({
+        groupId,
+        data: updatedData,
+      });
+      if (result) {
+        updateGroupStore({ menuId, groupId, sectionId, productId }, result);
+        addAlert({
+          message: `Grupo "${result.name}" actualizado.`,
+          type: "success",
+        });
+      } else {
+        throw new Error(`La API no devolvió el grupo actualizado.`);
+      }
+    } catch (error) {
+      updateGroupStore(
+        { menuId, groupId, sectionId, productId },
+        previousValues,
+      );
+      addAlert({
+        message: getDisplayErrorMessage(error),
+        type: "error",
+      });
+    }
+  };
 
-  // const deleteGroupWithOptions = async (
-  //   groupId: string,
-  //   optionIds: string[],
-  // ) => {
-  //   const groupToDelete = product.optionGroups.find((g) => g.id === groupId);
-  //   if (!groupToDelete) return;
+  const deleteGroupWithOptions = async (groupId: string) => {
+    const groupToDelete = product.optionGroups.find((g) => g.id === groupId);
+    if (!groupToDelete) return;
 
-  //   const groupToRestore = deepCopy(groupToDelete);
+    const optionIds = groupToDelete.options.map((option) => option.id);
 
-  //   deleteGroupStore({ groupId, menuId, productId, sectionId });
-  //   try {
-  //     await deleteManyOptionsMutate.mutateAsync(optionIds);
-  //     await deleteGroup.mutateAsync(groupId);
-  //     addAlert({
-  //       message: `Grupo de opciones "${groupToRestore.name}" eliminado con éxito.`,
-  //       type: "info",
-  //     });
-  //   } catch (error) {
-  //     restoreGroup({ menuId, sectionId, productId }, groupToRestore);
-  //     addAlert({
-  //       message: getDisplayErrorMessage(error),
-  //       type: "error",
-  //     });
-  //   }
-  // };
+    const groupToRestore = deepCopy(groupToDelete);
 
-  // const handleNewGroupCreate = async (group: OptionGroupCreate) => {
-  //   const tempId = generateTempId();
-  //   const optimisticGroup: IOptionGroup = {
-  //     id: tempId,
-  //     name: group.name,
-  //     maxQuantity: group.maxQuantity || 1,
-  //     minQuantity: group.minQuantity || 1,
-  //     options: group.options || [],
-  //     quantityType: group.quantityType,
-  //   };
+    deleteGroupStore({ groupId, menuId, productId, sectionId });
+    try {
+      await deleteManyOptionsMutate.mutateAsync(optionIds);
+      await deleteGroup.mutateAsync(groupId);
+      addAlert({
+        message: `Grupo de opciones "${groupToRestore.name}" eliminado con éxito.`,
+        type: "info",
+      });
+    } catch (error) {
+      restoreGroup({ menuId, sectionId, productId }, groupToRestore);
+      addAlert({
+        message: getDisplayErrorMessage(error),
+        type: "error",
+      });
+    }
+  };
 
-  //   addGroupStore({ menuId, productId, sectionId }, optimisticGroup);
-  //   setShowNewGroup(false);
-  //   try {
-  //     const result = await createGroup.mutateAsync(group);
+  const handleNewGroupCreate = async (group: CreateOptionGroupData) => {
+    const tempId = generateTempId();
 
-  //     if (result) {
-  //       replaceTempId(
-  //         "group",
-  //         { menuId, sectionId, productId },
-  //         tempId,
-  //         result.id,
-  //       );
-  //       updateGroupStore(
-  //         { menuId, sectionId, productId, groupId: result.id },
-  //         result,
-  //       );
-  //       addAlert({
-  //         message: `Grupo "${result.name}" creado con éxito.`,
-  //         type: "success",
-  //       });
-  //     } else {
-  //       throw new Error("El grupo se creó pero no se recibió el ID real.");
-  //     }
-  //   } catch (error) {
-  //     deleteGroupStore({ groupId: tempId, menuId, productId, sectionId });
-  //     addAlert({
-  //       message: getDisplayErrorMessage(error),
-  //       type: "error",
-  //     });
-  //   }
-  // };
+    // Preservamos el quantityType original del formulario,
+    // o derivamos FIXED si min y max son iguales y mayores a 0.
+    const isFixed = (group.minQuantity === group.maxQuantity && group.minQuantity > 0);
+    const finalQuantityType = isFixed ? "FIXED" : "MIN_MAX";
+
+    // Usamos Nullish Coalescing (??) para no sobreescribir el 0
+    const finalMinQuantity = group.minQuantity ?? 0;
+    const finalMaxQuantity = group.maxQuantity ?? 1;
+
+    const optimisticGroup: IOptionGroup = {
+      id: tempId,
+      name: group.name,
+      minQuantity: finalMinQuantity,
+      maxQuantity: finalMaxQuantity,
+      options: [],
+      quantityType: finalQuantityType,
+    };
+
+    addGroupStore({ menuId, productId, sectionId }, optimisticGroup);
+    setShowNewGroup(false);
+
+    try {
+      const result = await createGroup.mutateAsync({
+        name: group.name,
+        minQuantity: finalMinQuantity,
+        maxQuantity: finalMaxQuantity,
+        menuProductId: product.id,
+        quantityType: finalQuantityType,
+      });
+
+      if (result) {
+        replaceTempId(
+          "group",
+          { menuId, sectionId, productId },
+          tempId,
+          result.id,
+        );
+        updateGroupStore(
+          { menuId, sectionId, productId, groupId: result.id },
+          result,
+        );
+        addAlert({
+          message: `Grupo "${result.name}" creado con éxito.`,
+          type: "success",
+        });
+      } else {
+        throw new Error("El grupo se creó pero no se recibió el ID real.");
+      }
+    } catch (error) {
+      deleteGroupStore({ groupId: tempId, menuId, productId, sectionId });
+      addAlert({
+        message: getDisplayErrorMessage(error),
+        type: "error",
+      });
+    }
+  };
+
+  // Actualizar opción
+  const handleOptionUpdate = async (updatedData: Partial<IOption>) => {
+    // 1. 🔍 Encontrar la opción actual
+    const currentOption = groups
+      .flatMap((g) => g.options)
+      .find((o) => o.id === updatedData.id);
+
+    if (!currentOption) return;
+
+    // 2. 💾 GUARDAR ESTADO DE ROLLBACK
+    const previousValues = getPreviousValues<IOption>(
+      currentOption,
+      updatedData,
+    );
+
+    // 3. ⚡ APLICAR ACTUALIZACIÓN OPTIMISTA
+    updateOptionStore(
+      {
+        menuId,
+        groupId: currentOption.optionGroupId,
+        optionId: currentOption.id,
+        productId,
+        sectionId,
+      },
+      updatedData,
+    );
+    try {
+      const result = await updateOption.mutateAsync({
+        data: updatedData,
+        optionId: updatedData.id || "",
+      });
+      if (result) {
+        // 4. ✅ ÉXITO: Aplicar el resultado canónico del backend
+        updateOptionStore(
+          {
+            menuId,
+            groupId: currentOption.optionGroupId,
+            optionId: result.id,
+            productId,
+            sectionId,
+          },
+          result,
+        );
+        addAlert({
+          message: `Opción "${result.name}" actualizada.`,
+          type: "success",
+        });
+      } else {
+        throw new Error("La API no devolvió la opción actualizada.");
+      }
+    } catch (e) {
+      updateOptionStore(
+        {
+          menuId,
+          groupId: currentOption.optionGroupId,
+          optionId: currentOption.id,
+          productId,
+          sectionId,
+        },
+        previousValues,
+      );
+      addAlert({
+        message: getDisplayErrorMessage(e),
+        type: "error",
+      });
+    }
+  };
+
+  // Eliminar opción
+  const handleOptionDelete = async (optionId: string) => {
+    const optionToDelete = groups
+      .flatMap((g) => g.options)
+      .find((o) => o.id === optionId);
+
+    if (!optionToDelete) return;
+
+    // 1. 💾 GUARDAR ESTADO DE ROLLBACK: COPIA PROFUNDA
+    const optionToRestore = deepCopy(optionToDelete);
+
+    // 2. ⚡ APLICAR ELIMINACIÓN OPTIMISTA
+    deleteOptionStore({
+      menuId,
+      groupId: optionToDelete.optionGroupId,
+      optionId: optionToDelete.id,
+      productId,
+      sectionId,
+    });
+    try {
+      await deleteOption.mutateAsync(optionId);
+      addAlert({
+        message: `Opción "${optionToRestore.name}" eliminada con éxito.`,
+        type: "info",
+      });
+    } catch (e) {
+      restoreOption(
+        { menuId, groupId: optionToDelete.optionGroupId, productId, sectionId },
+        optionToRestore,
+      );
+      addAlert({
+        message: getDisplayErrorMessage(e),
+        type: "error",
+      });
+    }
+  };
+
+  // Crear nueva opción
+  const handleNewOptionCreate = async (
+    groupId: string,
+    options: CreateOptionData[],
+  ) => {
+    const tempId = generateTempId();
+
+    const optionsCreate: IOption[] = options.map((option) => ({
+      id: tempId,
+      hasStock: option.hasStock,
+      index: 0,
+      name: option.name,
+      priceFinal: option.priceFinal,
+      priceModifierType: "0",
+      priceWithoutTaxes: "0",
+      taxesAmount: "0",
+      maxQuantity: 1,
+      images: [],
+      optionGroupId: groupId,
+    }));
+
+    if (!optionsCreate.length) return;
+
+    // 3. 💾 ACTUALIZACIÓN OPTIMISTA
+    createOptionStore(
+      { groupId, menuId, productId, sectionId },
+      optionsCreate[0],
+    );
+
+    optionsCreate.forEach(async (optionCreate) => {
+      try {
+        const { id, images, ...rest } = optionCreate;
+        const result = await createOption.mutateAsync(rest);
+        if (result && result.id) {
+          // 5. ✅ ÉXITO: REEMPLAZAR ID TEMPORAL
+          replaceTempId(
+            "option",
+            { menuId, sectionId, productId, groupId }, // IDs de los padres
+            tempId,
+            result.id, // ID real
+          );
+
+          // 6. Aplicar el patch canónico (opcional pero recomendado)
+          updateOptionStore(
+            { menuId, sectionId, productId, groupId, optionId: result.id },
+            result,
+          );
+
+          addAlert({
+            message: `Opción "${result.name}" creada con éxito.`,
+            type: "success",
+          });
+        } else {
+          throw new Error("La opción se creó pero no se recibió el ID real.");
+        }
+      } catch (e) {
+        deleteOptionStore({
+          menuId,
+          groupId,
+          optionId: tempId,
+          productId,
+          sectionId,
+        });
+        addAlert({
+          message: getDisplayErrorMessage(e),
+          type: "error",
+        });
+      }
+    });
+  };
 
   return (
     <div className="space-y-6 text-slate-800">
@@ -364,56 +609,26 @@ export default function MenuProduct({
       </section>
 
       {/* BLOQUE 5: GRUPOS DE OPCIONES / ADICIONALES */}
-      {/* <section className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <div className="flex items-center gap-2 text-slate-900 font-semibold text-sm">
-            <Layers className="w-4 h-4 text-amber-600" />
-            <h3>Grupos de Opciones y Adicionales</h3>
-          </div>
-          {!showNewGroup && (
-            <button
-              type="button"
-              onClick={() => setShowNewGroup(true)}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Nuevo grupo
-            </button>
-          )}
+      {/* BLOQUE 5: GRUPOS DE OPCIONES */}
+
+      <section className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 space-y-4">
+        <div className="flex items-center gap-2 text-slate-900 font-semibold text-sm border-b border-slate-100 pb-3">
+          <Layers className="w-4 h-4 text-amber-600" />
+
+          <h3>Grupos de Opciones y Adicionales</h3>
         </div>
 
-        <div className="space-y-4 pt-1">
-          {(product.optionGroups ?? []).map((group) => (
-            <MenuGroup
-              key={group.id}
-              businessId={businessId}
-              groupId={group.id}
-              menuId={menuId}
-              productId={productId}
-              sectionId={sectionId}
-              currencyMask={product.currencyMask || "$"}
-              onDeleteGroup={deleteGroupWithOptions}
-              onUpdate={(data) => handleGroupUpdate(group.id, data.group)}
-            />
-          ))}
-
-          {showNewGroup && (
-            <NewMenuGroup
-              menuProductId={product.id}
-              onCreate={handleNewGroupCreate}
-              onClose={() => setShowNewGroup(false)}
-            />
-          )}
-
-          {!showNewGroup && (product.optionGroups ?? []).length === 0 && (
-            <div className="text-center py-8 border-2 border-dashed border-slate-200 rounded-xl">
-              <p className="text-sm text-slate-500 font-medium">
-                Este producto no tiene adicionales ni opciones personalizables.
-              </p>
-            </div>
-          )}
-        </div>
-      </section> */}
+        <ProductOptions
+          productId={productId}
+          groups={groups}
+          menuProducts={menuProducts}
+          onCreateGroup={handleNewGroupCreate}
+          onUpdateGroup={handleGroupUpdate}
+          onDeleteGroup={deleteGroupWithOptions}
+          onCreateOptions={handleNewOptionCreate}
+          onDeleteOption={handleOptionDelete}
+        />
+      </section>
 
       {/* BOTONES ACCIÓN (Renderizados abajo) */}
       <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3 pt-3">

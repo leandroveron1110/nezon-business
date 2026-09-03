@@ -7,6 +7,7 @@ interface OptionBase {
   hasStock: boolean;
   index: number;
   priceFinal: string;
+  menuProductId?: string;
   priceWithoutTaxes: string;
   taxesAmount: string;
   priceModifierType: "NOT_CHANGE" | "INCREASE" | string;

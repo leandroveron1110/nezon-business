@@ -1,6 +1,5 @@
 import { CashRegister } from "../domain/cash-register";
 import { CashRegisterStatus } from "../domain/cash-register-status.enum";
-import { CashRegisterTotals } from "../domain/cash-register-totals";
 
 import { CloseCashRegisterInput } from "../input/close.input";
 import { HistoryFiltersInput } from "../input/hitory-filter.input";
@@ -12,12 +11,6 @@ import {
   CashRegisterPort,
 } from "../port/cash-register.port";
 import { ICashRegisterService } from "../public/cash-register-service.interface";
-import {
-  FinancialMovementPort,
-  FinancialMovementStatus,
-  FinancialMovementType,
-} from "../port/financial-movement.port";
-import { PaymentMethodTypeFinancial } from "../domain/payment-summary";
 
 export class CashRegisterService implements ICashRegisterService {
   constructor(private readonly cashRegister: CashRegisterPort) {}

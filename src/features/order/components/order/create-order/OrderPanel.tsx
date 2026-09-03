@@ -355,6 +355,7 @@ export function OrderPanel({
       </div>
 
       {/* 3. LISTA DE PRODUCTOS */}
+      {/* 3. LISTA DE PRODUCTOS */}
       <div className="flex-1 overflow-y-auto bg-white z-10 divide-y divide-slate-100">
         {items.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-slate-300 opacity-40 py-20 select-none">
@@ -367,6 +368,8 @@ export function OrderPanel({
           items.map((item, i) => {
             const isNoteOpen = openNoteIndex === i;
             const hasNote = Boolean(item.notes);
+            const hasOptionGroups =
+              item.optionGroups && item.optionGroups.length > 0;
 
             return (
               <div
@@ -449,6 +452,33 @@ export function OrderPanel({
                     <FileText size={12} />
                   </button>
                 </div>
+
+                {/* OPCIONES SELECCIONADAS DEL PRODUCTO */}
+                {hasOptionGroups && (
+                  <div className="mt-1 flex flex-wrap gap-1 pl-0.5">
+                    {item.optionGroups.map((group, groupIdx) =>
+                      group.options.map((opt, optIdx) => (
+                        <span
+                          key={`${groupIdx}-${optIdx}`}
+                          className="inline-flex items-center text-[8.5px] font-medium bg-slate-100/90 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200/60 leading-tight"
+                        >
+                          <span className="font-bold text-slate-700 mr-1">
+                            {group.groupName}:
+                          </span>
+                          <span>
+                            {opt.quantity > 1 ? `${opt.quantity}x ` : ""}
+                            {opt.optionName}
+                          </span>
+                          {opt.priceFinal > 0 && (
+                            <span className="text-blue-600 font-semibold ml-1">
+                              (+{formatPrice(opt.priceFinal)})
+                            </span>
+                          )}
+                        </span>
+                      )),
+                    )}
+                  </div>
+                )}
 
                 {/* EDITOR DE NOTA */}
                 {isNoteOpen && (
