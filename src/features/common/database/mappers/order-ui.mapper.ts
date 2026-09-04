@@ -29,6 +29,8 @@ export class OrderUiMapper {
       paymentStatus: local.paymentStatus,
       deliveryStatus: local.deliveryStatus,
 
+      courierName: local.courierName || null,
+
       scheduledAt: local.scheduledAt,
       
       

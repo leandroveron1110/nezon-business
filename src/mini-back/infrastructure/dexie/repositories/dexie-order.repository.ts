@@ -58,8 +58,7 @@ export class DexieOrderRepositoryAdapter
       syncedStatus: false,
       cashRegisterTurnId: input.cashRegisterTurnId,
       cashRegisterTurnIdTemp: input.cashRegisterTurnIdTemp,
-      scheduledAt: input.scheduledAt
-      
+      scheduledAt: input.scheduledAt,
     }); // Adaptamos la entidad del core a la tabla
   }
 
@@ -74,9 +73,17 @@ export class DexieOrderRepositoryAdapter
     return (result as Order) || null;
   }
 
-  async update(order: Order): Promise<void> {
-    // console.log("Actualizando orden en Dexie:", order);
-    // await db.orders.put(order as LocalOrder);
+  /**
+   * 🚀 Permite actualizar cualquier campo/propiedad de una orden existente en Dexie
+   */
+  async update(idTemp: string, updates: Partial<Order>): Promise<void> {
+    // Si updates incluye updatedAt lo usa, si no, actualiza la fecha automáticamente
+    const payload = {
+      ...updates,
+      updatedAt: updates.updatedAt || new Date(),
+    };
+
+    await db.orders.update(idTemp, payload);
   }
 
   // Este método cumple con lo que el Core necesita para su identidad diaria

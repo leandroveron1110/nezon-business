@@ -281,6 +281,13 @@ export class OrderService implements IOrderPublicService {
     }
   }
 
+  async assignCourierName(idTemp: string, courierName: string): Promise<void> {
+    const updates: Partial<Order> = {
+      courierName,
+    };
+    await this.repository.update(idTemp, updates);
+  }
+
   async notifySyncError(idTemp: string): Promise<void> {
     await this.mutateState({
       orderId: idTemp,

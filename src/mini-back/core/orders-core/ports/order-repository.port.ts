@@ -26,7 +26,7 @@ export interface OrderRepositoryPort {
   
   // saveOrderEvent(event: CoreOrderStateEvent): Promise<void>;
 
-  update(order: Order): Promise<void>;
+  update(idTemp: string, updates: Partial<Order>): Promise<void>;
 
   findByIdTemp(idTemp: string): Promise<Order | null>;
 

@@ -11,7 +11,6 @@ import { DexieOrderRepositoryAdapter } from "../infrastructure/dexie/repositorie
 import { cloudSyncService } from "../infrastructure/network/CloudSyncService";
 import { requestDeliveryDispatch } from "../infrastructure/network/delivery-api";
 import { cashRegisterOrchestrator } from "./cash-register.orchestrator";
-import { quoteDeliveryOrchestrator } from "./delivery.orchestrator";
 import { DeliveryStatus, PaymentStatus } from "@/types/order-state-machine";
 import { OrderStatus } from "../core/orders-core/domain/order-state-machine";
 import { financialMovementOrchestrator } from "./financial-movement-orchestrator";
@@ -87,6 +86,22 @@ export const createOrderOrchestrator = async (input: CreateOrderInput) => {
   // }
 
   return result;
+};
+
+export const assignCourierNameOrchestrator = async (
+  idTemp: string,
+  courierName: string,
+) => {
+  const repositoryAdapter = new DexieOrderRepositoryAdapter();
+  const identityAdapter = new DexieOrderIdentityAdapter();
+
+  const orderCore = OrderServicePublic({
+    repository: repositoryAdapter,
+    identity: identityAdapter,
+    cashRegister: repositoryAdapter,
+  });
+
+  await orderCore.assignCourierName(idTemp, courierName);
 };
 
 export const updateOrderStatusOrchestrator = async (

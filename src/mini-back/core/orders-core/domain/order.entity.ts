@@ -77,6 +77,8 @@ export interface Order {
   deliveryProvider: DeliveryProvider; 
   deliveryQuotationStatus?: DeliveryQuotationStatus; // Estado de la cotización de envío (si aplica)
 
+  courierName?: string | null; // Nombre del cadete asignado a la orden, si aplica
+  
   // Control de precio
   deliveryPriceMode: 'AUTOMATIC' | 'MANUAL';
   totalDeliveryCost: number;

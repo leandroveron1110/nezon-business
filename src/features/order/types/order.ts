@@ -85,6 +85,7 @@ export interface IOrder {
 
   shortCode?: string | null; // código corto tipo A-23, asignado al sincronizar
   dailyNumber?: number | null; // número secuencial diario, asignado al sincronizar
+  courierName?: string | null; // nombre del cadete asignado a la orden, si aplica
   user: User;
   bussiness: Bussiness;
 

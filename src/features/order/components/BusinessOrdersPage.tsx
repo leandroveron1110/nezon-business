@@ -8,7 +8,6 @@ import { simplifiedFilters } from "@/features/common/utils/filtersData";
 
 import { DeliveryType, IOrderShortDto } from "@/types/order";
 import { OrderList } from "./order/OrderList";
-import { OrderDetailsSidePanel } from "./order/view-detail-order/OrderDetailsSidePanel";
 import { getOrderPriority } from "@/features/order/utilities/order-logic";
 import { IOrder } from "../types/order";
 import { useAlert } from "@/features/common/ui/Alert/Alert";
@@ -31,6 +30,7 @@ import { OpenCashModal } from "@/features/cashRegister/components/OpenCashModal"
 import { useCashRegisterStatus } from "@/features/cashRegister/hooks/useCashRegisterStatus";
 import { OrderCard } from "./order/order-card/OrderCard";
 import { syncCatalogIfNeeded } from "@/features/common/database/sync/sync";
+import { OrderDetailsSidePanel } from "./order/view-detail-order/order/OrderDetailsSidePanel";
 
 interface Props {
   businessId: string;

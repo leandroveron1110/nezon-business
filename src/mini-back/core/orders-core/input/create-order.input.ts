@@ -17,6 +17,8 @@ export interface CreateOrderInput {
 
   origin: 'APP' | 'BUSINESS';
 
+  courierName?: string | null; // nombre del cadete asignado a la orden, si aplica
+
   items: OrderItem[];
 
   deliveryType: "DELIVERY" | "PICKUP";

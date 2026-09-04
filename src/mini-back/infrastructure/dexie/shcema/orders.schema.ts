@@ -157,6 +157,9 @@ export interface LocalOrder {
   deliveryType: "DELIVERY" | "PICKUP";
   deliveryProvider: "PLATFORM" | "INTERNAL";
 
+  // 🚀 Asignación local de cadete para control de caja / pantalla
+  courierName?: string | null;
+
   // Indica si el costo fue calculado automáticamente
   // o cargado manualmente por el negocio.
   deliveryPriceMode: "AUTOMATIC" | "MANUAL";

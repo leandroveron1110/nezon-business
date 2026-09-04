@@ -15,6 +15,8 @@ export interface IOrderPublicService {
 
   updateStatus(input: UpdateOrderStatusInput): Promise<OrderServiceResponse>; // Nuevo
 
+  assignCourierName(idTemp: string, courierName: string): Promise<void>;
+
   mutateState(input: MutateOrderStateInput): Promise<OrderServiceResponse>;
 
   /** 
