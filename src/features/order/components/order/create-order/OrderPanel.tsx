@@ -137,7 +137,7 @@ export function OrderPanel({
       }
 
       const quotation = response.data;
-      const add = quotation.resolvedAddress || query;
+      const add = query;
 
       if (quotation.zoneId) {
         setZoneId(quotation.zoneId);

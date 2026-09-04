@@ -204,7 +204,7 @@ export function OrderActionsMenu({
                 </>
               )}
 
-              <button
+              {/* <button
                 type="button"
                 onClick={handleToggleDeliveryAction}
                 className="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2.5 transition-colors"
@@ -213,7 +213,7 @@ export function OrderActionsMenu({
                 <span>
                   Cambiar a {isDelivery ? "Retiro (Take Away)" : "Envío (Delivery)"}
                 </span>
-              </button>
+              </button> */}
 
               {safeOrder.user?.phone && (
                 <button

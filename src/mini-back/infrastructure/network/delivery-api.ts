@@ -11,6 +11,8 @@ export interface RequestDeliveryQuotationInput {
   originLatitude?: number;
   originLongitude?: number;
 
+  quotedCost?: number;
+
   customerAddress: string;
 
   latitude?: number;
@@ -81,7 +83,6 @@ export async function requestDeliveryDispatch(
   input: RequestDeliveryQuotationInput,
 ): Promise<boolean> {
   try {
-    console.log(input)
     const res = await apiPost<void>(
       "/delivery-commands",
       {
@@ -94,6 +95,8 @@ export async function requestDeliveryDispatch(
         originAddress: input.originAddress,
         originLatitude: input.originLatitude,
         originLongitude: input.originLongitude,
+
+        quotedCost: input.quotedCost,
 
         destinationAddress: input.customerAddress,
 

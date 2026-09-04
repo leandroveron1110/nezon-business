@@ -12,7 +12,7 @@ export class OrderUiMapper {
       syncStatus: local.syncStatus === "SYNCED" ? "synced" : "pending",
 
       // 2. Mapeo a IOrder (La interfaz base que espera el modal)
-      businessId: "", // Si no lo guardamos en LocalOrder, lo inicializamos o lo sacamos de otro lado
+      businessId: local.businessId || "", // Si no lo guardamos en LocalOrder, lo inicializamos o lo sacamos de otro lado
       userId: "", // Idem
       deliveryCompanyId: null,
       status: local.status as OrderStatus,

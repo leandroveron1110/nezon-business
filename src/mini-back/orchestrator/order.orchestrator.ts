@@ -286,6 +286,7 @@ export const updateOrderStatusOrchestrator = async (
     await requestDeliveryDispatch({
       businessId: order.businessId,
       orderId: order.idTemp,
+      quotedCost: order.totalDeliveryCost,
       customerAddress: order.customerAddress,
       originName: business?.name || "",
       originAddress: business?.address || "",
