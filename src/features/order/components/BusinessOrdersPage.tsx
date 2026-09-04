@@ -22,7 +22,6 @@ import {
   OrderStatus,
   PaymentStatus,
 } from "@/types/order-state-machine";
-import { SyncIndicator } from "./order/SyncIndicator";
 import { OrderKitchenView } from "./order/view-detail-order/OrderKitchenView";
 import { OrderTicket } from "./order/ticket-order/OrderTicket";
 import { CashRegisterStatusBadge } from "@/features/cashRegister/components/CashRegisterStatusBadge";
@@ -40,7 +39,6 @@ export default function BusinessOrdersPage({ businessId }: Props) {
   const { addAlert } = useAlert();
   const { print } = usePrintTicket();
   const printRef = useRef<HTMLDivElement>(null);
-
 
   // 1. Sincronización en background y consumo de datos en UI
   useSyncOrders(businessId);
@@ -86,17 +84,14 @@ export default function BusinessOrdersPage({ businessId }: Props) {
     [allowPhysicalPrinting, allowDigitalTicket],
   );
 
-  useEffect(()=> {
+  useEffect(() => {
     syncCatalogIfNeeded(businessId);
-  }, [businessId])
-
+  }, [businessId]);
 
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 60000); // Sincroniza cada 1 min
     return () => clearInterval(interval);
   }, []);
-
-
 
   // Custom hook que busca la orden por ID para imprimir
   const { order } = useGetOrderById(selectedPrintOrderId ?? "");
@@ -180,23 +175,22 @@ export default function BusinessOrdersPage({ businessId }: Props) {
       createdAt: String(o.createdAt),
       origin: o.origin,
       shortCode: o.shortCode || "",
-      scheduledAt: o.scheduledAt
+      scheduledAt: o.scheduledAt,
     })) as IOrderShortDto[];
   }, [orders]);
 
   // --- FILTRADO, ORDENAMIENTO Y NORMALIZACIÓN (Ultra eficiente) ---
-// Cambiar el useMemo de las órdenes filtradas agregando `now` como dependencia:
-const filteredAndSortedOrders = useMemo(() => {
-  if (!normalizedOrders.length) return [];
+  // Cambiar el useMemo de las órdenes filtradas agregando `now` como dependencia:
+  const filteredAndSortedOrders = useMemo(() => {
+    if (!normalizedOrders.length) return [];
 
-  const currentFilter = simplifiedFilters.find(
-    (f) => f.label === activeFilter,
-  );
+    const currentFilter = simplifiedFilters.find(
+      (f) => f.label === activeFilter,
+    );
 
-  const normalizedSearch = searchTerm.toLowerCase().trim().replace(/-/g, "");
+    const normalizedSearch = searchTerm.toLowerCase().trim().replace(/-/g, "");
 
-  return (
-    normalizedOrders
+    return normalizedOrders
       .filter((order) => {
         if (!currentFilter) return true;
         return currentFilter.condition(order);
@@ -227,9 +221,8 @@ const filteredAndSortedOrders = useMemo(() => {
         return (
           new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
         );
-      })
-  );
-}, [normalizedOrders, activeFilter, searchTerm, now]); // <--- Agregado `now` aquí
+      });
+  }, [normalizedOrders, activeFilter, searchTerm, now]); // <--- Agregado `now` aquí
   if (isLoading)
     return (
       <p className="p-6 text-center text-gray-500 animate-pulse">
@@ -503,6 +496,7 @@ const filteredAndSortedOrders = useMemo(() => {
         <OrderBuilder
           onClose={() => setIsNewOrder(false)}
           businessid={businessId}
+          printOrderCreated={handlePrintRequest}
         />
       )}
     </>

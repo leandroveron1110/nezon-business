@@ -12,26 +12,26 @@ const items = [
     label: "Ventas",
     href: "sales",
   },
-  {
-    label: "Productos",
-    href: "products",
-  },
-  {
-    label: "Gastos",
-    href: "expenses",
-  },
-  {
-    label: "Rentabilidad",
-    href: "profitability",
-  },
-  {
-    label: "Personal",
-    href: "staff",
-  },
-  {
-    label: "Reportes",
-    href: "reports",
-  },
+  // {
+  //   label: "Productos",
+  //   href: "products",
+  // },
+  // {
+  //   label: "Gastos",
+  //   href: "expenses",
+  // },
+  // {
+  //   label: "Rentabilidad",
+  //   href: "profitability",
+  // },
+  // {
+  //   label: "Personal",
+  //   href: "staff",
+  // },
+  // {
+  //   label: "Reportes",
+  //   href: "reports",
+  // },
 ];
 
 export default function AdministrationNavigation() {

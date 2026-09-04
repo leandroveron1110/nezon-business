@@ -85,7 +85,7 @@ export const createOrderOrchestrator = async (input: CreateOrderInput) => {
   //   }
   // }
 
-  return result;
+  return result.data;
 };
 
 export const assignCourierNameOrchestrator = async (

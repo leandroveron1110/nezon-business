@@ -20,13 +20,16 @@ import { OrderSheet } from "./OrderSheet";
 import { initSchedulers } from "@/mini-back/infrastructure/workers/delivery/delivery.worker";
 import { PaymentMethodTypeFinancial } from "@/mini-back/shared/enums/financial-movement-status.enum";
 
+interface OrderBuilderProps {
+  onClose?: () => void;
+  businessid: string;
+  printOrderCreated: (orderId: string) => void;
+}
 export default function OrderBuilder({
   onClose,
   businessid,
-}: {
-  onClose?: () => void;
-  businessid: string;
-}) {
+  printOrderCreated,
+}: OrderBuilderProps) {
   const { products } = useProducts();
   const [items, setItems] = useState<LocalOrderItem[]>([]);
   const [pendingProduct, setPendingProduct] = useState<LocalProduct | null>(
@@ -207,6 +210,7 @@ export default function OrderBuilder({
         businessId: businessid,
         deliveryQuotationStatus: deliveryQuotationStatus,
       });
+      printOrderCreated(newOrder.idTemp);
       initSchedulers();
       setItems([]);
       setCustomerName("");
