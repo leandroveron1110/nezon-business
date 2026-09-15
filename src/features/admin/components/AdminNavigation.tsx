@@ -5,20 +5,20 @@ import { useParams, usePathname } from "next/navigation";
 
 const items = [
   {
-    label: "Resumen",
-    href: "summary",
-  },
-  {
-    label: "Ventas",
-    href: "sales",
-  },
-  {
     label: "Tesorería",
     href: "treasury",
   },
   {
     label: "Caja",
     href: "cash-register",
+  },
+  {
+    label: "Resumen",
+    href: "summary",
+  },
+  {
+    label: "Ventas",
+    href: "sales",
   },
   // {
   //   label: "Rentabilidad",

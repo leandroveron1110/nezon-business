@@ -1,6 +1,7 @@
 // src/mini-back/orchestrator/treasury-account/treasury-account-orchestrator.ts
 
 import {
+  FinancialMovement,
   ITreasuryAccountPublicService,
   TreasuryAccountServicePublic,
 } from "@/mini-back/core/treasury-core/public";
@@ -16,6 +17,8 @@ import { db } from "@/mini-back/infrastructure/dexie/db";
 import { FinancialMovementDexieRepository } from "@/mini-back/infrastructure/dexie/repositories/admin/financial-movement/financial-movement-dexie.repository";
 
 import { TreasuryAccountDexieRepository } from "@/mini-back/infrastructure/dexie/repositories/admin/treasury/treasury-account.repository";
+import { RegisterInternalTransferInput } from "@/mini-back/core/treasury-core/input/financial-movement/register-internal-transfer.input";
+import { financialMovementOrchestrator } from "../financial-movement-orchestrator";
 
 /**
  * Orquestador encargado de coordinar las operaciones
@@ -45,6 +48,29 @@ export class TreasuryAccountOrchestrator {
 
       financialMovement: new FinancialMovementDexieRepository(db),
     });
+  }
+
+  // En TreasuryAccountOrchestrator
+
+  async transfer(
+    input: RegisterInternalTransferInput,
+  ): Promise<FinancialMovement[]> {
+    // 1. Registrar los movimientos financieros (egreso de origen e ingreso a destino)
+    const financialMovementService = financialMovementOrchestrator;
+    const movements =
+      await financialMovementService.registerInternalTransfer(input);
+
+    // 2. Recalcular saldos de ambas cuentas de manera atómica/secuencial
+    await this.recalculateBalance(
+      input.businessId,
+      input.sourceTreasuryAccountId,
+    );
+    await this.recalculateBalance(
+      input.businessId,
+      input.destinationTreasuryAccountId,
+    );
+
+    return movements;
   }
 
   /**

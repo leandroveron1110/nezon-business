@@ -17,6 +17,7 @@ import {
 } from "@/mini-back/core/treasury-core/domain/treasury-account/treasury-account";
 import { TreasuryAccountOrchestrator } from "@/mini-back/orchestrator/treasury-account/treasury-account-orchestrator";
 import { CreateTreasuryAccount } from "@/features/admin/components/treasury/components/CreateTreasuryAccount";
+import { TransferTreasuryModal } from "./components/TransferTreasuryModal";
 
 interface TreasuryPageProps {
   businessId: string;
@@ -54,9 +55,10 @@ export default function TreasuryPage({ businessId }: TreasuryPageProps) {
       const treasuryAccounts = await orchestrator.findByBusinessId(businessId);
 
       const recalculatedAccounts = await Promise.all(
-        treasuryAccounts.map(async (account) =>
-          await orchestrator.recalculateBalance(businessId, account.idTemp)
-        )
+        treasuryAccounts.map(
+          async (account) =>
+            await orchestrator.recalculateBalance(businessId, account.idTemp),
+        ),
       );
 
       setAccounts(recalculatedAccounts);
@@ -66,6 +68,14 @@ export default function TreasuryPage({ businessId }: TreasuryPageProps) {
       setIsLoading(false);
     }
   }, [businessId]);
+
+  // Modificación del Header dentro de TreasuryPage:
+  const [isTransferOpen, setIsTransferOpen] = useState(false);
+
+  const handleTransferred = useCallback(async () => {
+    await loadAccounts();
+    setIsTransferOpen(false);
+  }, [loadAccounts]);
 
   useEffect(() => {
     void loadAccounts();
@@ -78,7 +88,7 @@ export default function TreasuryPage({ businessId }: TreasuryPageProps) {
 
   const activeAccounts = useMemo(
     () => accounts.filter((account) => account.isActive),
-    [accounts]
+    [accounts],
   );
 
   const balancesByCurrency = useMemo(() => {
@@ -132,15 +142,26 @@ export default function TreasuryPage({ businessId }: TreasuryPageProps) {
             Administrá las cuentas de fondos y disponibilidades de tu negocio.
           </p>
         </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsTransferOpen(true)}
+            disabled={activeAccounts.length < 2}
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
+          >
+            <ArrowUpRight className="h-4 w-4" />
+            Transferir
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setIsCreateOpen((prev) => !prev)}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500 active:scale-[0.98]"
-        >
-          <Plus className="h-4 w-4" />
-          {isCreateOpen ? "Cancelar" : "Nueva cuenta"}
-        </button>
+          <button
+            type="button"
+            onClick={() => setIsCreateOpen((prev) => !prev)}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500"
+          >
+            <Plus className="h-4 w-4" />
+            {isCreateOpen ? "Cancelar" : "Nueva cuenta"}
+          </button>
+        </div>
       </div>
 
       {/* CREATE FORM */}
@@ -163,13 +184,15 @@ export default function TreasuryPage({ businessId }: TreasuryPageProps) {
             </span>
             <div className="flex flex-wrap items-baseline gap-x-6 gap-y-2">
               {Object.entries(balancesByCurrency).length > 0 ? (
-                Object.entries(balancesByCurrency).map(([currency, balance]) => (
-                  <div key={currency} className="flex items-baseline gap-1.5">
-                    <span className="text-3xl font-extrabold tracking-tight text-slate-900">
-                      {formatCurrency(balance, currency)}
-                    </span>
-                  </div>
-                ))
+                Object.entries(balancesByCurrency).map(
+                  ([currency, balance]) => (
+                    <div key={currency} className="flex items-baseline gap-1.5">
+                      <span className="text-3xl font-extrabold tracking-tight text-slate-900">
+                        {formatCurrency(balance, currency)}
+                      </span>
+                    </div>
+                  ),
+                )
               ) : (
                 <span className="text-3xl font-extrabold tracking-tight text-slate-900">
                   {formatCurrency(0, "ARS")}
@@ -289,9 +312,7 @@ export default function TreasuryPage({ businessId }: TreasuryPageProps) {
                       >
                         <span
                           className={`h-1.5 w-1.5 rounded-full ${
-                            account.isActive
-                              ? "bg-emerald-500"
-                              : "bg-slate-400"
+                            account.isActive ? "bg-emerald-500" : "bg-slate-400"
                           }`}
                         />
                         {account.isActive ? "Activa" : "Inactiva"}
@@ -307,7 +328,7 @@ export default function TreasuryPage({ businessId }: TreasuryPageProps) {
                         <p className="text-sm font-bold tabular-nums text-slate-900">
                           {formatCurrency(
                             Number(account.currentBalance) || 0,
-                            account.currency || "ARS"
+                            account.currency || "ARS",
                           )}
                         </p>
                         <p className="text-[10px] uppercase font-semibold text-slate-400">
@@ -320,6 +341,14 @@ export default function TreasuryPage({ businessId }: TreasuryPageProps) {
               })}
             </div>
           </div>
+        )}
+        {isTransferOpen && (
+          <TransferTreasuryModal
+            businessId={businessId}
+            accounts={activeAccounts}
+            onClose={() => setIsTransferOpen(false)}
+            onTransferred={handleTransferred}
+          />
         )}
       </section>
     </div>

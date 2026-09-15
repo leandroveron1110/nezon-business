@@ -1,3 +1,4 @@
+import { RegisterInternalTransferInput } from "../core/treasury-core/input/financial-movement/register-internal-transfer.input";
 import {
   FinancialMovement,
   FinancialMovementServicePublic,
@@ -20,6 +21,17 @@ class FinancialMovementOrchetrator {
     this.movementService = FinancialMovementServicePublic({
       financialMovement: movementRepo,
     });
+  }
+
+  // En TreasuryAccountOrchestrator
+
+  async registerInternalTransfer(
+    input: RegisterInternalTransferInput,
+  ): Promise<FinancialMovement[]> {
+    // 1. Registrar los movimientos financieros (egreso de origen e ingreso a destino)
+    const movements =
+      await this.movementService.registerInternalTransfer(input);
+    return movements;
   }
 
   async getActiveTurnTotals(clientTurnId: string) {
