@@ -34,8 +34,8 @@ class FinancialMovementOrchetrator {
     return movements;
   }
 
-  async getActiveTurnTotals(clientTurnId: string) {
-    return await this.movementService.getActiveTurnTotals(clientTurnId);
+  async getActiveTurnTotals(idTemp: string) {
+    return await this.movementService.getActiveTurnTotals(idTemp);
   }
 
   // 1. Cobro efectivo/tarjeta

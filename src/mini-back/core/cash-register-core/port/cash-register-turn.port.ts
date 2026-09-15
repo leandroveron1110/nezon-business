@@ -6,7 +6,7 @@ export interface CashRegisterTurnPort {
 
   findById(id: string): Promise<CashRegisterTurn | null>;
 
-  findByClientTurnId(clientTurnId: string): Promise<CashRegisterTurn | null>;
+  findByidTemp(idTemp: string): Promise<CashRegisterTurn | null>;
 
   findActiveByCashRegisterId(businessId: string, cashRegisterId: string): Promise<CashRegisterTurn | null>;
 
@@ -20,5 +20,5 @@ export interface CashRegisterTurnPort {
 }
 
 export interface CashRegisterTurnActiveTurnTotals {
-  getActiveTurnTotals(clientTurnId: string): Promise<CashRegisterTurnTotals>
+  getActiveTurnTotals(idTemp: string): Promise<CashRegisterTurnTotals>
 }

@@ -5,7 +5,7 @@ import { SyncStatus } from "@/mini-back/shared/types/sync-status.type";
 
 export interface LocalCashRegisterTurn {
   // UUID local generado inmediatamente.
-  clientTurnId: string;
+  idTemp: string;
   // UUID definitivo asignado por el servidor.
   id?: string | null;
   businessId: string;
@@ -32,4 +32,4 @@ export interface LocalCashRegisterTurn {
 }
 // ÍNDICES DEXIE
 export const CASH_REGISTER_TURN_STORE =
-  "clientTurnId, id, businessId, status, syncStatus, openingDate, [businessId+status]";
+  "idTemp, id, businessId, status, syncStatus, openingDate, [businessId+status]";

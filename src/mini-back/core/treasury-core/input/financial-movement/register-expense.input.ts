@@ -14,7 +14,7 @@ export interface RegisterExpenseInput {
 
   description: string;
 
-  clientTurnId?: string;
+  idTemp?: string;
 
   treasuryAccountId: string;
 

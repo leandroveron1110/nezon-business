@@ -203,7 +203,7 @@ export class OrderService implements IOrderPublicService {
       syncedPayment: isHighPriority ? false : true,
       syncedDelivery: isHighPriority ? false : true,
 
-      cashRegisterTurnIdTemp: activeTurn?.clientTurnId,
+      cashRegisterTurnIdTemp: activeTurn?.idTemp,
       cashRegisterTurnId: activeTurn?.id || null,
 
       scheduledAt: input.scheduledAt,

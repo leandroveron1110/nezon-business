@@ -14,7 +14,7 @@ export class DexieOrderRepositoryAdapter
 {
   async findActive(
     businessId: string,
-  ): Promise<{ clientTurnId: string; id: string | null } | null> {
+  ): Promise<{ idTemp: string; id: string | null } | null> {
     const record = await db.cashRegisterTurn
       .where({ businessId, status: CashRegisterStatus.OPEN })
       .first();
@@ -22,7 +22,7 @@ export class DexieOrderRepositoryAdapter
       return null;
     }
     return {
-      clientTurnId: record.clientTurnId,
+      idTemp: record.idTemp,
       id: record.id || null,
     };
   }

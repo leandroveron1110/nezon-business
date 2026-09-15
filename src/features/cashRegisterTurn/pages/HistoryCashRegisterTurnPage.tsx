@@ -27,7 +27,7 @@ interface HistoryCashTurn {
   declaredClosingAmount: number;
   systemClosingAmount: number;
   difference: number;
-  clientTurnId: string;
+  idTemp: string;
   openingDate: Date;
   closingDate?: Date;
   closingNotes?: string;
@@ -50,7 +50,7 @@ export default function HistoryCashRegisterPage({ businessId }: Props) {
         });
         const convert: HistoryCashTurn[] = history.map((h) => {
           const res: HistoryCashTurn = {
-            clientTurnId: h.clientTurnId || "",
+            idTemp: h.idTemp || "",
             closingDate: h.closingDate,
             declaredClosingAmount: h.declaredClosingAmount || 0,
             difference: h.difference || 0,
@@ -196,11 +196,11 @@ export default function HistoryCashRegisterPage({ businessId }: Props) {
 
                 return (
                   <tr
-                    key={turn.clientTurnId}
+                    key={turn.idTemp}
                     className="hover:bg-slate-50/60 transition"
                   >
                     <td className="px-5 py-4 font-mono font-bold text-slate-900">
-                      #{turn.clientTurnId.slice(-6).toUpperCase()}
+                      #{turn.idTemp.slice(-6).toUpperCase()}
                     </td>
                     <td className="px-5 py-4 text-slate-600 space-y-0.5">
                       <div className="font-medium text-slate-800">
@@ -347,7 +347,7 @@ function TurnDetailModal({
               Resumen de Arqueo
             </span>
             <h3 className="text-lg font-black text-slate-900">
-              Turno #{turn.clientTurnId.slice(-6).toUpperCase()}
+              Turno #{turn.idTemp.slice(-6).toUpperCase()}
             </h3>
           </div>
           <button

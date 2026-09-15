@@ -10,13 +10,11 @@ interface Totals {
 }
 
 interface Props {
-  expectedCashInDrawer: number;
   initialCash: number;
   totals: Totals;
 }
 
 export function CashRegisterMetrics({
-  expectedCashInDrawer,
   initialCash,
   totals,
 }: Props) {
@@ -31,9 +29,6 @@ export function CashRegisterMetrics({
           </div>
         </div>
         <div className="mt-3">
-          <p className="text-2xl font-black tracking-tight text-white">
-            ${expectedCashInDrawer.toLocaleString("es-AR")}
-          </p>
           <p className="mt-1 text-[11px] text-slate-400">
             Fondo (${initialCash.toLocaleString()}) + Neto efec. (${totals.cash.toLocaleString()})
           </p>

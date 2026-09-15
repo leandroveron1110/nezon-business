@@ -162,7 +162,7 @@ export const updateOrderStatusOrchestrator = async (
           amount: order.total - (order.totalDeliveryCost ?? 0),
           paymentMethod: order.orderPaymentMethod,
           orderId: order.idTemp,
-          clientTurnId: turn.clientTurnId,
+          idTemp: turn.idTemp,
 
           description: `Cobro de pedido #${order.shortCode || order.idTemp.slice(-4)}`,
         });
@@ -175,7 +175,7 @@ export const updateOrderStatusOrchestrator = async (
             approvedByUserId: order.userId || "system",
             amount: totalCogs,
             orderId: order.idTemp,
-            clientTurnId: turn.clientTurnId,
+            idTemp: turn.idTemp,
             description: `Costo de mercadería (COGS) pedido #${order.shortCode || order.idTemp.slice(-4)}`,
           });
         }
@@ -187,7 +187,7 @@ export const updateOrderStatusOrchestrator = async (
           amount: order.total - (order.totalDeliveryCost ?? 0),
           paymentMethod: order.orderPaymentMethod,
           orderId: order.idTemp,
-          clientTurnId: turn.clientTurnId,
+          idTemp: turn.idTemp,
           treasuryAccountId: treasuryAccountIdTemp,
           description: `Reversión de cobro pedido #${order.shortCode || order.idTemp.slice(-4)}`,
         });
@@ -214,7 +214,7 @@ export const updateOrderStatusOrchestrator = async (
             amount: order.total - (order.totalDeliveryCost ?? 0),
             paymentMethod: order.orderPaymentMethod,
             orderId: order.idTemp,
-            clientTurnId: turn.clientTurnId,
+            idTemp: turn.idTemp,
             treasuryAccountId: treasuryAccountIdTemp,
             description: `Devolución por cancelación de pedido #${order.shortCode || order.idTemp.slice(-4)}`,
           });
@@ -233,7 +233,7 @@ export const updateOrderStatusOrchestrator = async (
             amount: totalCogs,
             orderId: order.idTemp,
             treasuryAccountId: treasuryAccountIdTemp,
-            clientTurnId: turn.clientTurnId,
+            idTemp: turn.idTemp,
             description: `Merma por cancelación de pedido en cocina #${order.shortCode || order.idTemp.slice(-4)}`,
           });
         }

@@ -2,7 +2,7 @@ export interface InitializeCashRegisterTurnInput {
   businessId: string;
   userId: string;
   treasuryAccountId: string;
-  clientTurnId: string;
+  idTemp: string;
   openingAmount: number;
   cashRegisterId: string;
   openingNotes?: string;

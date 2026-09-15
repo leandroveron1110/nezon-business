@@ -43,10 +43,10 @@ export class CashRegisterTurnDexieRepository implements CashRegisterTurnPort {
     return record ? this.toCoreDomain(record) : null;
   }
 
-  async findByClientTurnId(
-    clientTurnId: string,
+  async findByidTemp(
+    idTemp: string,
   ): Promise<CashRegisterTurn | null> {
-    const record = await this.db.cashRegisterTurn.get(clientTurnId);
+    const record = await this.db.cashRegisterTurn.get(idTemp);
     return record ? this.toCoreDomain(record) : null;
   }
 
@@ -56,19 +56,19 @@ export class CashRegisterTurnDexieRepository implements CashRegisterTurnPort {
     const now = new Date();
 
     // Garantizamos el ID local
-    const clientTurnId = CashRegisterTurn.clientTurnId || CashRegisterTurn.id;
+    const idTemp = CashRegisterTurn.idTemp || CashRegisterTurn.id;
 
-    if (!clientTurnId) {
+    if (!idTemp) {
       throw new Error(
-        "No se puede cerrar una caja sin un identificador válido (clientTurnId o id).",
+        "No se puede cerrar una caja sin un identificador válido (idTemp o id).",
       );
     }
 
-    const existing = await this.db.cashRegisterTurn.get(clientTurnId);
+    const existing = await this.db.cashRegisterTurn.get(idTemp);
 
     if (!existing) {
       throw new Error(
-        `No se encontró el registro local de la caja con ID: ${clientTurnId}`,
+        `No se encontró el registro local de la caja con ID: ${idTemp}`,
       );
     }
 
@@ -107,17 +107,17 @@ export class CashRegisterTurnDexieRepository implements CashRegisterTurnPort {
     const now = new Date();
 
     // Infraestructura decide la clave primaria local
-    const clientTurnId =
-      CashRegisterTurn.clientTurnId ??
+    const idTemp =
+      CashRegisterTurn.idTemp ??
       CashRegisterTurn.id ??
       crypto.randomUUID();
 
-    const existing = await this.db.cashRegisterTurn.get(clientTurnId);
+    const existing = await this.db.cashRegisterTurn.get(idTemp);
 
     const localRecord: LocalCashRegisterTurn = {
-      clientTurnId: clientTurnId,
+      idTemp: idTemp,
       treasuryAccountId: CashRegisterTurn.treasuryAccountId,
-      id: CashRegisterTurn.id ?? existing?.id ?? null, // Si ya vino sync del server se conserva
+      id: null,
       businessId: CashRegisterTurn.businessId,
       openedByUserId: CashRegisterTurn.openedByUserId,
       closedByUserId: CashRegisterTurn.closedByUserId,
@@ -149,9 +149,9 @@ export class CashRegisterTurnDexieRepository implements CashRegisterTurnPort {
 
   private toCoreDomain(raw: LocalCashRegisterTurn): CashRegisterTurn {
     return {
-      id: raw.id ?? raw.clientTurnId, // El dominio solo ve un 'id' consistente
+      id: raw.id ?? raw.idTemp, // El dominio solo ve un 'id' consistente
       treasuryAccountId: raw.treasuryAccountId,
-      clientTurnId: raw.clientTurnId,
+      idTemp: raw.idTemp,
       businessId: raw.businessId,
       openedByUserId: raw.openedByUserId,
       closedByUserId: raw.closedByUserId,

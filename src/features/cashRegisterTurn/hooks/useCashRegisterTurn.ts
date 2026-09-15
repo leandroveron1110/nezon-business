@@ -16,7 +16,7 @@ export function useCashRegisterTurn(businessId: string) {
       .first();
   }, [businessId]);
 
-  const turnIdTemp = activeTurn?.clientTurnId || activeTurn?.id;
+  const turnIdTemp = activeTurn?.idTemp || activeTurn?.id;
 
   // 2. Escuchar los movimientos de Dexie (excluyendo COGS)
   const movements = useLiveQuery(async () => {
@@ -46,8 +46,8 @@ export function useCashRegisterTurn(businessId: string) {
       return { cash: 0, card: 0, transfer: 0, total: 0 };
     }
 
-    return await financialMovementOrchestrator.getActiveTurnTotals(activeTurn.clientTurnId);
-  }, [businessId, activeTurn?.clientTurnId, movements]);
+    return await financialMovementOrchestrator.getActiveTurnTotals(activeTurn.idTemp);
+  }, [businessId, activeTurn?.idTemp, movements]);
 
   const defaultTotals: CashRegisterTurnTotals = {
     cash: 0,

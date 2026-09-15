@@ -8,7 +8,7 @@ export interface RegisterCogsInput {
 
   amount: number;
 
-  clientTurnId?: string;
+  idTemp?: string;
 
   treasuryAccountId?: string;
 

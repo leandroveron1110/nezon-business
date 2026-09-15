@@ -8,7 +8,7 @@ export interface RegisterMermaInput {
 
   amount: number;
 
-  clientTurnId?: string;
+  idTemp?: string;
 
   treasuryAccountId: string;
 

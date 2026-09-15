@@ -24,17 +24,21 @@ export class CashRegisterTurnService implements ICashRegisterTurnService {
 
   async getCashTurn(
     businessId: string,
-  ): Promise<{ clientTurnId: string; treasuryAccountId: string; cashRegisterId: string }> {
+  ): Promise<{
+    idTemp: string;
+    treasuryAccountId: string;
+    cashRegisterId: string;
+  }> {
     const turnId = await this.CashRegisterTurn.findActive(businessId);
 
-    if (!turnId || !turnId.clientTurnId || !turnId.treasuryAccountId) {
+    if (!turnId || !turnId.idTemp || !turnId.treasuryAccountId) {
       throw new Error("No active cash register found for this business.");
     }
 
     return {
-      clientTurnId: turnId.clientTurnId,
+      idTemp: turnId.idTemp,
       treasuryAccountId: turnId.treasuryAccountId,
-      cashRegisterId: turnId.cashRegisterId
+      cashRegisterId: turnId.cashRegisterId,
     };
   }
 
@@ -50,7 +54,7 @@ export class CashRegisterTurnService implements ICashRegisterTurnService {
     return this.open({
       businessId: input.businessId,
       userId: input.userId,
-      clientTurnId: input.clientTurnId, // Opcional: si viene de la app cliente/UI
+      idTemp: input.idTemp, // Opcional: si viene de la app cliente/UI
       openingAmount: input.openingAmount,
       openingNotes: input.openingNotes,
       cashRegisterId: input.cashRegisterId,
@@ -103,9 +107,9 @@ export class CashRegisterTurnService implements ICashRegisterTurnService {
 
   async open(input: OpenCashRegisterTurnInput): Promise<CashRegisterTurn> {
     // 1. Idempotencia: Si la UI mandó un ID local previo, verificamos si ya existe
-    if (input.clientTurnId) {
-      const existingClient = await this.CashRegisterTurn.findByClientTurnId(
-        input.clientTurnId,
+    if (input.idTemp) {
+      const existingClient = await this.CashRegisterTurn.findByidTemp(
+        input.idTemp,
       );
       if (existingClient) {
         return existingClient;
@@ -133,7 +137,7 @@ export class CashRegisterTurnService implements ICashRegisterTurnService {
 
     // 3. Creación del objeto de dominio SIN forzar UUIDs de Infraestructura
     const CashRegisterTurn: Partial<CashRegisterTurn> = {
-      clientTurnId: input.clientTurnId,
+      idTemp: input.idTemp,
       businessId: input.businessId,
       openedByUserId: input.userId,
       cashRegisterId: input.cashRegisterId,
@@ -148,11 +152,9 @@ export class CashRegisterTurnService implements ICashRegisterTurnService {
     return this.CashRegisterTurn.save(CashRegisterTurn as CashRegisterTurn);
   }
 
-  // 🛠️ DENTRO DE CashRegisterTurnService.ts (Método close)
-
   async close(
     input: CloseCashRegisterTurnInput,
-    port: CashRegisterTurnActiveTurnTotals,
+    expectedCash: number,
   ): Promise<CashRegisterTurn> {
     const turn = await this.CashRegisterTurn.findActive(input.businessId);
 
@@ -160,31 +162,24 @@ export class CashRegisterTurnService implements ICashRegisterTurnService {
       throw new Error("No existe una caja abierta para este negocio.");
     }
 
-    const turnIdentifier = turn.clientTurnId;
+    const turnIdentifier = turn.idTemp;
 
     if (!turnIdentifier) {
       throw new Error("El turno activo no posee un identificador válido.");
     }
 
-    // 1. Totales de movimientos del turno (Neto operado)
-    const totals = await port.getActiveTurnTotals(turnIdentifier);
+    // El saldo esperado ya fue obtenido por el Orchestrator
+    // desde la cuenta de tesorería asociada al turno.
+    const totalExpectedInDrawer = expectedCash;
 
-    const netCashOperated = totals.cash;
-    const openingAmount = turn.openingAmount || 0;
-
-    // 2. El dinero esperado TOTAL en el cajón físico (Fondo + Neto Operado)
-    const totalExpectedInDrawer = openingAmount + netCashOperated;
-
-    // 3. Mutación limpia de la entidad de dominio
     turn.closedByUserId = input.userId;
     turn.closingDate = new Date();
     turn.declaredClosingAmount = input.declaredClosingAmount;
 
-    // Guardamos el neto operado en systemClosingAmount
-    turn.systemClosingAmount = netCashOperated;
+    // Ahora representa el dinero que el sistema esperaba
+    // encontrar físicamente al momento del cierre.
+    turn.systemClosingAmount = totalExpectedInDrawer;
 
-    // 💥 REGLA DE NEGOCIO CORREGIDA:
-    // Arqueo = Declarado - Esperado Real en Cajón
     turn.difference = input.declaredClosingAmount - totalExpectedInDrawer;
 
     turn.closingNotes = input.closingNotes;

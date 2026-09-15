@@ -57,5 +57,5 @@ export interface IFinancialMovementPublicService {
    * Obtiene los totales financieros correspondientes
    * al turno de caja activo.
    */
-  getActiveTurnTotals(clientTurnId: string): Promise<FianancialTotals>;
+  getActiveTurnTotals(idTemp: string): Promise<FianancialTotals>;
 }

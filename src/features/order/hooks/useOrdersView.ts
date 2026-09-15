@@ -24,7 +24,7 @@ export function useOrdersView(businessId: string) {
       .equals([businessId, CashRegisterStatus.OPEN])
       .first();
 
-    const activeTurnId = activeTurn?.clientTurnId;
+    const activeTurnId = activeTurn?.idTemp;
 
     // 2. Traer órdenes que cumplan CUALQUIERA de las dos condiciones:
     //    a) Pertenecen al turno activo actual

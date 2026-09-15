@@ -10,7 +10,7 @@ export interface RegisterIncomeInput {
 
   amount: number;
 
-  clientTurnId?: string;
+  idTemp?: string;
 
   treasuryAccountId: string;
 

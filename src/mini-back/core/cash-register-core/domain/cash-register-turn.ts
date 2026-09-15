@@ -3,7 +3,7 @@ import { CashRegisterTurnStatus } from "./cash-register-turn-status.enum";
 export interface CashRegisterTurn {
   id?: string;
 
-  clientTurnId?: string;
+  idTemp?: string;
 
   cashRegisterId: string;
 

@@ -4,7 +4,7 @@ export interface OpenCashRegisterTurnInput {
 
   treasuryAccountId: string;
 
-  clientTurnId?: string;
+  idTemp?: string;
 
   cashRegisterId: string;
 

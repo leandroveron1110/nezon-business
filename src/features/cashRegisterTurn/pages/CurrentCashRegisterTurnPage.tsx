@@ -1,5 +1,5 @@
 import { useAuthStore } from "@/features/auth/store/authStore";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   FinancialMovementType,
   PaymentMethodTypeFinancial,
@@ -72,7 +72,8 @@ export default function CurrentCashRegisterTurnPage({ businessId }: Props) {
     try {
       const orchestrator = new CashRegisterOrchestrator();
 
-      const registers = await orchestrator.findActiveByBusinessId(businessId);
+      const registers =
+        await orchestrator.findActiveByBusinessId(businessId);
 
       setCashRegisters(registers);
     } catch (error) {
@@ -89,10 +90,6 @@ export default function CurrentCashRegisterTurnPage({ businessId }: Props) {
     }
   }, [isOpen, loadCashRegisters]);
 
-  const expectedCashInDrawer = useMemo(() => {
-    return initialCash + totals.cash;
-  }, [initialCash, totals.cash]);
-
   // Handler: Ingreso Manual
   const handleIncome = async (data: {
     amount: number;
@@ -100,7 +97,7 @@ export default function CurrentCashRegisterTurnPage({ businessId }: Props) {
     description: string;
     notes?: string;
   }) => {
-    if (user?.id && activeTurn?.clientTurnId) {
+    if (user?.id && activeTurn?.idTemp) {
       await financialMovementOrchestrator.processIncomeMovement({
         businessId,
         amount: data.amount,
@@ -109,7 +106,7 @@ export default function CurrentCashRegisterTurnPage({ businessId }: Props) {
         notes: data.notes,
         approvedByUserId: user.id,
         userId: user.id,
-        clientTurnId: activeTurn.clientTurnId,
+        idTemp: activeTurn.idTemp,
         treasuryAccountId: activeTurn.treasuryAccountId,
       });
     }
@@ -122,7 +119,7 @@ export default function CurrentCashRegisterTurnPage({ businessId }: Props) {
     description: string;
     notes?: string;
   }) => {
-    if (user?.id && activeTurn?.clientTurnId) {
+    if (user?.id && activeTurn?.idTemp) {
       await financialMovementOrchestrator.processExpenseMovement({
         businessId,
         userId: user.id,
@@ -130,7 +127,7 @@ export default function CurrentCashRegisterTurnPage({ businessId }: Props) {
         paymentMethod: data.paymentMethod,
         description: data.description,
         notes: data.notes,
-        clientTurnId: activeTurn.clientTurnId,
+        idTemp: activeTurn.idTemp,
         approvedByUserId: user.id,
         treasuryAccountId: activeTurn.treasuryAccountId,
       });
@@ -151,37 +148,42 @@ export default function CurrentCashRegisterTurnPage({ businessId }: Props) {
       userId: user.id,
       openingAmount,
       treasuryAccountId: defaultTreasuryAccountId,
-      cashRegisterId: cashRegisterId,
-      openingNotes: openingNotes,
+      cashRegisterId,
+      openingNotes,
     });
 
     setIsOpenTurnOpen(false);
   };
 
   // Handler: Cerrar Turno
+  //
+  // En esta etapa solamente enviamos el efectivo
+  // contado por el usuario.
+  //
+  // El efectivo esperado y la diferencia serán
+  // determinados posteriormente por el flujo de cierre,
+  // utilizando Tesorería como fuente de verdad.
   const handleCloseTurn = async (data: {
     declaredCash: number;
-    difference: number;
     closingNotes?: string;
   }) => {
-    console.log(activeTurn);
+    if (!activeTurn?.idTemp) return;
+    if (!user?.id) return;
 
-    if (!activeTurn?.clientTurnId) return;
-
-    if (user?.id) {
-      await cashRegisterTurnOrchestrator.closeCashRegisterTurn({
-        businessId,
-        userId: user.id,
-        declaredClosingAmount: data.declaredCash,
-      });
-    }
+    await cashRegisterTurnOrchestrator.closeCashRegisterTurn({
+      businessId,
+      userId: user.id,
+      declaredClosingAmount: data.declaredCash,
+    });
   };
 
   if (isCheckingStatus || (isOpen && isLoadingData)) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center gap-3 text-slate-500">
         <RefreshCw className="h-5 w-5 animate-spin text-emerald-600" />
-        <span className="text-sm font-medium">Cargando estado de caja...</span>
+        <span className="text-sm font-medium">
+          Cargando estado de caja...
+        </span>
       </div>
     );
   }
@@ -212,7 +214,6 @@ export default function CurrentCashRegisterTurnPage({ businessId }: Props) {
           Abrir Turno de Caja
         </button>
 
-        {/* Modal de Apertura de Caja */}
         <OpenTurnModal
           isOpen={isOpenTurnOpen}
           onClose={() => setIsOpenTurnOpen(false)}
@@ -238,7 +239,6 @@ export default function CurrentCashRegisterTurnPage({ businessId }: Props) {
       />
 
       <CashRegisterMetrics
-        expectedCashInDrawer={expectedCashInDrawer}
         initialCash={initialCash}
         totals={totals}
       />
@@ -268,7 +268,6 @@ export default function CurrentCashRegisterTurnPage({ businessId }: Props) {
       {/* Modal Cierre */}
       <CloseTurnModal
         isOpen={isCloseTurnOpen}
-        expectedCash={expectedCashInDrawer}
         onClose={() => setIsCloseTurnOpen(false)}
         onConfirmClose={handleCloseTurn}
       />

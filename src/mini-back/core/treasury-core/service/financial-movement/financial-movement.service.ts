@@ -20,14 +20,14 @@ import { FianancialTotals } from "../../signal/financial-movement/financial-move
 export class FinancialMovementService implements IFinancialMovementPublicService {
   constructor(private readonly movement: FinancialMovementPort) {}
 
-  async getActiveTurnTotals(clientTurnId: string): Promise<FianancialTotals> {
-    const movements = await this.movement.findByCashRegister(clientTurnId);
+  async getActiveTurnTotals(idTemp: string): Promise<FianancialTotals> {
+    const movements = await this.movement.findByCashRegister(idTemp);
 
     return movements.reduce(
       (acc, m) => {
         if (m.status !== FinancialMovementStatus.CONFIRMED) return acc;
 
-        if (m.cashRegisterTurnId !== clientTurnId) return acc;
+        if (m.cashRegisterTurnId !== idTemp) return acc;
 
         if (m.type === FinancialMovementType.COGS) return acc;
 
@@ -70,7 +70,7 @@ export class FinancialMovementService implements IFinancialMovementPublicService
       clientMovementId: input.clientMovementId,
       businessId: input.businessId,
       userId: input.userId,
-      cashRegisterTurnId: input.clientTurnId,
+      cashRegisterTurnId: input.idTemp,
 
       type: FinancialMovementType.SALE,
       status: FinancialMovementStatus.CONFIRMED,
@@ -97,7 +97,7 @@ export class FinancialMovementService implements IFinancialMovementPublicService
       userId: input.userId,
       approvedByUserId: input.userId,
 
-      cashRegisterTurnId: input.clientTurnId,
+      cashRegisterTurnId: input.idTemp,
 
       treasuryAccountId: input.treasuryAccountId,
 
@@ -125,7 +125,7 @@ export class FinancialMovementService implements IFinancialMovementPublicService
       businessId: input.businessId,
       userId: input.userId,
       approvedByUserId: input.approvedByUserId,
-      cashRegisterTurnId: input.clientTurnId,
+      cashRegisterTurnId: input.idTemp,
 
       type: FinancialMovementType.INCOME,
       status: FinancialMovementStatus.CONFIRMED,
@@ -152,7 +152,7 @@ export class FinancialMovementService implements IFinancialMovementPublicService
       businessId: input.businessId,
       userId: input.userId,
       approvedByUserId: input.approvedByUserId,
-      cashRegisterTurnId: input.clientTurnId,
+      cashRegisterTurnId: input.idTemp,
 
       treasuryAccountId: input.treasuryAccountId,
 
@@ -248,7 +248,7 @@ export class FinancialMovementService implements IFinancialMovementPublicService
       clientMovementId: input.clientMovementId,
       businessId: input.businessId,
       userId: input.userId,
-      cashRegisterTurnId: input.clientTurnId,
+      cashRegisterTurnId: input.idTemp,
 
       type: FinancialMovementType.COGS,
       status: FinancialMovementStatus.CONFIRMED,
@@ -269,7 +269,7 @@ export class FinancialMovementService implements IFinancialMovementPublicService
       clientMovementId: input.clientMovementId,
       businessId: input.businessId,
       userId: input.userId,
-      cashRegisterTurnId: input.clientTurnId,
+      cashRegisterTurnId: input.idTemp,
 
       type: FinancialMovementType.MERMAS,
       status: FinancialMovementStatus.CONFIRMED,

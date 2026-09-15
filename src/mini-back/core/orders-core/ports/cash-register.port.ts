@@ -1,3 +1,3 @@
 export interface CashRegisterPort {
-    findActive(businessId: string): Promise<{clientTurnId:string, id:string | null} | null>;
+    findActive(businessId: string): Promise<{idTemp:string, id:string | null} | null>;
 }

@@ -228,12 +228,12 @@ export class SalesCashRepository implements SalesCashQueryPort {
     const sessions =
       sessionIds.length > 0
         ? await db.cashRegisterTurn
-            .where("clientTurnId")
+            .where("idTemp")
             .anyOf(sessionIds)
             .toArray()
         : [];
 
-    const sessionMap = new Map(sessions.map((s) => [s.clientTurnId, s]));
+    const sessionMap = new Map(sessions.map((s) => [s.idTemp, s]));
 
     const cashRegisterMap = new Map<
       string,
