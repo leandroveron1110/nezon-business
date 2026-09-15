@@ -53,7 +53,6 @@ export default function OrderBuilder({
     | "QR"
     | "DEBIT_CARD"
     | "CREDIT_CARD"
-    | "MERCADO_PAGO"
     | "ACCOUNT"
     | "OTHER"
   >("CASH");

@@ -1,4 +1,4 @@
-export interface CloseCashRegisterInput {
+export interface CloseCashRegisterTurnInput {
   businessId: string;
 
   userId: string;

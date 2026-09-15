@@ -22,4 +22,6 @@ export interface RegisterRefundInput {
   referenceCashRegisterTurnId?: string;
 
   clientTurnId?: string;
+
+  treasuryAccountId: string;
 }

@@ -9,6 +9,8 @@ import {
 import { RegisterCogsInput } from "../../input/financial-movement/register-cogs.Input";
 import { RegisterExpenseInput } from "../../input/financial-movement/register-expense.input";
 import { RegisterIncomeInput } from "../../input/financial-movement/register-income.input";
+import { RegisterInternalTransferInput } from "../../input/financial-movement/register-internal-transfer.input";
+import { RegisterMermaInput } from "../../input/financial-movement/register-merma.input";
 import { RegisterRefundInput } from "../../input/financial-movement/register-refund.input";
 import { RegisterSaleInput } from "../../input/financial-movement/register-sale.input";
 import { FinancialMovementPort } from "../../port/financial-movement/financial-movement.port";
@@ -25,11 +27,11 @@ export class FinancialMovementService implements IFinancialMovementPublicService
       (acc, m) => {
         if (m.status !== FinancialMovementStatus.CONFIRMED) return acc;
 
-        if(m.cashRegisterTurnId !== clientTurnId) return acc;
+        if (m.cashRegisterTurnId !== clientTurnId) return acc;
 
-        if(m.type === FinancialMovementType.COGS ) return acc;
+        if (m.type === FinancialMovementType.COGS) return acc;
 
-        console.log(m.amount, m.cashRegisterTurnId)
+        console.log(m.amount, m.cashRegisterTurnId);
 
         const isExpenseOrRefund =
           m.type === FinancialMovementType.EXPENSE ||
@@ -73,6 +75,8 @@ export class FinancialMovementService implements IFinancialMovementPublicService
       type: FinancialMovementType.SALE,
       status: FinancialMovementStatus.CONFIRMED,
 
+      treasuryAccountId: input.treasuryAccountId,
+
       amount: input.amount,
       paymentMethod: input.paymentMethod,
       description: input.description,
@@ -94,6 +98,8 @@ export class FinancialMovementService implements IFinancialMovementPublicService
       approvedByUserId: input.userId,
 
       cashRegisterTurnId: input.clientTurnId,
+
+      treasuryAccountId: input.treasuryAccountId,
 
       type: FinancialMovementType.REFUND,
       status: FinancialMovementStatus.CONFIRMED,
@@ -124,6 +130,8 @@ export class FinancialMovementService implements IFinancialMovementPublicService
       type: FinancialMovementType.INCOME,
       status: FinancialMovementStatus.CONFIRMED,
 
+      treasuryAccountId: input.treasuryAccountId,
+
       amount: input.amount,
       paymentMethod: input.paymentMethod,
       description: input.description,
@@ -146,6 +154,8 @@ export class FinancialMovementService implements IFinancialMovementPublicService
       approvedByUserId: input.approvedByUserId,
       cashRegisterTurnId: input.clientTurnId,
 
+      treasuryAccountId: input.treasuryAccountId,
+
       type: FinancialMovementType.EXPENSE,
       status: FinancialMovementStatus.CONFIRMED,
 
@@ -160,6 +170,76 @@ export class FinancialMovementService implements IFinancialMovementPublicService
     };
 
     return this.movement.save(financialMovement);
+  }
+
+  async registerInternalTransfer(
+    input: RegisterInternalTransferInput,
+  ): Promise<FinancialMovement[]> {
+    if (input.sourceTreasuryAccountId === input.destinationTreasuryAccountId) {
+      throw new Error(
+        "Source and destination treasury accounts must be different",
+      );
+    }
+
+    if (input.amount <= 0) {
+      throw new Error("Transfer amount must be greater than zero");
+    }
+
+    const now = new Date();
+
+    const outgoingMovement: FinancialMovement = {
+      clientMovementId: input.outgoingClientMovementId,
+
+      businessId: input.businessId,
+
+      userId: input.userId,
+
+      treasuryAccountId: input.sourceTreasuryAccountId,
+
+      transferGroupId: input.transferGroupId,
+
+      type: FinancialMovementType.INTERNAL_TRANSFER_OUT,
+
+      status: FinancialMovementStatus.CONFIRMED,
+
+      amount: -input.amount,
+
+      description: input.description,
+
+      notes: input.notes,
+
+      externalReference: input.externalReference,
+
+      date: now,
+    };
+
+    const incomingMovement: FinancialMovement = {
+      clientMovementId: input.incomingClientMovementId,
+
+      businessId: input.businessId,
+
+      userId: input.userId,
+
+      treasuryAccountId: input.destinationTreasuryAccountId,
+
+      transferGroupId: input.transferGroupId,
+
+      type: FinancialMovementType.INTERNAL_TRANSFER_IN,
+
+      status: FinancialMovementStatus.CONFIRMED,
+
+      amount: input.amount,
+
+      description: input.description,
+
+      notes: input.notes,
+
+      externalReference: input.externalReference,
+
+      date: now,
+    };
+
+    return this.movement.saveMany([outgoingMovement, incomingMovement]);
   }
 
   // 📦 REGISTRO DE COSTO DE MERCADERÍA (COGS)
@@ -184,7 +264,7 @@ export class FinancialMovementService implements IFinancialMovementPublicService
     return this.movement.save(financialMovement);
   }
 
-  async registerMerma(input: RegisterCogsInput): Promise<FinancialMovement> {
+  async registerMerma(input: RegisterMermaInput): Promise<FinancialMovement> {
     const financialMovement: FinancialMovement = {
       clientMovementId: input.clientMovementId,
       businessId: input.businessId,
@@ -193,6 +273,8 @@ export class FinancialMovementService implements IFinancialMovementPublicService
 
       type: FinancialMovementType.MERMAS,
       status: FinancialMovementStatus.CONFIRMED,
+
+      treasuryAccountId: input.treasuryAccountId,
 
       amount: input.amount,
       description: input.description,

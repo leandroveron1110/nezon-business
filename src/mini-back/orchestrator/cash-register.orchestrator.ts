@@ -1,77 +1,79 @@
-// Adapters de Infraestructura (Dexie)
-
-// Capa pública del Core de Caja
-import {
-  CashRegisterServicePublic,
-  InitializeCashRegisterInput,
-  OpenCashRegisterInput,
-  CloseCashRegisterInput,
-  CashRegister,
-  CashRegisterTotals,
-  HistoryFiltersInput,
-} from "@/mini-back/core/cash-register-core/public";
-import { CashRegisterDexieRepository } from "../infrastructure/dexie/repositories/cash-register-dexie.repository";
-import { FinancialMovementDexieRepository } from "../infrastructure/dexie/repositories/financial-movement-dexie.repository";
-import { ICashRegisterService } from "../core/cash-register-core/public/cash-register-service.interface";
 import { db } from "../infrastructure/dexie/db";
 import { financialMovementOrchestrator } from "./financial-movement-orchestrator";
+import { ICashRegisterTurnService } from "../core/cash-register-core/public/cash-register-turn-service.interface";
+import { CashRegisterTurnDexieRepository } from "../infrastructure/dexie/repositories/cash-register/cash-register-turn-dexie.repository";
+import {
+  CashRegisterTurn,
+  CashRegisterTurnServicePublic,
+  CloseCashRegisterTurnInput,
+  HistoryFiltersInput,
+  InitializeCashRegisterTurnInput,
+  OpenCashRegisterTurnInput,
+} from "../core/cash-register-core/public";
+import { CashRegisterDexieRepository } from "../infrastructure/dexie/repositories/cash-register/cash-register-dexie.repository";
 
-class CashRegisterOrchestrator {
-  private readonly cashRegisterService: ICashRegisterService;
+class CashRegisterTurnOrchestrator {
+  private readonly CashRegisterTurnService: ICashRegisterTurnService;
 
   constructor() {
     // 💡 Inyección de Infraestructura en los Puertos del Core
-    const cashRegisterRepo = new CashRegisterDexieRepository(db);
+    const cashRegisterTurnRepo = new CashRegisterTurnDexieRepository(db);
+    const cashRegisterRepo = new CashRegisterDexieRepository();
 
-    this.cashRegisterService = CashRegisterServicePublic({
-      cashRegister: cashRegisterRepo,
-    });
+    this.CashRegisterTurnService = CashRegisterTurnServicePublic(
+      cashRegisterTurnRepo,
+      cashRegisterRepo,
+    );
   }
 
   // ==========================================================================
   // FLUJOS DE CAJA
   // ==========================================================================
 
-  async initializeCashRegister(
-    input: InitializeCashRegisterInput,
-  ): Promise<CashRegister> {
-    return this.cashRegisterService.initialize(input);
+  async initializeCashRegisterTurn(
+    input: InitializeCashRegisterTurnInput,
+  ): Promise<CashRegisterTurn> {
+    return this.CashRegisterTurnService.initialize(input);
   }
 
-  async getCashTurn(businessId: string): Promise<{ clientTurnId?: string }> {
-    return this.cashRegisterService.getCashTurn(businessId);
+  async getCashTurn(
+    businessId: string,
+  ): Promise<{ clientTurnId: string; treasuryAccountId: string; cashRegisterId: string }> {
+    return this.CashRegisterTurnService.getCashTurn(businessId);
   }
 
-  async openCashRegister(input: OpenCashRegisterInput): Promise<CashRegister> {
-    return this.cashRegisterService.open(input);
+  async openCashRegisterTurn(
+    input: OpenCashRegisterTurnInput,
+  ): Promise<CashRegisterTurn> {
+    return this.CashRegisterTurnService.open(input);
   }
 
-  async closeCashRegister(
-    input: CloseCashRegisterInput,
-  ): Promise<CashRegister | null> {
-    const closedRegister = await this.cashRegisterService.close(input, {
+  async closeCashRegisterTurn(
+    input: CloseCashRegisterTurnInput,
+  ): Promise<CashRegisterTurn | null> {
+    const closedRegister = await this.CashRegisterTurnService.close(input, {
       getActiveTurnTotals(clientTurnId) {
         return financialMovementOrchestrator.getActiveTurnTotals(clientTurnId);
       },
     });
 
-    // 💡 REACCIÓN TÁCTICA DE ORQUESTATOR:
+    // 💡 REACCIÓN TÁCTICA DE ORQUESTADOR:
     // Al cerrar la caja, podríamos gatillar eventos secundarios (ej: notificar a SyncQueueWorker)
     return closedRegister;
   }
 
   async historyCashRegiter(
     filter: HistoryFiltersInput,
-  ): Promise<CashRegister[]> {
-    return await this.cashRegisterService.historyCashRegiter(filter);
+  ): Promise<CashRegisterTurn[]> {
+    return await this.CashRegisterTurnService.historyCashRegiter(filter);
   }
 
-  async reopenCashRegister(
+  async reopenCashRegisterTurn(
     businessId: string,
     turnId: string,
-  ): Promise<CashRegister> {
-    return this.cashRegisterService.reopen(businessId, turnId);
+  ): Promise<CashRegisterTurn> {
+    return this.CashRegisterTurnService.reopen(businessId, turnId);
   }
 }
 
-export const cashRegisterOrchestrator = new CashRegisterOrchestrator();
+export const cashRegisterTurnOrchestrator = new CashRegisterTurnOrchestrator();

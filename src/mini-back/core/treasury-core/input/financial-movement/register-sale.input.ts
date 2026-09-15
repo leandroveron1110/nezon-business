@@ -20,4 +20,6 @@ export interface RegisterSaleInput {
   externalReference?: string;
 
   clientTurnId?: string;
+
+  treasuryAccountId: string;
 }

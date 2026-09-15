@@ -16,6 +16,8 @@ export interface RegisterExpenseInput {
 
   clientTurnId?: string;
 
+  treasuryAccountId: string;
+
   orderId?: string;
 
   notes?: string;

@@ -10,6 +10,8 @@ export interface RegisterCogsInput {
 
   clientTurnId?: string;
 
+  treasuryAccountId?: string;
+
   description: string;
 
   orderId?: string;

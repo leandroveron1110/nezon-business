@@ -10,10 +10,11 @@ import { DexieOrderIdentityAdapter } from "../infrastructure/dexie/repositories/
 import { DexieOrderRepositoryAdapter } from "../infrastructure/dexie/repositories/dexie-order.repository";
 import { cloudSyncService } from "../infrastructure/network/CloudSyncService";
 import { requestDeliveryDispatch } from "../infrastructure/network/delivery-api";
-import { cashRegisterOrchestrator } from "./cash-register.orchestrator";
 import { DeliveryStatus, PaymentStatus } from "@/types/order-state-machine";
 import { OrderStatus } from "../core/orders-core/domain/order-state-machine";
 import { financialMovementOrchestrator } from "./financial-movement-orchestrator";
+import { cashRegisterTurnOrchestrator } from "./cash-register.orchestrator";
+import { CashRegisterOrchestrator } from "./cash-register/cash-register-orchestrator";
 // import { syncQueueWorker } from "../infrastructure/network/SyncQueueWorker";
 
 const MAX_RETRIES = 3;
@@ -137,9 +138,18 @@ export const updateOrderStatusOrchestrator = async (
     // ---------------------------------------------------------------
     // 1. ESCENARIO HILO DE PAGO (PAYMENT)
     // ---------------------------------------------------------------
-    const turnId = await cashRegisterOrchestrator.getCashTurn(
+    const turn = await cashRegisterTurnOrchestrator.getCashTurn(
       result.data.businessId,
     );
+
+    const cashRegisterOrchestrator = new CashRegisterOrchestrator();
+
+    const treasuryAccountIdTemp =
+      await cashRegisterOrchestrator.resolveTreasuryAccountId(
+        turn.cashRegisterId,
+        order.orderPaymentMethod,
+        order.businessId,
+      );
     if (input.thread === "PAYMENT") {
       const paymentValue = input.nextValue as PaymentStatus;
 
@@ -148,10 +158,12 @@ export const updateOrderStatusOrchestrator = async (
         await financialMovementOrchestrator.processSaleMovement({
           businessId: order.businessId,
           userId: order.userId || "system",
+          treasuryAccountId: treasuryAccountIdTemp,
           amount: order.total - (order.totalDeliveryCost ?? 0),
           paymentMethod: order.orderPaymentMethod,
           orderId: order.idTemp,
-          clientTurnId: turnId.clientTurnId,
+          clientTurnId: turn.clientTurnId,
+
           description: `Cobro de pedido #${order.shortCode || order.idTemp.slice(-4)}`,
         });
 
@@ -163,7 +175,7 @@ export const updateOrderStatusOrchestrator = async (
             approvedByUserId: order.userId || "system",
             amount: totalCogs,
             orderId: order.idTemp,
-            clientTurnId: turnId.clientTurnId,
+            clientTurnId: turn.clientTurnId,
             description: `Costo de mercadería (COGS) pedido #${order.shortCode || order.idTemp.slice(-4)}`,
           });
         }
@@ -175,7 +187,8 @@ export const updateOrderStatusOrchestrator = async (
           amount: order.total - (order.totalDeliveryCost ?? 0),
           paymentMethod: order.orderPaymentMethod,
           orderId: order.idTemp,
-          clientTurnId: turnId.clientTurnId,
+          clientTurnId: turn.clientTurnId,
+          treasuryAccountId: treasuryAccountIdTemp,
           description: `Reversión de cobro pedido #${order.shortCode || order.idTemp.slice(-4)}`,
         });
       }
@@ -201,7 +214,8 @@ export const updateOrderStatusOrchestrator = async (
             amount: order.total - (order.totalDeliveryCost ?? 0),
             paymentMethod: order.orderPaymentMethod,
             orderId: order.idTemp,
-            clientTurnId: turnId.clientTurnId,
+            clientTurnId: turn.clientTurnId,
+            treasuryAccountId: treasuryAccountIdTemp,
             description: `Devolución por cancelación de pedido #${order.shortCode || order.idTemp.slice(-4)}`,
           });
         }
@@ -218,7 +232,8 @@ export const updateOrderStatusOrchestrator = async (
             approvedByUserId: order.userId || "system",
             amount: totalCogs,
             orderId: order.idTemp,
-            clientTurnId: turnId.clientTurnId,
+            treasuryAccountId: treasuryAccountIdTemp,
+            clientTurnId: turn.clientTurnId,
             description: `Merma por cancelación de pedido en cocina #${order.shortCode || order.idTemp.slice(-4)}`,
           });
         }

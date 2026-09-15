@@ -1,22 +1,17 @@
-import { CashRegister } from "../domain/cash-register";
-import { CashRegisterTotals } from "../public";
+import { CashRegister } from "../domain/cash-register/cash-register";
 
 export interface CashRegisterPort {
-  findActive(businessId: string): Promise<CashRegister | null>;
-
-  findById(id: string): Promise<CashRegister | null>;
-
-  findByClientTurnId(clientTurnId: string): Promise<CashRegister | null>;
-
-  save(cashRegister: CashRegister): Promise<CashRegister>;
-
-  update(cashRegister: CashRegister): Promise<CashRegister>;
-
-  close(cashRegister: CashRegister): Promise<CashRegister>;
-
-  findByBusinessId(businessId: string): Promise<CashRegister[]>
+  exist(id: string): Promise<boolean>;
+  save(register: CashRegister): Promise<CashRegister>;
+  findByIdTemp(idTemp: string): Promise<CashRegister | null>;
+  findByBusinessId(businessId: string): Promise<CashRegister[]>;
+  findByName(businessId: string, name: string): Promise<CashRegister | null>;
 }
 
-export interface CashRegisterActiveTurnTotals {
-  getActiveTurnTotals(clientTurnId: string): Promise<CashRegisterTotals>
+export interface CashRegisterValidationPort {
+  existsByIdTemp(cashRegisterId: string, businessId: string): Promise<boolean>;
+}
+
+export interface TreasuryAccountValidationPort {
+  existsAndIsActive(treasuryAccountId: string, businessId: string): Promise<boolean>;
 }

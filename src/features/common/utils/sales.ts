@@ -114,7 +114,6 @@ export function formatPaymentMethod(value: string) {
     CASH: "Efectivo",
     TRANSFER: "Transferencia",
     CARD: "Tarjeta",
-    MERCADO_PAGO: "Mercado Pago",
   };
 
   return (

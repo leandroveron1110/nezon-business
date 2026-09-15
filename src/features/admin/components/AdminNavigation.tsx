@@ -12,14 +12,14 @@ const items = [
     label: "Ventas",
     href: "sales",
   },
-  // {
-  //   label: "Productos",
-  //   href: "products",
-  // },
-  // {
-  //   label: "Gastos",
-  //   href: "expenses",
-  // },
+  {
+    label: "Tesorería",
+    href: "treasury",
+  },
+  {
+    label: "Caja",
+    href: "cash-register",
+  },
   // {
   //   label: "Rentabilidad",
   //   href: "profitability",

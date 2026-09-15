@@ -41,7 +41,6 @@ interface OrderPanelProps {
     | "QR"
     | "DEBIT_CARD"
     | "CREDIT_CARD"
-    | "MERCADO_PAGO"
     | "ACCOUNT"
     | "OTHER";
   setPaymentMethod: (
@@ -51,7 +50,6 @@ interface OrderPanelProps {
       | "QR"
       | "DEBIT_CARD"
       | "CREDIT_CARD"
-      | "MERCADO_PAGO"
       | "ACCOUNT"
       | "OTHER",
   ) => void;

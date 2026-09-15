@@ -50,15 +50,24 @@ export interface LocalFinancialMovement {
   treasuryAccountIdTemp?: string;
   treasuryAccountId?: string;
 
+  /**
+   * Identificador que vincula dos movimientos que
+   * pertenecen a una misma transferencia interna.
+   *
+   * Solo aplica a:
+   *
+   * - INTERNAL_TRANSFER_OUT
+   * - INTERNAL_TRANSFER_IN
+   */
+  transferGroupId?: string;
+
   // Si el movimiento es el pago de un Gasto Fijo de Estructura
   fixedExpenseIdTemp?: string;
   
   // Si el movimiento liquida una Cuenta por Pagar / Cobrar
   pendingCommitmentIdTemp?: string;
 
-  // Si el movimiento es una transferencia entre cajas (ej: retiro de caja a Banco)
-  destinationTreasuryAccountIdTemp?: string;
 }
 
 export const FINANCIAL_MOVEMENT_STORE =
-  "idTemp, id, businessId, cashRegisterTurnIdTemp, cashRegisterTurnId, orderIdTemp, orderId, type, status, paymentMethod, syncStatus, date";
+  "idTemp, id, businessId, cashRegisterTurnIdTemp, cashRegisterTurnId, orderIdTemp, orderId, treasuryAccountIdTemp, treasuryAccountId, type, status, paymentMethod, syncStatus, date";

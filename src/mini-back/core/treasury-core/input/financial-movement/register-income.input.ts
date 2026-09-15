@@ -12,6 +12,8 @@ export interface RegisterIncomeInput {
 
   clientTurnId?: string;
 
+  treasuryAccountId: string;
+
   paymentMethod: PaymentMethodTypeFinancial;
 
   description: string;

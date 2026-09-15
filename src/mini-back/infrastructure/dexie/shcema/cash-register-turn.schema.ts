@@ -24,10 +24,12 @@ export interface LocalCashRegisterTurn {
   difference?: number;
   closingNotes?: string;
   status: CashRegisterStatus;
+  cashRegisterId: string;     // FK a LocalCashRegister (Saber EN QUÉ punto de venta operó)
+  treasuryAccountId: string;  // FK a LocalTreasuryAccount (Saber QUÉ cuenta de efectivo afectó)
   // AUDITORÍA
   createdAt: Date;
   updatedAt: Date;
 }
 // ÍNDICES DEXIE
-export const CASH_REGISTER_STORE =
+export const CASH_REGISTER_TURN_STORE =
   "clientTurnId, id, businessId, status, syncStatus, openingDate, [businessId+status]";

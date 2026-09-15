@@ -24,12 +24,11 @@ import {
 } from "@/types/order-state-machine";
 import { OrderKitchenView } from "./order/view-detail-order/OrderKitchenView";
 import { OrderTicket } from "./order/ticket-order/OrderTicket";
-import { CashRegisterStatusBadge } from "@/features/cashRegister/components/CashRegisterStatusBadge";
-import { OpenCashModal } from "@/features/cashRegister/components/OpenCashModal";
-import { useCashRegisterStatus } from "@/features/cashRegister/hooks/useCashRegisterStatus";
+import { CashRegisterStatusBadge } from "@/features/cashRegisterTurn/components/CashRegisterStatusBadge";
 import { OrderCard } from "./order/order-card/OrderCard";
 import { syncCatalogIfNeeded } from "@/features/common/database/sync/sync";
 import { OrderDetailsSidePanel } from "./order/view-detail-order/order/OrderDetailsSidePanel";
+import { useCashRegisterTurnStatus } from "@/features/cashRegisterTurn/hooks/useCashRegisterTurnStatus";
 
 interface Props {
   businessId: string;
@@ -64,7 +63,7 @@ export default function BusinessOrdersPage({ businessId }: Props) {
   >(null);
 
   const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
-  const { isOpen } = useCashRegisterStatus(businessId);
+  const { isOpen } = useCashRegisterTurnStatus(businessId);
 
   // --- ANCLA TEMPORAL GLOBAL (RELOJ DE PANTALLA) ---
   const [now, setNow] = useState<number>(Date.now());
@@ -482,15 +481,6 @@ export default function BusinessOrdersPage({ businessId }: Props) {
         onSelect={executePrint}
       />
 
-      {/* RENDER DEL MODAL */}
-      <OpenCashModal
-        businessId={businessId}
-        isOpen={showOpenCashModal}
-        onClose={() => setShowOpenCashModal(false)}
-        onSuccess={() => {
-          // Opcional: mostrar alerta de éxito
-        }}
-      />
 
       {isNewOrder && (
         <OrderBuilder

@@ -5,11 +5,12 @@ import {
   RegisterCogsInput,
   RegisterExpenseInput,
   RegisterIncomeInput,
+  RegisterMermaInput,
   RegisterRefundInput,
   RegisterSaleInput,
 } from "../core/treasury-core/public";
 import { db } from "../infrastructure/dexie/db";
-import { FinancialMovementDexieRepository } from "../infrastructure/dexie/repositories/financial-movement-dexie.repository";
+import { FinancialMovementDexieRepository } from "../infrastructure/dexie/repositories/admin/financial-movement/financial-movement-dexie.repository";
 
 class FinancialMovementOrchetrator {
   private readonly movementService: IFinancialMovementPublicService;
@@ -50,7 +51,7 @@ class FinancialMovementOrchetrator {
   }
 
   async processMermaMovement(
-    input: RegisterCogsInput,
+    input: RegisterMermaInput,
   ): Promise<FinancialMovement> {
     try {
       return await this.movementService.registerMerma(input);

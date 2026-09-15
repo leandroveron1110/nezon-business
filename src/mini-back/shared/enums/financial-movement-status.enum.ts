@@ -11,7 +11,10 @@ export enum FinancialMovementType {
   INCOME = "INCOME",   // 📥 Otros ingresos en efectivo (+ $10.000) -> Afecta Caja
   EXPENSE = "EXPENSE", // 📤 Gastos operativos generales / MERMAS (- $3.000) -> Afecta Caja o Ganancia
   COGS = "COGS",       // 📦 Costo de la mercadería vendida (- $2.000) -> NO afecta saldo de Caja
-  MERMAS = "MERMAS"
+  MERMAS = "MERMAS",
+  INTERNAL_TRANSFER = "INTERNAL_TRANSFER",
+  INTERNAL_TRANSFER_OUT = "INTERNAL_TRANSFER_OUT",
+  INTERNAL_TRANSFER_IN = "INTERNAL_TRANSFER_IN",
 }
 
 export enum PaymentMethodTypeFinancial {
@@ -20,7 +23,6 @@ export enum PaymentMethodTypeFinancial {
   QR = "QR",
   DEBIT_CARD = "DEBIT_CARD",
   CREDIT_CARD = "CREDIT_CARD",
-  MERCADO_PAGO = "MERCADO_PAGO",
   ACCOUNT = "ACCOUNT",
   OTHER = "OTHER",
 }

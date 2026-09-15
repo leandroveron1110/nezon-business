@@ -1,164 +1,149 @@
-import { CashRegister } from "../domain/cash-register";
-import { CashRegisterStatus } from "../domain/cash-register-status.enum";
-
-import { CloseCashRegisterInput } from "../input/close.input";
-import { HistoryFiltersInput } from "../input/hitory-filter.input";
-import { InitializeCashRegisterInput } from "../input/initialize.input";
-import { OpenCashRegisterInput } from "../input/open.input";
-
+import { CashRegister } from "../domain/cash-register/cash-register";
+import { CreateCashRegisterInput } from "../input/cash-register/create-cash-register.input";
+import { UpdateCashRegisterInput } from "../input/cash-register/update-cash-register.input";
 import {
-  CashRegisterActiveTurnTotals,
   CashRegisterPort,
+  TreasuryAccountValidationPort,
 } from "../port/cash-register.port";
 import { ICashRegisterService } from "../public/cash-register-service.interface";
 
 export class CashRegisterService implements ICashRegisterService {
-  constructor(private readonly cashRegister: CashRegisterPort) {}
-  reopen(businessId: string, turnId: string): Promise<CashRegister> {
-    throw new Error("Method not implemented.");
-  }
+  constructor(
+    private readonly cashRegisterPort: CashRegisterPort,
+    private readonly treasuryAccountValidationPort: TreasuryAccountValidationPort,
+  ) {}
 
-  async getCashTurn(businessId: string): Promise<{ clientTurnId?: string }> {
-    const turnId = await this.cashRegister.findActive(businessId);
-
-    return {
-      clientTurnId: turnId?.clientTurnId,
-    };
-  }
-
-  async initialize(input: InitializeCashRegisterInput): Promise<CashRegister> {
-    const active = await this.cashRegister.findActive(input.businessId);
-
-    if (active) {
-      return active;
+  async findById(idTemp: string, businessId: string): Promise<CashRegister> {
+    const register = await this.cashRegisterPort.findByIdTemp(idTemp);
+    if (!register || register.businessId !== businessId) {
+      throw new Error("Caja no encontrada.");
     }
-
-    return this.open({
-      businessId: input.businessId,
-      userId: input.userId,
-      clientTurnId: input.clientTurnId, // Opcional: si viene de la app cliente/UI
-      openingAmount: input.openingAmount,
-      openingNotes: input.openingNotes,
-    });
+    
+    return register
   }
 
-  async historyCashRegiter(
-    filter: HistoryFiltersInput,
-  ): Promise<CashRegister[]> {
-    if (!filter.businessId) {
+  async create(input: CreateCashRegisterInput): Promise<CashRegister> {
+    const normalizedName = this.normalizeName(input.name);
+
+    // 1. Validar nombre disponible
+    await this.ensureNameIsAvailable(input.businessId, normalizedName);
+
+    // 2. Validar que la cuenta de tesorería asociada por defecto exista y esté activa
+    const isTreasuryValid =
+      await this.treasuryAccountValidationPort.existsAndIsActive(
+        input.defaultTreasuryAccountId,
+        input.businessId,
+      );
+    if (!isTreasuryValid) {
       throw new Error(
-        "El businessId es requerido para consultar el historial.",
+        "Invariante Rota: La cuenta de tesorería por defecto asignada no existe o está inactiva.",
       );
     }
 
-    // 1. Consultar a través de tu repositorio/capa de datos (IndexedDB/Dexie)
-    // Se filtran por negocio y se ordenan por apertura descendente (más recientes primero)
-    let turns = await this.cashRegister.findByBusinessId(filter.businessId);
-
-    // 2. Aplicar filtros en memoria si vienen especificados
-    if (filter?.startDate) {
-      turns = turns.filter(
-        (turn) => new Date(turn.openingDate) >= filter.startDate!,
-      );
-    }
-
-    if (filter?.endDate) {
-      turns = turns.filter(
-        (turn) => new Date(turn.openingDate) <= filter.endDate!,
-      );
-    }
-
-    // 3. Ordenar siempre los más recientes primero
-    turns.sort(
-      (a, b) =>
-        new Date(b.openingDate).getTime() - new Date(a.openingDate).getTime(),
-    );
-
-    // 4. Paginación / Límite
-    const offset = filter?.offset || 0;
-    const limit = filter?.limit;
-
-    if (limit) {
-      return turns.slice(offset, offset + limit);
-    }
-
-    return turns;
-  }
-
-  async open(input: OpenCashRegisterInput): Promise<CashRegister> {
-    // 1. Idempotencia: Si la UI mandó un ID local previo, verificamos si ya existe
-    if (input.clientTurnId) {
-      const existingClient = await this.cashRegister.findByClientTurnId(
-        input.clientTurnId,
-      );
-      if (existingClient) {
-        return existingClient;
-      }
-    }
-
-    // 2. Regla de Negocio: Solo una caja abierta por negocio
-    const active = await this.cashRegister.findActive(input.businessId);
-    if (active) {
-      throw new Error("Ya existe una caja abierta para este negocio.");
-    }
-
-    // 3. Creación del objeto de dominio SIN forzar UUIDs de Infraestructura
-    const cashRegister: Partial<CashRegister> = {
-      clientTurnId: input.clientTurnId,
+    // 3. Dominio Puro
+    const now = new Date();
+    const newRegister: CashRegister = {
+      idTemp: input.idTemp,
+      id: null,
       businessId: input.businessId,
-      openedByUserId: input.userId,
-      openingDate: new Date(),
-      openingAmount: input.openingAmount,
-      openingNotes: input.openingNotes,
-      status: CashRegisterStatus.OPEN,
+      name: normalizedName,
+      defaultTreasuryAccountId: input.defaultTreasuryAccountId,
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
     };
 
-    // El repositorio se encarga de asignar el ID definitivo/local si no viene uno
-    return this.cashRegister.save(cashRegister as CashRegister);
+    return this.cashRegisterPort.save(newRegister);
   }
 
-  // 🛠️ DENTRO DE CashRegisterService.ts (Método close)
+  async update(input: UpdateCashRegisterInput): Promise<CashRegister> {
+    const register = await this.cashRegisterPort.findByIdTemp(input.idTemp);
+    if (!register || register.businessId !== input.businessId) {
+      throw new Error("Negocio Denegado: La caja física no existe.");
+    }
 
-  async close(
-    input: CloseCashRegisterInput,
-    port: CashRegisterActiveTurnTotals,
+    const normalizedName = this.normalizeName(input.name);
+
+    if (register.name !== normalizedName) {
+      await this.ensureNameIsAvailable(
+        input.businessId,
+        normalizedName,
+        register.idTemp,
+      );
+    }
+
+    let defaultTreasuryAccountId = register.defaultTreasuryAccountId;
+
+    if (
+      input.defaultTreasuryAccountId &&
+      input.defaultTreasuryAccountId !== register.defaultTreasuryAccountId
+    ) {
+      const isTreasuryValid =
+        await this.treasuryAccountValidationPort.existsAndIsActive(
+          input.defaultTreasuryAccountId,
+          input.businessId,
+        );
+      if (!isTreasuryValid) {
+        throw new Error(
+          "Invariante Rota: La nueva cuenta de tesorería asignada no está activa.",
+        );
+      }
+      defaultTreasuryAccountId = input.defaultTreasuryAccountId;
+    }
+
+    const updatedRegister: CashRegister = {
+      ...register,
+      name: normalizedName,
+      defaultTreasuryAccountId,
+      updatedAt: new Date(),
+    };
+
+    return this.cashRegisterPort.save(updatedRegister);
+  }
+
+  async toggleActive(
+    idTemp: string,
+    businessId: string,
   ): Promise<CashRegister> {
-    const turn = await this.cashRegister.findActive(input.businessId);
-
-    if (!turn) {
-      throw new Error("No existe una caja abierta para este negocio.");
+    const register = await this.cashRegisterPort.findByIdTemp(idTemp);
+    if (!register || register.businessId !== businessId) {
+      throw new Error("Caja no encontrada.");
     }
 
-    const turnIdentifier = turn.clientTurnId;
+    const updatedRegister: CashRegister = {
+      ...register,
+      isActive: !register.isActive,
+      updatedAt: new Date(),
+    };
 
-    if (!turnIdentifier) {
-      throw new Error("El turno activo no posee un identificador válido.");
+    return this.cashRegisterPort.save(updatedRegister);
+  }
+
+  async findByBusinessId(businessId: string): Promise<CashRegister[]> {
+    return this.cashRegisterPort.findByBusinessId(businessId);
+  }
+
+  async findActiveByBusinessId(businessId: string): Promise<CashRegister[]> {
+    const registers = await this.cashRegisterPort.findByBusinessId(businessId);
+    return registers.filter((r) => r.isActive);
+  }
+
+  private normalizeName(name: string): string {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      throw new Error("El nombre de la caja física no puede estar vacío.");
     }
+    return trimmed;
+  }
 
-    // 1. Totales de movimientos del turno (Neto operado)
-    const totals = await port.getActiveTurnTotals(turnIdentifier);
-
-    const netCashOperated = totals.cash;
-    const openingAmount = turn.openingAmount || 0;
-
-    // 2. El dinero esperado TOTAL en el cajón físico (Fondo + Neto Operado)
-    const totalExpectedInDrawer = openingAmount + netCashOperated;
-
-    // 3. Mutación limpia de la entidad de dominio
-    turn.closedByUserId = input.userId;
-    turn.closingDate = new Date();
-    turn.declaredClosingAmount = input.declaredClosingAmount;
-
-    // Guardamos el neto operado en systemClosingAmount
-    turn.systemClosingAmount = netCashOperated;
-
-    // 💥 REGLA DE NEGOCIO CORREGIDA:
-    // Arqueo = Declarado - Esperado Real en Cajón
-    turn.difference = input.declaredClosingAmount - totalExpectedInDrawer;
-
-    turn.closingNotes = input.closingNotes;
-    turn.status = CashRegisterStatus.CLOSED;
-
-    return this.cashRegister.close(turn);
+  private async ensureNameIsAvailable(
+    businessId: string,
+    name: string,
+    excludeIdTemp?: string,
+  ): Promise<void> {
+    const existing = await this.cashRegisterPort.findByName(businessId, name);
+    if (existing && existing.idTemp !== excludeIdTemp) {
+      throw new Error(`Ya existe una caja registrada con el nombre "${name}".`);
+    }
   }
 }

@@ -18,7 +18,6 @@ const PAYMENT_LABELS: Record<PaymentMethodTypeFinancial, string> = {
   [PaymentMethodTypeFinancial.ACCOUNT]: "ACCOUNT",
   [PaymentMethodTypeFinancial.CREDIT_CARD]: "CREDIT_CARD",
   [PaymentMethodTypeFinancial.DEBIT_CARD]: "DEBIT_CARD",
-  [PaymentMethodTypeFinancial.MERCADO_PAGO]: "MERCADO_PAGO",
 };
 
 const formatMoney = (value: number) =>
