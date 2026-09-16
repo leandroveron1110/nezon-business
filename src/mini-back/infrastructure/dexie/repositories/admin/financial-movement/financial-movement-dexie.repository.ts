@@ -6,6 +6,10 @@ import {
 } from "@/mini-back/core/treasury-core/public";
 import { HunayDB } from "../../../db";
 import { LocalFinancialMovement } from "../../../shcema/financial-movement.schema";
+import {
+  FinancialMovementStatus,
+  FinancialMovementType,
+} from "@/mini-back/shared/enums/financial-movement-status.enum";
 
 export class FinancialMovementDexieRepository implements FinancialMovementPort {
   constructor(private readonly db: HunayDB) {}
@@ -21,17 +25,160 @@ export class FinancialMovementDexieRepository implements FinancialMovementPort {
     accountIdTemp: string,
     businessId: string,
   ): Promise<number> {
+    // Buscamos todos los movimientos pertenecientes
+    // a esta cuenta de Tesorería.
     const movements = await this.db.financialMovement
       .where("treasuryAccountIdTemp")
       .equals(accountIdTemp)
       .and((item) => item.businessId === businessId)
       .toArray();
 
-    return movements.reduce((acc, movement) => {
-      if (movement.status !== "CONFIRMED") return acc;
+    return movements.reduce((balance, movement) => {
 
-      return acc + movement.amount;
+      if (movement.status !== FinancialMovementStatus.CONFIRMED) {
+        return balance;
+      }
+      const impact = this.getMovementBalanceImpact(movement);
+
+      // --------------------------------------------------
+      // 3. APLICAMOS EL IMPACTO AL SALDO
+      // --------------------------------------------------
+
+      return balance + impact;
     }, 0);
+  }
+
+  private getMovementBalanceImpact(movement: LocalFinancialMovement): number {
+    const amount = Math.abs(movement.amount);
+
+    switch (movement.type) {
+      // ================================================
+      // ENTRADAS DE DINERO
+      // ================================================
+      //
+      // Estos movimientos aumentan el saldo de la cuenta.
+
+      case FinancialMovementType.SALE:
+        // Una venta cobrada mete dinero en la cuenta.
+        //
+        // Ejemplo:
+        // Caja = $10.000
+        // Venta = $2.000
+        // Nuevo saldo = $12.000
+        return amount;
+
+      case FinancialMovementType.INCOME:
+        // Un ingreso también mete dinero.
+        //
+        // Ejemplo:
+        // "El dueño puso $5.000 en caja"
+        //
+        // Caja = $10.000
+        // Ingreso = $5.000
+        // Nuevo saldo = $15.000
+        return amount;
+
+      case FinancialMovementType.INTERNAL_TRANSFER_IN:
+        // Una transferencia interna recibida
+        // aumenta esta cuenta.
+        //
+        // Ejemplo:
+        //
+        // Banco → Caja
+        //
+        // Banco:
+        //   -$10.000
+        //
+        // Caja:
+        //   +$10.000
+        return amount;
+
+      // ================================================
+      // SALIDAS DE DINERO
+      // ================================================
+      //
+      // Estos movimientos disminuyen el saldo.
+
+      case FinancialMovementType.REFUND:
+        // Una devolución devuelve dinero al cliente.
+        //
+        // Por lo tanto, el dinero SALE de la caja.
+        //
+        // Ejemplo:
+        // Caja = $10.000
+        // Devolución = $2.000
+        // Nuevo saldo = $8.000
+        //
+        // Da igual si amount vino como +2000 o -2000.
+        // Nosotros ya hicimos Math.abs().
+        return -amount;
+
+      case FinancialMovementType.EXPENSE:
+        // Un gasto saca dinero de la cuenta.
+        //
+        // Ejemplo:
+        // "Compramos bolsas por $3.000"
+        //
+        // Caja = $10.000
+        // Gasto = $3.000
+        // Nuevo saldo = $7.000
+        return -amount;
+
+      case FinancialMovementType.MERMAS:
+        // Una merma representa dinero/valor que se pierde
+        // y que queremos reflejar como salida de Tesorería.
+        //
+        // Por eso disminuye el saldo.
+        return -amount;
+
+      case FinancialMovementType.INTERNAL_TRANSFER_OUT:
+        // Una transferencia interna enviada
+        // disminuye esta cuenta.
+        //
+        // Ejemplo:
+        //
+        // Caja → Banco
+        //
+        // Caja:
+        //   -$10.000
+        //
+        // Banco:
+        //   +$10.000
+        return -amount;
+
+      // ================================================
+      // NO IMPACTA TESORERÍA
+      // ================================================
+
+      case FinancialMovementType.COGS:
+        // COGS = costo de mercadería vendida.
+        //
+        // Esto puede afectar resultados contables,
+        // pero NO significa que en este momento
+        // haya salido dinero de esta cuenta.
+        //
+        // Ejemplo:
+        //
+        // Vendimos una hamburguesa que nos costó $3.000.
+        //
+        // El costo existe.
+        // Pero el movimiento de costo no representa
+        // necesariamente una salida de $3.000 de la caja
+        // en este momento.
+        //
+        // Por eso NO modifica el saldo de Tesorería.
+        return 0;
+
+      // ================================================
+      // TIPO NO CONTEMPLADO
+      // ================================================
+
+      default:
+        // Si aparece un tipo nuevo y todavía no definimos
+        // cómo afecta Tesorería, por seguridad no
+        // modificamos el saldo.
+        return 0;
+    }
   }
 
   /**
