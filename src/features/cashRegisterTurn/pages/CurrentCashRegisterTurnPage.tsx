@@ -11,12 +11,12 @@ import { CashRegisterMovementsTable } from "../components/CashRegisterMovementsT
 import { CashMovementModal } from "../components/CashMovementModal";
 import { CloseTurnModal } from "../components/CloseTurnModal";
 import { financialMovementOrchestrator } from "@/mini-back/orchestrator/financial-movement-orchestrator";
-import { OpenTurnModal } from "../components/OpenTurnModal";
 import { cashRegisterTurnOrchestrator } from "@/mini-back/orchestrator/cash-register.orchestrator";
 import { CashRegisterOrchestrator } from "@/mini-back/orchestrator/cash-register/cash-register-orchestrator";
 import { CashRegister } from "@/mini-back/core/cash-register-core/public";
 import { useCashRegisterTurn } from "../hooks/useCashRegisterTurn";
 import { useCashRegisterTurnStatus } from "../hooks/useCashRegisterTurnStatus";
+import OpenTurnModal from "../components/OpenTurnModal";
 
 interface Props {
   businessId: string;
@@ -72,8 +72,7 @@ export default function CurrentCashRegisterTurnPage({ businessId }: Props) {
     try {
       const orchestrator = new CashRegisterOrchestrator();
 
-      const registers =
-        await orchestrator.findActiveByBusinessId(businessId);
+      const registers = await orchestrator.findActiveByBusinessId(businessId);
 
       setCashRegisters(registers);
     } catch (error) {
@@ -134,25 +133,24 @@ export default function CurrentCashRegisterTurnPage({ businessId }: Props) {
     }
   };
 
-  // Handler: Abrir Turno
   const handleOpenTurn = async (
     openingAmount: number,
     cashRegisterId: string,
-    defaultTreasuryAccountId: string,
     openingNotes: string,
-  ) => {
-    if (!user?.id) return;
+        forceOpen?: boolean,
 
-    await cashRegisterTurnOrchestrator.openCashRegisterTurn({
+  ): Promise<boolean> => {
+    if (!user?.id) {
+      return false;
+    }
+    return cashRegisterTurnOrchestrator.openCashRegisterTurn({
       businessId,
       userId: user.id,
       openingAmount,
-      treasuryAccountId: defaultTreasuryAccountId,
       cashRegisterId,
       openingNotes,
+      forceOpen
     });
-
-    setIsOpenTurnOpen(false);
   };
 
   // Handler: Cerrar Turno
@@ -181,9 +179,7 @@ export default function CurrentCashRegisterTurnPage({ businessId }: Props) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center gap-3 text-slate-500">
         <RefreshCw className="h-5 w-5 animate-spin text-emerald-600" />
-        <span className="text-sm font-medium">
-          Cargando estado de caja...
-        </span>
+        <span className="text-sm font-medium">Cargando estado de caja...</span>
       </div>
     );
   }
@@ -238,10 +234,7 @@ export default function CurrentCashRegisterTurnPage({ businessId }: Props) {
         onOpenCloseTurnModal={() => setIsCloseTurnOpen(true)}
       />
 
-      <CashRegisterMetrics
-        initialCash={initialCash}
-        totals={totals}
-      />
+      <CashRegisterMetrics initialCash={initialCash} totals={totals} />
 
       <CashRegisterMovementsTable
         movements={movements}

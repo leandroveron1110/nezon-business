@@ -16,7 +16,6 @@ import {
   Scale,
 } from "lucide-react";
 import { cashRegisterTurnOrchestrator } from "@/mini-back/orchestrator/cash-register.orchestrator";
-// Asegúrate de importar tu instancia/hook de servicio aquí si aplica
 
 interface Props {
   businessId: string;
@@ -35,32 +34,26 @@ interface HistoryCashTurn {
 
 export default function HistoryCashRegisterPage({ businessId }: Props) {
   const [turns, setTurns] = useState<HistoryCashTurn[]>([]);
-  const [selectedTurn, setSelectedTurn] = useState<HistoryCashTurn | null>(
-    null,
-  );
+  const [selectedTurn, setSelectedTurn] = useState<HistoryCashTurn | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function loadHistory() {
       try {
         setIsLoading(true);
-        // Usamos el servicio de dominio en lugar de consultar Dexie directamente
         const history = await cashRegisterTurnOrchestrator.historyCashRegiter({
           businessId,
         });
-        const convert: HistoryCashTurn[] = history.map((h) => {
-          const res: HistoryCashTurn = {
-            idTemp: h.idTemp || "",
-            closingDate: h.closingDate,
-            declaredClosingAmount: h.declaredClosingAmount || 0,
-            difference: h.difference || 0,
-            openingAmount: h.openingAmount,
-            openingDate: h.openingDate,
-            systemClosingAmount: h.systemClosingAmount || 0,
-            closingNotes: h.closingNotes,
-          };
-          return res;
-        });
+        const convert: HistoryCashTurn[] = history.map((h) => ({
+          idTemp: h.idTemp || "",
+          closingDate: h.closingDate,
+          declaredClosingAmount: h.declaredClosingAmount || 0,
+          difference: h.difference || 0,
+          openingAmount: h.openingAmount,
+          openingDate: h.openingDate,
+          systemClosingAmount: h.systemClosingAmount || 0,
+          closingNotes: h.closingNotes,
+        }));
         setTurns(convert);
       } catch (error) {
         console.error("Error al obtener historial de cierres:", error);
@@ -71,14 +64,13 @@ export default function HistoryCashRegisterPage({ businessId }: Props) {
     if (businessId) loadHistory();
   }, [businessId]);
 
-  // Cálculos acumulados únicamente para el pie de tabla y KPIs globales
   const globalTotals = useMemo(() => {
     return turns.reduce(
       (acc, t) => {
         const opening = t.openingAmount || 0;
         const declared = t.declaredClosingAmount ?? 0;
         const systemSales = t.systemClosingAmount ?? 0;
-        const diff = t.difference ?? 0; // Leído directamente del modelo de dominio
+        const diff = t.difference ?? 0;
 
         acc.totalDeclared += declared;
         acc.totalOpening += opening;
@@ -86,7 +78,7 @@ export default function HistoryCashRegisterPage({ businessId }: Props) {
         acc.totalDiff += diff;
         return acc;
       },
-      { totalDeclared: 0, totalOpening: 0, totalNetCash: 0, totalDiff: 0 },
+      { totalDeclared: 0, totalOpening: 0, totalNetCash: 0, totalDiff: 0 }
     );
   }, [turns]);
 
@@ -155,8 +147,8 @@ export default function HistoryCashRegisterPage({ businessId }: Props) {
               globalTotals.totalDiff === 0
                 ? "text-slate-900"
                 : globalTotals.totalDiff > 0
-                  ? "text-blue-600"
-                  : "text-rose-600"
+                ? "text-blue-600"
+                : "text-rose-600"
             }`}
           >
             {globalTotals.totalDiff > 0 ? "+" : ""}$
@@ -178,7 +170,6 @@ export default function HistoryCashRegisterPage({ businessId }: Props) {
                 <th className="px-5 py-3.5">Apertura / Cierre</th>
                 <th className="px-5 py-3.5 text-right">Monto Inicial</th>
                 <th className="px-5 py-3.5 text-right">Ventas (Sistema)</th>
-                <th className="px-5 py-3.5 text-right">Esperado en Caja</th>
                 <th className="px-5 py-3.5 text-right">Declarado (Cajón)</th>
                 <th className="px-5 py-3.5 text-center">Arqueo</th>
                 <th className="px-5 py-3.5 text-right">Acciones</th>
@@ -189,9 +180,8 @@ export default function HistoryCashRegisterPage({ businessId }: Props) {
                 const opening = turn.openingAmount || 0;
                 const declared = turn.declaredClosingAmount ?? 0;
                 const systemSales = turn.systemClosingAmount ?? 0;
-                const diff = turn.difference ?? 0; // Propiedad calculada por CashRegisterService.close()
+                const diff = turn.difference ?? 0;
 
-                const totalExpectedInDrawer = opening + systemSales;
                 const isExact = diff === 0;
 
                 return (
@@ -217,7 +207,7 @@ export default function HistoryCashRegisterPage({ businessId }: Props) {
                               {
                                 hour: "2-digit",
                                 minute: "2-digit",
-                              },
+                              }
                             )
                           : "-"}
                       </div>
@@ -228,9 +218,6 @@ export default function HistoryCashRegisterPage({ businessId }: Props) {
                     <td className="px-5 py-4 text-right font-medium text-emerald-600">
                       ${systemSales.toLocaleString("es-AR")}
                     </td>
-                    <td className="px-5 py-4 text-right font-bold text-slate-800">
-                      ${totalExpectedInDrawer.toLocaleString("es-AR")}
-                    </td>
                     <td className="px-5 py-4 text-right font-bold text-slate-900">
                       ${declared.toLocaleString("es-AR")}
                     </td>
@@ -240,8 +227,8 @@ export default function HistoryCashRegisterPage({ businessId }: Props) {
                           isExact
                             ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                             : diff > 0
-                              ? "bg-blue-50 text-blue-700 border border-blue-200"
-                              : "bg-rose-50 text-rose-700 border border-rose-200"
+                            ? "bg-blue-50 text-blue-700 border border-blue-200"
+                            : "bg-rose-50 text-rose-700 border border-rose-200"
                         }`}
                       >
                         {isExact ? (
@@ -254,14 +241,14 @@ export default function HistoryCashRegisterPage({ businessId }: Props) {
                         {isExact
                           ? "Exacto"
                           : diff > 0
-                            ? `+$${diff.toLocaleString("es-AR")}`
-                            : `-$${Math.abs(diff).toLocaleString("es-AR")}`}
+                          ? `+$${diff.toLocaleString("es-AR")}`
+                          : `-$${Math.abs(diff).toLocaleString("es-AR")}`}
                       </span>
                     </td>
                     <td className="px-5 py-4 text-right">
                       <button
                         onClick={() => setSelectedTurn(turn)}
-                        className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-3 py-1.5 font-bold text-slate-700 hover:bg-slate-200 hover:text-slate-900 transition active:scale-95"
+                        className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-3 py-1.5 font-bold text-slate-700 hover:bg-slate-200 hover:text-slate-900 transition active:scale-95 cursor-pointer"
                       >
                         <Eye className="h-3.5 w-3.5" />
                         Ver
@@ -283,12 +270,6 @@ export default function HistoryCashRegisterPage({ businessId }: Props) {
                 </td>
                 <td className="px-5 py-3.5 text-right text-emerald-600">
                   ${globalTotals.totalNetCash.toLocaleString("es-AR")}
-                </td>
-                <td className="px-5 py-3.5 text-right text-slate-800">
-                  $
-                  {(
-                    globalTotals.totalOpening + globalTotals.totalNetCash
-                  ).toLocaleString("es-AR")}
                 </td>
                 <td className="px-5 py-3.5 text-right text-slate-900">
                   ${globalTotals.totalDeclared.toLocaleString("es-AR")}
@@ -332,9 +313,8 @@ function TurnDetailModal({
   const openingAmount = turn.openingAmount || 0;
   const declaredAmount = turn.declaredClosingAmount ?? 0;
   const systemSales = turn.systemClosingAmount ?? 0;
-  const difference = turn.difference ?? 0; // Usamos el valor guardado en el dominio
+  const difference = turn.difference ?? 0;
 
-  const totalExpectedInDrawer = openingAmount + systemSales;
   const isExact = difference === 0;
   const isSurplus = difference > 0;
 
@@ -352,7 +332,7 @@ function TurnDetailModal({
           </div>
           <button
             onClick={onClose}
-            className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
+            className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
           >
             <X className="h-5 w-5" />
           </button>
@@ -364,8 +344,8 @@ function TurnDetailModal({
               isExact
                 ? "bg-emerald-50 border-emerald-200 text-emerald-900"
                 : isSurplus
-                  ? "bg-blue-50 border-blue-200 text-blue-900"
-                  : "bg-rose-50 border-rose-200 text-rose-900"
+                ? "bg-blue-50 border-blue-200 text-blue-900"
+                : "bg-rose-50 border-rose-200 text-rose-900"
             }`}
           >
             <div className="flex items-center gap-3">
@@ -381,13 +361,13 @@ function TurnDetailModal({
                   {isExact
                     ? "Sin Diferencias (Caja Cuadrada)"
                     : isSurplus
-                      ? "Sobrante de Caja"
-                      : "Faltante de Caja"}
+                    ? "Sobrante de Caja"
+                    : "Faltante de Caja"}
                 </p>
                 <p className="text-[11px] opacity-80">
                   {isExact
-                    ? "El efectivo declarado coincide perfectamente con el total esperado."
-                    : `$${Math.abs(difference).toLocaleString("es-AR")} de diferencia con el monto esperado por sistema.`}
+                    ? "El efectivo declarado coincide perfectamente con las ventas y la apertura."
+                    : `$${Math.abs(difference).toLocaleString("es-AR")} de diferencia.`}
                 </p>
               </div>
             </div>
@@ -429,36 +409,28 @@ function TurnDetailModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-4 gap-2 text-center">
-            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-2.5">
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
               <span className="text-[9px] font-semibold text-slate-400 block">
                 Monto Inicial
               </span>
-              <p className="mt-0.5 font-bold text-slate-800 text-xs">
+              <p className="mt-0.5 font-bold text-slate-800 text-sm">
                 ${openingAmount.toLocaleString("es-AR")}
               </p>
             </div>
-            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-2.5">
+            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
               <span className="text-[9px] font-semibold text-emerald-600 block">
-                Ventas
+                Ventas (Sistema)
               </span>
-              <p className="mt-0.5 font-bold text-emerald-700 text-xs">
+              <p className="mt-0.5 font-bold text-emerald-700 text-sm">
                 ${systemSales.toLocaleString("es-AR")}
               </p>
             </div>
-            <div className="rounded-2xl border border-slate-100 bg-slate-100 p-2.5">
-              <span className="text-[9px] font-semibold text-slate-600 block">
-                Esperado Caja
-              </span>
-              <p className="mt-0.5 font-bold text-slate-800 text-xs">
-                ${totalExpectedInDrawer.toLocaleString("es-AR")}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-200/60 p-2.5">
+            <div className="rounded-2xl border border-slate-200 bg-slate-100 p-3">
               <span className="text-[9px] font-semibold text-slate-700 block">
-                Declarado
+                Declarado (Cajón)
               </span>
-              <p className="mt-0.5 font-extrabold text-slate-900 text-xs">
+              <p className="mt-0.5 font-extrabold text-slate-900 text-sm">
                 ${declaredAmount.toLocaleString("es-AR")}
               </p>
             </div>
@@ -480,7 +452,7 @@ function TurnDetailModal({
         <div className="border-t border-slate-100 px-6 py-3.5 flex justify-end">
           <button
             onClick={onClose}
-            className="rounded-xl bg-slate-900 px-5 py-2 font-bold text-xs text-white hover:bg-slate-800 transition active:scale-95"
+            className="rounded-xl bg-slate-900 px-5 py-2 font-bold text-xs text-white hover:bg-slate-800 transition active:scale-95 cursor-pointer"
           >
             Cerrar
           </button>

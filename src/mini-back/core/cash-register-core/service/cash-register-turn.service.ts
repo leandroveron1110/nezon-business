@@ -7,7 +7,6 @@ import { InitializeCashRegisterTurnInput } from "../input/initialize.input";
 import { OpenCashRegisterTurnInput } from "../input/open.input";
 
 import {
-  CashRegisterTurnActiveTurnTotals,
   CashRegisterTurnPort,
 } from "../port/cash-register-turn.port";
 import { CashRegisterPort } from "../port/cash-register.port";
