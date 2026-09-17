@@ -25,6 +25,27 @@ import {
   CASH_REGISTER_PAYMENT_METHOD_STORE,
   LocalCashRegisterPaymentMethod,
 } from "./shcema/cash-register-payment-method.schema";
+import {
+  BUSINESS_ROLE_STORE,
+  LocalBusinessRole,
+} from "./shcema/business-role.schema";
+import {
+  BUSINESS_EMPLOYEE_STORE,
+  LocalBusinessEmployee,
+} from "./shcema/business-employee.schema";
+import {
+  BUSINESS_EMPLOYEE_OVERRIDE_STORE,
+  LocalBusinessEmployeeOverride,
+} from "./shcema/business-employee-override.schema";
+import { LocalPosition, POSITION_STORE } from "./shcema/position.schema";
+import {
+  EMPLOYEE_WORK_SESSION_STORE,
+  LocalEmployeeWorkSession,
+} from "./shcema/employee-work-session.schema";
+import {
+  EMPLOYEE_SETTLEMENT_STORE,
+  LocalEmployeeSettlement,
+} from "./shcema/employee-settlement.schema";
 
 export class HunayDB extends Dexie {
   business!: Table<LocalBusiness>;
@@ -38,6 +59,13 @@ export class HunayDB extends Dexie {
   cashRegisterPaymentMethod!: Table<LocalCashRegisterPaymentMethod>;
   // orderStateEvents!: Table<OrderStateEvent>;
   metadata!: Table<{ id: string; value: string }>;
+
+  businessRoles!: Table<LocalBusinessRole, string>;
+  businessEmployees!: Table<LocalBusinessEmployee, string>;
+  businessEmployeeOverrides!: Table<LocalBusinessEmployeeOverride, string>;
+  positions!: Table<LocalPosition, string>;
+  employeeWorkSessions!: Table<LocalEmployeeWorkSession, string>;
+  employeeSettlements!: Table<LocalEmployeeSettlement, string>;
 
   constructor() {
     super("HunayBusinessDB");
@@ -54,6 +82,13 @@ export class HunayDB extends Dexie {
       financialMovement: FINANCIAL_MOVEMENT_STORE,
       treasuryAccount: TREASURY_ACCOUNT_STORE,
       metadata: "id",
+
+      businessRoles: BUSINESS_ROLE_STORE,
+      businessEmployees: BUSINESS_EMPLOYEE_STORE,
+      businessEmployeeOverrides: BUSINESS_EMPLOYEE_OVERRIDE_STORE,
+      positions: POSITION_STORE,
+      employeeWorkSessions: EMPLOYEE_WORK_SESSION_STORE,
+      employeeSettlements: EMPLOYEE_SETTLEMENT_STORE,
     });
   }
 }

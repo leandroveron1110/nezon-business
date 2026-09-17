@@ -5,6 +5,7 @@ import { OrderStatus } from "@/types/order-state-machine";
 
 export class OrderUiMapper {
   static toUI(local: LocalOrder): UIOrder {
+    console.log("conber", local)
     return {
       // 1. Identificadores y Sync (UIOrder)
       id: local.id || local.idTemp, // El modal usa 'id' para todo, pero Hunay sabe cuál es cuál
@@ -32,6 +33,11 @@ export class OrderUiMapper {
       courierName: local.courierName || null,
 
       scheduledAt: local.scheduledAt,
+
+      subtotal: local.subtotal,
+      discountType: local.discountType,
+      discountValue: local.discountValue,
+
       
       
       // 3. Reconstrucción de Objetos Anidados para la UI

@@ -8,9 +8,10 @@ interface OrderDetailHeaderProps {
   safeOrder: UIOrder;
   handlePrint: () => void;
   onClose: () => void;
+  onApplyDiscount: (type: "PERCENTAGE" | "FIXED", value: number) => void;
   onToggleDeliveryType: (nextType: "DELIVERY" | "TAKE_AWAY") => void;
-    OrderCancellationActions: any;
-    handleCancelOrder: (targetStatus: OrderStatus) => void;
+  OrderCancellationActions: any;
+  handleCancelOrder: (targetStatus: OrderStatus) => void;
 }
 
 export function OrderDetailHeader({
@@ -19,7 +20,8 @@ export function OrderDetailHeader({
   onClose,
   onToggleDeliveryType,
   OrderCancellationActions,
-  handleCancelOrder
+  onApplyDiscount,
+  handleCancelOrder,
 }: OrderDetailHeaderProps) {
   return (
     <div className="px-4 py-3 border-b flex justify-between items-center bg-slate-50 shrink-0 relative">

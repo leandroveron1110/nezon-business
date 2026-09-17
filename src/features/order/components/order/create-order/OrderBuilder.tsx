@@ -7,7 +7,7 @@ import { X, LayoutPanelLeft } from "lucide-react";
 
 import { OptionSelector } from "./optionaSelector/OptionSelector";
 import { ProductPanel } from "./ProductPanel";
-import { OrderPanel } from "./OrderPanel";
+import { OrderPanel } from "./order-panel/OrderPanel";
 import { DeliveryStatus, PaymentStatus } from "@/types/order-state-machine";
 import { createOrderOrchestrator } from "@/mini-back/orchestrator/order.orchestrator";
 import {
@@ -62,6 +62,11 @@ export default function OrderBuilder({
     DeliveryQuotationStatus | undefined
   >(undefined);
   const [scheduledAt, setScheduledAt] = useState<Date | null>(null);
+  const [discountAmount, setDiscountAmount] = useState<number>(0);
+  const [discountType, setDiscountType] = useState<
+    "PERCENTAGE" | "FIXED" | null
+  >(null);
+  const [discountValue, setDiscountValue] = useState(0);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -167,16 +172,15 @@ export default function OrderBuilder({
     return items.reduce((acc, item) => acc + calculateItemSubtotal(item), 0);
   };
   // Dentro de tu componente de Caja / POS:
-  const totalProducts = useMemo(() => {
+  const subTotal = useMemo(() => {
     return calculateOrderProductsTotal(items);
   }, [items]);
-
-  const total =
-    totalProducts + (deliveryType === "DELIVERY" ? deliveryCost : 0);
 
   const createOrder = async (instantPrepare?: boolean) => {
     if (!items.length || isSubmitting) return;
     setIsSubmitting(true);
+
+    const total = subTotal - discountAmount;
 
     const newOrder = {
       idTemp: uuid(),
@@ -205,6 +209,9 @@ export default function OrderBuilder({
     try {
       await createOrderOrchestrator({
         ...newOrder,
+        subtotal: subTotal,
+        discountType: discountType,
+        discountValue: discountValue,
         instantPrepare: !!instantPrepare,
         businessId: businessid,
         deliveryQuotationStatus: deliveryQuotationStatus,
@@ -274,7 +281,13 @@ export default function OrderBuilder({
               deliveryQuotationStatus={deliveryQuotationStatus}
               setDeliveryQuotationStatus={setDeliveryQuotationStatus}
               updateQty={updateQty}
-              total={total}
+              discountAmount={discountAmount}
+              setDiscountAmount={setDiscountAmount}
+              setDiscountType={setDiscountType}
+              discountType={discountType}
+              discountValue={discountValue}
+              setDiscountValue={setDiscountValue}
+              subTotal={subTotal}
               updateItemNote={updateItemNote}
               createOrder={createOrder}
               customerName={customerName}
@@ -298,7 +311,7 @@ export default function OrderBuilder({
           </aside>
         </div>
         {/* MOBILE */}
-        <div className="flex-1 md:hidden overflow-hidden">
+        {/* <div className="flex-1 md:hidden overflow-hidden">
           <ProductPanel
             products={products}
             onProductClick={handleProductClickDirect}
@@ -333,7 +346,7 @@ export default function OrderBuilder({
             scheduledAt={scheduledAt}
             setScheduledAt={setScheduledAt}
           />
-        </div>
+        </div> */}
       </div>
     </div>
   );

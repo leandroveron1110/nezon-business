@@ -31,26 +31,6 @@ export interface LocalOrderItem {
   optionGroups: LocalOrderOptionGroup[];
 }
 
-// ============================================================================
-// SINCRONIZACIÓN
-// ============================================================================
-
-// ============================================================================
-// DELIVERY SNAPSHOT
-// ============================================================================
-// Estos estados pertenecen al dominio Delivery.
-//
-// Se persisten dentro de LocalOrder únicamente para soportar:
-//
-// - funcionamiento offline
-// - recargas de página
-// - reinicios del navegador
-// - recuperación de cotizaciones pendientes
-//
-// El dominio Delivery sigue siendo independiente.
-// Esto es solamente un snapshot persistido para reconstruir la UI.
-// ============================================================================
-
 export type DeliveryQuotationStatus =
   | "PENDING" // El DeliveryWorker todavía debe intentar resolverla
   | "WAITING_BASE" // Ya fue enviada a Base
@@ -66,30 +46,7 @@ export type DeliveryResolutionStrategy =
   | "BASE" // Pendiente o resuelto por operador humano (Base)
   | "MANUAL"; // Precio ingresado manualmente por caja
 
-// ============================================================================
-// ORDEN LOCAL
-// ============================================================================
-// Esta entidad NO representa el dominio Order puro.
-//
-// Representa el snapshot completo que Caja necesita reconstruir
-// después de:
-//
-// - refresh
-// - cierre de pestaña
-// - reinicio del navegador
-// - pérdida de internet
-//
-// Por ese motivo contiene información proveniente de varios dominios
-// (Order, Payment, Delivery, Sync, etc).
-// ============================================================================
-
 export interface LocalOrder {
-  // ==========================================================================
-  // IDENTIFICACIÓN
-  // ==========================================================================
-
-  // UUID local generado inmediatamente al crear la orden.
-  // Es la clave primaria real dentro de IndexedDB.
   idTemp: string;
 
   // ID definitivo asignado por el servidor luego de sincronizar.
@@ -183,6 +140,25 @@ export interface LocalOrder {
   // ==========================================================================
   // TOTALES
   // ==========================================================================
+
+  // Total de los productos antes de descuentos.
+  subtotal: number;
+
+  // Descuento aplicado sobre el total de productos.
+  discountType?: "PERCENTAGE" | "FIXED" | null;
+
+  // Valor utilizado para calcular el descuento.
+  //
+  // PERCENTAGE → 100 = 100%
+  // FIXED      → 2500 = $2500
+  discountValue?: number | null;
+
+  // Importe real descontado.
+  discountAmount?: number | null;
+
+  // Total final de los productos después del descuento.
+  //
+  // El costo de envío NO está incluido.
   total: number;
 
   // ==========================================================================

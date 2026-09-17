@@ -73,6 +73,10 @@ export class OrderPersistenceMapper {
       syncedPayment: true,
       syncedStatus: true,
 
+      subtotal: apiOrder.subtotal,
+      discountType: apiOrder.discountType,
+      discountValue: apiOrder.discountValue,
+
       // Cliente
       customerName: apiOrder.user?.fullName ?? "Cliente Mostrador",
       customerPhone: apiOrder.user?.phone ?? "",

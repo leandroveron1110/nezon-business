@@ -279,6 +279,10 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
     // Por ejemplo, podrías llamar a una función que actualice el estado del pedido en tu backend
   };
 
+  const onApplyDiscount = (type: "PERCENTAGE" | "FIXED", value: number) => {
+    
+  };
+
   return (
     <div
       className="fixed inset-0 bg-black/60 z-50 flex justify-end"
@@ -311,6 +315,7 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
           onToggleDeliveryType={onToggleDeliveryType}
           OrderCancellationActions={OrderCancellationActions}
           handleCancelOrder={handleCancelOrder}
+          onApplyDiscount={onApplyDiscount}
         />
 
         <OrderDetailSubHeader

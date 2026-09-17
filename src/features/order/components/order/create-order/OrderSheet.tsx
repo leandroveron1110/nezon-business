@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { OrderPanel } from "./OrderPanel";
+import { OrderPanel } from "./order-panel/OrderPanel";
 import { DeliveryQuotationStatus, LocalOrderItem } from "@/mini-back/infrastructure/dexie/shcema/orders.schema";
 
 interface OrderSheetProps {
@@ -79,7 +79,7 @@ export function OrderSheet(props: OrderSheetProps) {
             <div className="w-10 h-1.5 bg-slate-300 rounded-full" />
           </div>
 
-          <OrderPanel {...props} />
+          {/* <OrderPanel {...props} /> */}
         </div>
       )}
     </>

@@ -37,7 +37,13 @@ export class DexieOrderRepositoryAdapter
       customerPhone: input.customerPhone || "",
       customerAddress: input.customerAddress,
       customerObservations: input.customerObservations,
+      
       total: input.total,
+      subtotal: input.subtotal,
+      discountType: input.discountType,
+      discountValue: input.discountValue,
+      discountAmount: input.discountAmount,
+
       deliveryType: input.deliveryType,
       deliveryProvider: input.deliveryProvider,
       deliveryPriceMode: input.deliveryPriceMode,

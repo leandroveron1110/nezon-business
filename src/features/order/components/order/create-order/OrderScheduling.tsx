@@ -1,24 +1,33 @@
 "use client";
 
-import { CalendarClock, Clock3, Zap, X } from "lucide-react";
+import { CalendarClock, Clock3, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
+
+// ============================================================================
+// ORDER SCHEDULING COMPONENT
+// ============================================================================
+function formatDateInput(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatTimeInput(date: Date): string {
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${hours}:${minutes}`;
+}
 
 interface OrderSchedulingProps {
   scheduledAt: Date | null;
   onChange: (date: Date | null) => void;
 }
 
-export default function OrderScheduling({
-  scheduledAt,
-  onChange,
-}: OrderSchedulingProps) {
+export function OrderScheduling({ scheduledAt, onChange }: OrderSchedulingProps) {
   const [isScheduled, setIsScheduled] = useState(!!scheduledAt);
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
-
-  // ------------------------------------------------------------
-  // Inicializar desde scheduledAt
-  // ------------------------------------------------------------
 
   useEffect(() => {
     if (!scheduledAt) {
@@ -27,199 +36,95 @@ export default function OrderScheduling({
       setTime("");
       return;
     }
-
     setIsScheduled(true);
-
-    const year = scheduledAt.getFullYear();
-    const month = String(scheduledAt.getMonth() + 1).padStart(2, "0");
-    const day = String(scheduledAt.getDate()).padStart(2, "0");
-
-    const hours = String(scheduledAt.getHours()).padStart(2, "0");
-    const minutes = String(scheduledAt.getMinutes()).padStart(2, "0");
-
-    setDate(`${year}-${month}-${day}`);
-    setTime(`${hours}:${minutes}`);
+    setDate(formatDateInput(scheduledAt));
+    setTime(formatTimeInput(scheduledAt));
   }, [scheduledAt]);
 
-  // ------------------------------------------------------------
-  // Seleccionar pedido inmediato
-  // ------------------------------------------------------------
-
-  const handleImmediate = () => {
-    setIsScheduled(false);
-    setDate("");
-    setTime("");
-    onChange(null);
+  const handleToggle = (scheduled: boolean) => {
+    setIsScheduled(scheduled);
+    if (!scheduled) {
+      setDate("");
+      setTime("");
+      onChange(null);
+    } else if (!date || !time) {
+      const now = new Date();
+      const d = formatDateInput(now);
+      const t = formatTimeInput(now);
+      setDate(d);
+      setTime(t);
+      onChange(now);
+    }
   };
 
-  // ------------------------------------------------------------
-  // Seleccionar pedido programado
-  // ------------------------------------------------------------
-
-  const handleScheduled = () => {
-    setIsScheduled(true);
-
-    // Si todavía no hay fecha/hora, dejamos que el usuario las elija.
-    // No modificamos scheduledAt hasta que haya una selección válida.
-  };
-
-  // ------------------------------------------------------------
-  // Cambiar fecha
-  // ------------------------------------------------------------
-
-  const handleDateChange = (value: string) => {
-    setDate(value);
-
-    if (!value || !time) return;
-
-    const scheduledDate = new Date(`${value}T${time}`);
-
+  const updateSchedule = (newDate: string, newTime: string) => {
+    if (!newDate || !newTime) return;
+    const scheduledDate = new Date(`${newDate}T${newTime}`);
     if (!Number.isNaN(scheduledDate.getTime())) {
       onChange(scheduledDate);
     }
   };
 
-  // ------------------------------------------------------------
-  // Cambiar hora
-  // ------------------------------------------------------------
-
-  const handleTimeChange = (value: string) => {
-    setTime(value);
-
-    if (!date || !value) return;
-
-    const scheduledDate = new Date(`${date}T${value}`);
-
-    if (!Number.isNaN(scheduledDate.getTime())) {
-      onChange(scheduledDate);
-    }
-  };
-
-  // ------------------------------------------------------------
-  // Fecha mínima = hoy
-  // ------------------------------------------------------------
-
-  const today = new Date();
-
-  const minDate = [
-    today.getFullYear(),
-    String(today.getMonth() + 1).padStart(2, "0"),
-    String(today.getDate()).padStart(2, "0"),
-  ].join("-");
+  const today = formatDateInput(new Date());
 
   return (
-    <div className="space-y-2">
-      {/* ======================================================
-          SELECTOR PRINCIPAL
-          ====================================================== */}
-
-      <div className="flex items-center gap-1 rounded-xl bg-slate-100 p-1">
+    <div className="flex flex-col gap-1.5 p-1.5 bg-slate-50 border-b border-slate-200 text-[10px]">
+      {/* Dynamic Segmented Switch */}
+      <div className="grid grid-cols-2 gap-1 rounded-md bg-slate-200/60 p-0.5 font-bold">
         <button
           type="button"
-          onClick={handleImmediate}
-          className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-[11px] font-black uppercase tracking-wide transition-all ${
+          onClick={() => handleToggle(false)}
+          className={`flex items-center justify-center gap-1.5 py-1 rounded transition-all ${
             !isScheduled
-              ? "bg-white text-slate-800 shadow-sm"
-              : "text-slate-500 hover:bg-white/70"
+              ? "bg-white text-slate-800 shadow-xs"
+              : "text-slate-500 hover:text-slate-700"
           }`}
         >
-          <Zap size={14} />
-          Ahora
+          <Zap size={12} className={!isScheduled ? "text-amber-500 fill-amber-500" : ""} />
+          <span>AHORA</span>
         </button>
 
         <button
           type="button"
-          onClick={handleScheduled}
-          className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-[11px] font-black uppercase tracking-wide transition-all ${
+          onClick={() => handleToggle(true)}
+          className={`flex items-center justify-center gap-1.5 py-1 rounded transition-all ${
             isScheduled
-              ? "bg-white text-emerald-600 shadow-sm"
-              : "text-slate-500 hover:bg-white/70"
+              ? "bg-white text-emerald-600 shadow-xs"
+              : "text-slate-500 hover:text-slate-700"
           }`}
         >
-          <CalendarClock size={14} />
-          Programar
+          <CalendarClock size={12} />
+          <span>PROGRAMAR</span>
         </button>
       </div>
 
-      {/* ======================================================
-          CONFIGURACIÓN DEL PEDIDO PROGRAMADO
-          ====================================================== */}
-
+      {/* Expanded Controls (Rendered only when active) */}
       {isScheduled && (
-        <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-3">
-          <div className="grid grid-cols-2 gap-2">
-            {/* Fecha */}
-
-            <label className="block">
-              <span className="mb-1 block text-[9px] font-black uppercase tracking-wide text-slate-500">
-                Fecha
-              </span>
-
-              <div className="relative">
-                <CalendarClock
-                  size={13}
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                />
-
-                <input
-                  type="date"
-                  min={minDate}
-                  value={date}
-                  onChange={(e) => handleDateChange(e.target.value)}
-                  className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-2 text-xs font-bold text-slate-700 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-                />
-              </div>
-            </label>
-
-            {/* Hora */}
-
-            <label className="block">
-              <span className="mb-1 block text-[9px] font-black uppercase tracking-wide text-slate-500">
-                Hora
-              </span>
-
-              <div className="relative">
-                <Clock3
-                  size={13}
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                />
-
-                <input
-                  type="time"
-                  value={time}
-                  onChange={(e) => handleTimeChange(e.target.value)}
-                  className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-2 text-xs font-bold text-slate-700 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-                />
-              </div>
-            </label>
+        <div className="flex items-center gap-1 mt-0.5">
+          <div className="relative flex-1">
+            <input
+              type="date"
+              min={today}
+              value={date}
+              onChange={(e) => {
+                setDate(e.target.value);
+                updateSchedule(e.target.value, time);
+              }}
+              className="w-full h-7 rounded border border-slate-200 bg-white px-1.5 text-[10px] font-semibold text-slate-700 focus:border-emerald-500 focus:outline-none"
+            />
           </div>
 
-          {/* Aviso si todavía no está completo */}
-
-          {isScheduled && (!date || !time) && (
-            <p className="mt-2 text-[9px] font-bold text-amber-600">
-              Seleccioná fecha y hora para programar el pedido.
-            </p>
-          )}
-
-          {/* Confirmación visual */}
-
-          {scheduledAt && date && time && (
-            <div className="mt-2 flex items-center gap-2 rounded-lg bg-white px-3 py-2">
-              <Clock3 size={13} className="text-emerald-600" />
-
-              <span className="text-[10px] font-black text-slate-700">
-                Programado para{" "}
-                {new Intl.DateTimeFormat("es-AR", {
-                  day: "2-digit",
-                  month: "2-digit",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                }).format(scheduledAt)}
-              </span>
-            </div>
-          )}
+          <div className="relative flex-1">
+            <input
+              type="time"
+              value={time}
+              onChange={(e) => {
+                setTime(e.target.value);
+                updateSchedule(date, e.target.value);
+              }}
+              className="w-full h-7 rounded border border-slate-200 bg-white px-1.5 text-[10px] font-semibold text-slate-700 focus:border-emerald-500 focus:outline-none"
+            />
+          </div>
         </div>
       )}
     </div>

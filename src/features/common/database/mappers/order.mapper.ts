@@ -67,6 +67,8 @@ export class OrderMapper {
       id: apiOrder.id,
       userId: apiOrder.userId ?? apiOrder.user?.id,
 
+      subtotal: apiOrder.subtotal,
+      discountValue: apiOrder.discountValue,
       businessId: apiOrder.businessId,
       syncPriority: "HIGH", // Todo: Podríamos tener una lógica más compleja para esto
       dailyNumber: 0, // Se asignará en el comando de sincronización

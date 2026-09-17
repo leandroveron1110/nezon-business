@@ -1,11 +1,20 @@
-import { DeliveryQuotationStatus, DeliveryStatus } from "../domain/order-state-machine";
-import { OrderItem, PaymentMethodTypeFinancial } from "../domain/order.entity";
+// core/orders/input/create-order.input.ts
+
+import {
+  OrderDiscountType,
+  OrderItem,
+  Origin,
+  PaymentMethodTypeFinancial,
+} from "../domain/order.entity";
 
 export interface CreateOrderInput {
-  idTemp: string; // El front genera un UUID v4 y lo envía para mantener la trazabilidad local
-  customerName?: string;
+  idTemp: string;
 
   businessId: string;
+
+  origin: Origin;
+
+  customerName?: string;
 
   customerPhone?: string;
 
@@ -13,26 +22,49 @@ export interface CreateOrderInput {
 
   customerObservations?: string;
 
-  instantPrepare: boolean;
-
-  origin: 'APP' | 'BUSINESS';
-
-  courierName?: string | null; // nombre del cadete asignado a la orden, si aplica
-
   items: OrderItem[];
 
-  deliveryType: "DELIVERY" | "PICKUP";
-  deliveryStatus: DeliveryStatus;
+  subtotal: number;
 
-  deliveryQuotationStatus?: DeliveryQuotationStatus;
+  /**
+   * Descuento inicial de la orden.
+   *
+   * null/undefined = sin descuento.
+   */
+  discountType?: OrderDiscountType | null;
 
-  deliveryProvider: "PLATFORM" | "INTERNAL";
+  /**
+   * Valor del descuento.
+   *
+   * PERCENTAGE:
+   * 100 = 100%
+   *
+   * FIXED:
+   * 2500 = $2500
+   */
+  discountValue?: number | null;
 
-  orderPaymentMethod: PaymentMethodTypeFinancial;
-
-  scheduledAt?: Date | null;
+  /**
+   * Este valor NO debería venir del exterior.
+   *
+   * El Core lo calcula.
+   */
 
   total: number;
 
+  deliveryType: "DELIVERY" | "PICKUP";
+
+  deliveryProvider: "PLATFORM" | "INTERNAL";
+
   totalDeliveryCost: number;
+
+  deliveryQuotationStatus?: any;
+
+  orderPaymentMethod: PaymentMethodTypeFinancial;
+
+  deliveryStatus?: any;
+
+  instantPrepare: boolean;
+
+  scheduledAt?: Date | null;
 }

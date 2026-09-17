@@ -3,6 +3,7 @@ import { v4 as uuid } from "uuid";
 import {
   CreateOrderInput,
   OrderServicePublic,
+  PaymentMethodTypeFinancial,
   UpdateOrderStatusInput,
 } from "../core/orders-core/public";
 import { BusinessLocalRepository } from "../infrastructure/dexie/repositories/dexie-business.repository";
@@ -15,10 +16,7 @@ import { OrderStatus } from "../core/orders-core/domain/order-state-machine";
 import { financialMovementOrchestrator } from "./financial-movement-orchestrator";
 import { cashRegisterTurnOrchestrator } from "./cash-register.orchestrator";
 import { CashRegisterOrchestrator } from "./cash-register/cash-register-orchestrator";
-// import { syncQueueWorker } from "../infrastructure/network/SyncQueueWorker";
-
-const MAX_RETRIES = 3;
-const RETRY_DELAY_MS = 1500;
+import { ChangeOrderPaymentMethodInput } from "../core/orders-core/input/change-order-payment-method.input";
 
 const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
@@ -312,3 +310,40 @@ export const updateOrderStatusOrchestrator = async (
 
   return result;
 };
+
+export const applyOrderDiscountOrchestrator = async (
+  orderId: string,
+  type: "PERCENTAGE" | "FIXED",
+  value: number,
+) => {
+  const repositoryAdapter = new DexieOrderRepositoryAdapter();
+  const identityAdapter = new DexieOrderIdentityAdapter();
+
+  const orderCore = OrderServicePublic({
+    repository: repositoryAdapter,
+    identity: identityAdapter,
+    cashRegister: repositoryAdapter,
+  });
+
+  return await orderCore.applyDiscount({
+    orderId,
+    type,
+    value,
+  });
+};
+
+export async function changeOrderPaymentMethodOrchestrator(
+  orderId: string,
+  paymentMethod: PaymentMethodTypeFinancial,
+) {
+  const repositoryAdapter = new DexieOrderRepositoryAdapter();
+  const identityAdapter = new DexieOrderIdentityAdapter();
+
+  const orderCore = OrderServicePublic({
+    repository: repositoryAdapter,
+    identity: identityAdapter,
+    cashRegister: repositoryAdapter,
+  });
+  const input: ChangeOrderPaymentMethodInput = { orderId, paymentMethod };
+  return orderCore.changePaymentMethod(input);
+}

@@ -168,7 +168,7 @@ export default function BusinessOrdersPage({ businessId }: Props) {
       status: o.status as OrderStatus,
       paymentStatus: o.paymentStatus as PaymentStatus,
       deliveryStatus: o.deliveryStatus as DeliveryStatus,
-      total: o.total - (o.totalDeliveryCost ?? 0),
+      total: o.total,
       deliveryFee: o.totalDeliveryCost,
       userId: "",
       createdAt: String(o.createdAt),

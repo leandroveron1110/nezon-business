@@ -1,6 +1,10 @@
 import { PaymentMethodTypeFinancial } from "@/mini-back/shared/enums/financial-movement-status.enum";
 import { Origin } from "@/types/order";
-import { DeliveryStatus, OrderStatus, PaymentStatus } from "@/types/order-state-machine";
+import {
+  DeliveryStatus,
+  OrderStatus,
+  PaymentStatus,
+} from "@/types/order-state-machine";
 
 export interface SyncResponse {
   orders: IOrder[];
@@ -44,7 +48,6 @@ export interface OrderOptionGroup {
 
 export type ProductPaymentMethod = "TRANSFER" | "CASH";
 
-
 export interface OrderItem {
   id: string;
   productName: string;
@@ -58,6 +61,7 @@ export interface OrderItem {
   optionGroups: OrderOptionGroup[];
 }
 
+export type OrderDiscountType = "PERCENTAGE" | "FIXED";
 
 export interface IOrder {
   id: string;
@@ -68,7 +72,35 @@ export interface IOrder {
   status: OrderStatus; // estado general
   origin: Origin;
   isTest: boolean;
+
+  subtotal: number;
+
+  /**
+   * Descuento inicial de la orden.
+   *
+   * null/undefined = sin descuento.
+   */
+  discountType?: OrderDiscountType | null;
+
+  /**
+   * Valor del descuento.
+   *
+   * PERCENTAGE:
+   * 100 = 100%
+   *
+   * FIXED:
+   * 2500 = $2500
+   */
+  discountValue?: number | null;
+
+  /**
+   * Este valor NO debería venir del exterior.
+   *
+   * El Core lo calcula.
+   */
+
   total: number;
+
   totalDeliveryCost: number;
   notes?: string | null;
   createdAt: string; // ISO string
@@ -89,10 +121,9 @@ export interface IOrder {
   user: User;
   bussiness: Bussiness;
 
-  scheduledAt?: Date | null
+  scheduledAt?: Date | null;
 
   items: OrderItem[];
-
 }
 
 export enum DeliveryType {
