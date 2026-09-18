@@ -47,8 +47,8 @@ export interface LocalFinancialMovement {
 
   // NUEVOS CAMPOS OPCIONALES DE TESORERÍA:
   // Cuenta de origen/destino (ej: Mercado Pago en vez del turno de caja diario)
-  treasuryAccountIdTemp?: string;
-  treasuryAccountId?: string;
+ treasuryAccountIdTemp?: string;
+ treasuryAccountId?: string;
 
   /**
    * Identificador que vincula dos movimientos que
@@ -70,4 +70,4 @@ export interface LocalFinancialMovement {
 }
 
 export const FINANCIAL_MOVEMENT_STORE =
-  "idTemp, id, businessId, cashRegisterTurnIdTemp, cashRegisterTurnId, orderIdTemp, orderId, treasuryAccountIdTemp, treasuryAccountId, type, status, paymentMethod, syncStatus, date";
+  "idTemp, id, businessId, cashRegisterTurnIdTemp, cashRegisterTurnId, orderIdTemp, orderId,treasuryAccountIdTemp,treasuryAccountIdTemp, type, status, paymentMethod, syncStatus, date";

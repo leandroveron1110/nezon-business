@@ -12,7 +12,7 @@ export interface RegisterIncomeInput {
 
   idTemp?: string;
 
-  treasuryAccountId: string;
+ treasuryAccountIdTemp: string;
 
   paymentMethod: PaymentMethodTypeFinancial;
 

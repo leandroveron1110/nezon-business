@@ -7,7 +7,7 @@ export interface UpdateCashRegisterPaymentMethodInput {
 
   paymentMethod?: PaymentMethodTypeFinancial;
 
-  treasuryAccountId?: string;
+ treasuryAccountIdTemp?: string;
 
   isActive?: boolean;
 }

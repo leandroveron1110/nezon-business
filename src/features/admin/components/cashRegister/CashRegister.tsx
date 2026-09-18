@@ -209,7 +209,7 @@ export default function CashRegisterPage({
         businessId,
         cashRegisterId: configuringRegisterId,
         paymentMethod,
-        treasuryAccountId: paymentTreasuryAccountId,
+       treasuryAccountIdTemp: paymentTreasuryAccountId,
       });
 
       closePaymentMethodForm();
@@ -465,8 +465,7 @@ export default function CashRegisterPage({
                         {paymentMethods.map((pm) => {
                           const treasuryAccount = treasuryAccounts.find(
                             (acc) =>
-                              acc.idTemp === pm.treasuryAccountId ||
-                              acc.id === pm.treasuryAccountId,
+                              acc.idTemp === pm.treasuryAccountIdTemp
                           );
 
                           return (
@@ -487,7 +486,7 @@ export default function CashRegisterPage({
                                     <ArrowRight className="h-3 w-3 text-slate-400" />
                                     <span>
                                       {treasuryAccount?.name ??
-                                        pm.treasuryAccountId}
+                                        pm.treasuryAccountIdTemp}
                                     </span>
                                   </p>
                                 </div>

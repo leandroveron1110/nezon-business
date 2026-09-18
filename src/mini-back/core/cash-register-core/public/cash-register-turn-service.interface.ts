@@ -24,7 +24,7 @@ export interface ICashRegisterTurnService {
     businessId: string,
   ): Promise<{
     idTemp: string;
-    treasuryAccountId: string;
+   treasuryAccountIdTemp: string;
     cashRegisterId: string;
   }>;
 }

@@ -23,5 +23,5 @@ export interface RegisterRefundInput {
 
   idTemp?: string;
 
-  treasuryAccountId: string;
+ treasuryAccountIdTemp: string;
 }

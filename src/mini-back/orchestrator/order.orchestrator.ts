@@ -130,12 +130,12 @@ export const updateOrderStatusOrchestrator = async (
         await financialMovementOrchestrator.processSaleMovement({
           businessId: order.businessId,
           userId: order.userId || "system",
-          treasuryAccountId: treasuryAccountIdTemp,
+          treasuryAccountIdTemp: treasuryAccountIdTemp,
           amount: order.total,
           paymentMethod: order.orderPaymentMethod,
           orderId: order.idTemp,
-          idTemp: turn.idTemp,
-
+          cashRegisterTurnId: turn.idTemp,
+          
           description: `Cobro de pedido #${order.shortCode || order.idTemp.slice(-4)}`,
         });
 
@@ -160,7 +160,7 @@ export const updateOrderStatusOrchestrator = async (
           paymentMethod: order.orderPaymentMethod,
           orderId: order.idTemp,
           idTemp: turn.idTemp,
-          treasuryAccountId: treasuryAccountIdTemp,
+          treasuryAccountIdTemp: treasuryAccountIdTemp,
           description: `Reversión de cobro pedido #${order.shortCode || order.idTemp.slice(-4)}`,
         });
       }
@@ -187,7 +187,7 @@ export const updateOrderStatusOrchestrator = async (
             paymentMethod: order.orderPaymentMethod,
             orderId: order.idTemp,
             idTemp: turn.idTemp,
-            treasuryAccountId: treasuryAccountIdTemp,
+            treasuryAccountIdTemp: treasuryAccountIdTemp,
             description: `Devolución por cancelación de pedido #${order.shortCode || order.idTemp.slice(-4)}`,
           });
         }
@@ -204,7 +204,7 @@ export const updateOrderStatusOrchestrator = async (
             approvedByUserId: order.userId || "system",
             amount: totalCogs,
             orderId: order.idTemp,
-            treasuryAccountId: treasuryAccountIdTemp,
+            treasuryAccountIdTemp: treasuryAccountIdTemp,
             idTemp: turn.idTemp,
             description: `Merma por cancelación de pedido en cocina #${order.shortCode || order.idTemp.slice(-4)}`,
           });
@@ -368,7 +368,7 @@ export async function changeConfirmedOrderPaymentMethodOrchestrator(
     order.businessId,
   );
 
-  let treasuryAccountId = await resolveTreasuryAccountId(
+  let treasuryAccountIdTemp = await resolveTreasuryAccountId(
     turn.cashRegisterId,
     turn.businessId,
     input.paymentMethod,
@@ -391,7 +391,7 @@ export async function changeConfirmedOrderPaymentMethodOrchestrator(
   const movement = await financialMovementCore.changeSalePaymentMethod({
     orderId: input.orderId,
     paymentMethod: input.paymentMethod,
-    treasuryAccountId,
+    treasuryAccountIdTemp,
   });
 
   // ============================================================
@@ -437,5 +437,5 @@ export async function resolveTreasuryAccountId(
     throw new Error("La caja no tiene asociado ese medio de pago activo.");
   }
 
-  return configuredPaymentMethod.treasuryAccountId;
+  return configuredPaymentMethod.treasuryAccountIdTemp;
 }

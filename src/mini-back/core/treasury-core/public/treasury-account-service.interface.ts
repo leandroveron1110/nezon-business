@@ -22,6 +22,6 @@ export interface ITreasuryAccountPublicService {
 
   recalculateBalance(
     businessId: string,
-    treasuryAccountId: string,
+   treasuryAccountIdTemp: string,
   ): Promise<TreasuryAccount>;
 }

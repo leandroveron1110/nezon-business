@@ -22,7 +22,7 @@ export interface CashRegisterTurn {
   difference?: number;
   closingNotes?: string;
 
-  treasuryAccountId: string;
+ treasuryAccountIdTemp: string;
 
   status: CashRegisterTurnStatus;
 }

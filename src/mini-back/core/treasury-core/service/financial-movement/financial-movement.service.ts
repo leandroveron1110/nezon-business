@@ -35,7 +35,7 @@ export class FinancialMovementService implements IFinancialMovementPublicService
     }
 
     mov.paymentMethod = input.paymentMethod;
-    mov.treasuryAccountId = input.treasuryAccountId;
+    mov.treasuryAccountIdTemp = input.treasuryAccountIdTemp;
 
     return await this.movement.update(mov);
   }
@@ -90,12 +90,12 @@ export class FinancialMovementService implements IFinancialMovementPublicService
       clientMovementId: input.clientMovementId,
       businessId: input.businessId,
       userId: input.userId,
-      cashRegisterTurnId: input.idTemp,
+      cashRegisterTurnId: input.cashRegisterTurnId,
 
       type: FinancialMovementType.SALE,
       status: FinancialMovementStatus.CONFIRMED,
 
-      treasuryAccountId: input.treasuryAccountId,
+      treasuryAccountIdTemp: input.treasuryAccountIdTemp,
 
       amount: input.amount,
       paymentMethod: input.paymentMethod,
@@ -119,7 +119,7 @@ export class FinancialMovementService implements IFinancialMovementPublicService
 
       cashRegisterTurnId: input.idTemp,
 
-      treasuryAccountId: input.treasuryAccountId,
+      treasuryAccountIdTemp: input.treasuryAccountIdTemp,
 
       type: FinancialMovementType.REFUND,
       status: FinancialMovementStatus.CONFIRMED,
@@ -150,7 +150,7 @@ export class FinancialMovementService implements IFinancialMovementPublicService
       type: FinancialMovementType.INCOME,
       status: FinancialMovementStatus.CONFIRMED,
 
-      treasuryAccountId: input.treasuryAccountId,
+      treasuryAccountIdTemp: input.treasuryAccountIdTemp,
 
       amount: input.amount,
       paymentMethod: input.paymentMethod,
@@ -174,7 +174,7 @@ export class FinancialMovementService implements IFinancialMovementPublicService
       approvedByUserId: input.approvedByUserId,
       cashRegisterTurnId: input.idTemp,
 
-      treasuryAccountId: input.treasuryAccountId,
+      treasuryAccountIdTemp: input.treasuryAccountIdTemp,
 
       type: FinancialMovementType.EXPENSE,
       status: FinancialMovementStatus.CONFIRMED,
@@ -214,7 +214,7 @@ export class FinancialMovementService implements IFinancialMovementPublicService
 
       userId: input.userId,
 
-      treasuryAccountId: input.sourceTreasuryAccountId,
+      treasuryAccountIdTemp: input.sourceTreasuryAccountId,
 
       transferGroupId: input.transferGroupId,
 
@@ -240,7 +240,7 @@ export class FinancialMovementService implements IFinancialMovementPublicService
 
       userId: input.userId,
 
-      treasuryAccountId: input.destinationTreasuryAccountId,
+      treasuryAccountIdTemp: input.destinationTreasuryAccountId,
 
       transferGroupId: input.transferGroupId,
 
@@ -294,7 +294,7 @@ export class FinancialMovementService implements IFinancialMovementPublicService
       type: FinancialMovementType.MERMAS,
       status: FinancialMovementStatus.CONFIRMED,
 
-      treasuryAccountId: input.treasuryAccountId,
+      treasuryAccountIdTemp: input.treasuryAccountIdTemp,
 
       amount: input.amount,
       description: input.description,

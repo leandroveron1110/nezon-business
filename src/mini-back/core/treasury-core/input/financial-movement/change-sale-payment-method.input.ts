@@ -3,5 +3,5 @@ import { PaymentMethodTypeFinancial } from "@/mini-back/shared/enums/financial-m
 export interface ChangeSalePaymentMethodInput {
   orderId: string;
   paymentMethod: PaymentMethodTypeFinancial;
-  treasuryAccountId: string;
+ treasuryAccountIdTemp: string;
 }

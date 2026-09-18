@@ -45,7 +45,7 @@ class CashRegisterTurnOrchestrator {
 
   async getCashTurn(businessId: string): Promise<{
     idTemp: string;
-    treasuryAccountId: string;
+   treasuryAccountIdTemp: string;
     cashRegisterId: string;
   }> {
     return this.CashRegisterTurnService.getCashTurn(businessId);
@@ -72,8 +72,8 @@ class CashRegisterTurnOrchestrator {
       throw new Error("La caja registradora seleccionada no existe.");
     }
 
-    const treasuryAccountId = cashRegister.defaultTreasuryAccountId;
-    if (!treasuryAccountId) {
+    const treasuryAccountIdTemp = cashRegister.defaultTreasuryAccountId;
+    if (!treasuryAccountIdTemp) {
       throw new Error(
         "La caja registradora no tiene una cuenta de Tesorería asociada.",
       );
@@ -87,7 +87,7 @@ class CashRegisterTurnOrchestrator {
         cashRegisterId: input.cashRegisterId,
         openingAmount: input.openingAmount,
         openingNotes: input.openingNotes,
-        treasuryAccountId,
+       treasuryAccountIdTemp,
       });
       return true;
     }
@@ -95,14 +95,14 @@ class CashRegisterTurnOrchestrator {
     const treasuryAccount =
       await this.treasuryAccountOrchestrator.recalculateBalance(
         input.businessId,
-        treasuryAccountId,
+       treasuryAccountIdTemp,
       );
 
     if (input.openingAmount !== treasuryAccount.currentBalance) {
       return false;
     }
 
-    await this.CashRegisterTurnService.open({ ...input, treasuryAccountId });
+    await this.CashRegisterTurnService.open({ ...input,treasuryAccountIdTemp });
     return true;
   }
 
@@ -116,7 +116,7 @@ class CashRegisterTurnOrchestrator {
     const treasuryAccount =
       await this.treasuryAccountOrchestrator.recalculateBalance(
         input.businessId,
-        activeTurn.treasuryAccountId,
+        activeTurn.treasuryAccountIdTemp,
       );
 
     return this.CashRegisterTurnService.close(

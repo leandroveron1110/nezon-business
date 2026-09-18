@@ -25,7 +25,7 @@ export interface LocalCashRegisterTurn {
   closingNotes?: string;
   status: CashRegisterStatus;
   cashRegisterId: string;     // FK a LocalCashRegister (Saber EN QUÉ punto de venta operó)
-  treasuryAccountId: string;  // FK a LocalTreasuryAccount (Saber QUÉ cuenta de efectivo afectó)
+ treasuryAccountIdTemp: string;  // FK a LocalTreasuryAccount (Saber QUÉ cuenta de efectivo afectó)
   // AUDITORÍA
   createdAt: Date;
   updatedAt: Date;

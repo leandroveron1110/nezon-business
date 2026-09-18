@@ -18,7 +18,7 @@ export interface FinancialMovement {
   orderId?: string;
   cashRegisterTurnId?: string;
   referenceCashRegisterTurnId?: string;
-  treasuryAccountId?: string;
+ treasuryAccountIdTemp?: string;
   destinationTreasuryAccountId?: string;
   transferGroupId?: string;
 }

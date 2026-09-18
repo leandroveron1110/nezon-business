@@ -16,7 +16,7 @@ export interface RegisterExpenseInput {
 
   idTemp?: string;
 
-  treasuryAccountId: string;
+ treasuryAccountIdTemp: string;
 
   orderId?: string;
 

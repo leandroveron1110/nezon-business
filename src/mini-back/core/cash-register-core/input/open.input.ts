@@ -2,7 +2,7 @@ export interface OpenCashRegisterTurnInput {
   businessId: string;
   userId: string;
 
-  treasuryAccountId: string;
+ treasuryAccountIdTemp: string;
 
   idTemp?: string;
 

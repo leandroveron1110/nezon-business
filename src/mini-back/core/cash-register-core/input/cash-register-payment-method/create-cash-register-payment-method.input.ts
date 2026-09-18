@@ -9,5 +9,5 @@ export interface CreateCashRegisterPaymentMethodInput {
 
   paymentMethod: PaymentMethodTypeFinancial;
 
-  treasuryAccountId: string;
+ treasuryAccountIdTemp: string;
 }

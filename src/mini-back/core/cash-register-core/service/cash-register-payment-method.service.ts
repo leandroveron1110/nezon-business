@@ -45,7 +45,7 @@ export class CashRegisterPaymentMethodService implements ICashRegisterPaymentMet
     }
 
     // 4. Devolver la cuenta de tesorería asociada.
-    return configuration.treasuryAccountId;
+    return configuration.treasuryAccountIdTemp;
   }
 
   async create(
@@ -56,7 +56,7 @@ export class CashRegisterPaymentMethodService implements ICashRegisterPaymentMet
 
     // 2. Validar que la cuenta de tesorería exista y esté activa.
     await this.ensureTreasuryAccountIsValid(
-      input.treasuryAccountId,
+      input.treasuryAccountIdTemp,
       input.businessId,
     );
 
@@ -75,7 +75,7 @@ export class CashRegisterPaymentMethodService implements ICashRegisterPaymentMet
       businessId: input.businessId,
       cashRegisterId: input.cashRegisterId,
       paymentMethod: input.paymentMethod,
-      treasuryAccountId: input.treasuryAccountId,
+     treasuryAccountIdTemp: input.treasuryAccountIdTemp,
       isActive: true,
       createdAt: now,
       updatedAt: now,
@@ -99,7 +99,7 @@ export class CashRegisterPaymentMethodService implements ICashRegisterPaymentMet
     }
 
     let nextPaymentMethod = paymentMethod.paymentMethod;
-    let nextTreasuryAccountId = paymentMethod.treasuryAccountId;
+    let nextTreasuryAccountId = paymentMethod.treasuryAccountIdTemp;
     let nextIsActive = paymentMethod.isActive;
 
     // 2. Si cambia el medio de pago, verificar que no esté duplicado.
@@ -118,15 +118,15 @@ export class CashRegisterPaymentMethodService implements ICashRegisterPaymentMet
 
     // 3. Si cambia la cuenta de tesorería, validarla.
     if (
-      input.treasuryAccountId &&
-      input.treasuryAccountId !== paymentMethod.treasuryAccountId
+      input.treasuryAccountIdTemp &&
+      input.treasuryAccountIdTemp !== paymentMethod.treasuryAccountIdTemp
     ) {
       await this.ensureTreasuryAccountIsValid(
-        input.treasuryAccountId,
+        input.treasuryAccountIdTemp,
         input.businessId,
       );
 
-      nextTreasuryAccountId = input.treasuryAccountId;
+      nextTreasuryAccountId = input.treasuryAccountIdTemp;
     }
 
     // 4. Actualizar estado si fue enviado.
@@ -137,7 +137,7 @@ export class CashRegisterPaymentMethodService implements ICashRegisterPaymentMet
     const updatedPaymentMethod: CashRegisterPaymentMethod = {
       ...paymentMethod,
       paymentMethod: nextPaymentMethod,
-      treasuryAccountId: nextTreasuryAccountId,
+     treasuryAccountIdTemp: nextTreasuryAccountId,
       isActive: nextIsActive,
       updatedAt: new Date(),
     };
@@ -193,11 +193,11 @@ export class CashRegisterPaymentMethodService implements ICashRegisterPaymentMet
   }
 
   private async ensureTreasuryAccountIsValid(
-    treasuryAccountId: string,
+   treasuryAccountIdTemp: string,
     businessId: string,
   ): Promise<void> {
     const isValid = await this.treasuryAccountValidationPort.existsAndIsActive(
-      treasuryAccountId,
+     treasuryAccountIdTemp,
       businessId,
     );
 

@@ -10,7 +10,7 @@ export interface RegisterMermaInput {
 
   idTemp?: string;
 
-  treasuryAccountId: string;
+ treasuryAccountIdTemp: string;
 
   description: string;
 

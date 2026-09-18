@@ -116,7 +116,7 @@ export class CashRegisterTurnDexieRepository implements CashRegisterTurnPort {
 
     const localRecord: LocalCashRegisterTurn = {
       idTemp: idTemp,
-      treasuryAccountId: CashRegisterTurn.treasuryAccountId,
+     treasuryAccountIdTemp: CashRegisterTurn.treasuryAccountIdTemp,
       id: null,
       businessId: CashRegisterTurn.businessId,
       openedByUserId: CashRegisterTurn.openedByUserId,
@@ -150,7 +150,7 @@ export class CashRegisterTurnDexieRepository implements CashRegisterTurnPort {
   private toCoreDomain(raw: LocalCashRegisterTurn): CashRegisterTurn {
     return {
       id: raw.id ?? raw.idTemp, // El dominio solo ve un 'id' consistente
-      treasuryAccountId: raw.treasuryAccountId,
+     treasuryAccountIdTemp: raw.treasuryAccountIdTemp,
       idTemp: raw.idTemp,
       businessId: raw.businessId,
       openedByUserId: raw.openedByUserId,

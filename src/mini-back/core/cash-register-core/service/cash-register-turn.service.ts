@@ -34,18 +34,18 @@ export class CashRegisterTurnService implements ICashRegisterTurnService {
 
   async getCashTurn(businessId: string): Promise<{
     idTemp: string;
-    treasuryAccountId: string;
+   treasuryAccountIdTemp: string;
     cashRegisterId: string;
   }> {
     const turnId = await this.CashRegisterTurn.findActive(businessId);
 
-    if (!turnId || !turnId.idTemp || !turnId.treasuryAccountId) {
+    if (!turnId || !turnId.idTemp || !turnId.treasuryAccountIdTemp) {
       throw new Error("No active cash register found for this business.");
     }
 
     return {
       idTemp: turnId.idTemp,
-      treasuryAccountId: turnId.treasuryAccountId,
+     treasuryAccountIdTemp: turnId.treasuryAccountIdTemp,
       cashRegisterId: turnId.cashRegisterId,
     };
   }
@@ -66,7 +66,7 @@ export class CashRegisterTurnService implements ICashRegisterTurnService {
       openingAmount: input.openingAmount,
       openingNotes: input.openingNotes,
       cashRegisterId: input.cashRegisterId,
-      treasuryAccountId: input.treasuryAccountId, // Asumimos que el treasuryAccountId es el mismo que el businessId para simplificar
+     treasuryAccountIdTemp: input.treasuryAccountIdTemp, // Asumimos que eltreasuryAccountIdTemp es el mismo que el businessId para simplificar
     });
   }
 
@@ -153,7 +153,7 @@ export class CashRegisterTurnService implements ICashRegisterTurnService {
       openingAmount: input.openingAmount,
       openingNotes: input.openingNotes,
       status: CashRegisterTurnStatus.OPEN,
-      treasuryAccountId: input.treasuryAccountId,
+     treasuryAccountIdTemp: input.treasuryAccountIdTemp,
     };
 
     // El repositorio se encarga de asignar el ID definitivo/local si no viene uno

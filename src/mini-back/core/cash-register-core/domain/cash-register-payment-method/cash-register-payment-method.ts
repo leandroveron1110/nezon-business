@@ -18,7 +18,7 @@ export interface CashRegisterPaymentMethod {
 
   paymentMethod: PaymentMethodTypeFinancial;
 
-  treasuryAccountId: string;
+ treasuryAccountIdTemp: string;
 
   isActive: boolean;
 

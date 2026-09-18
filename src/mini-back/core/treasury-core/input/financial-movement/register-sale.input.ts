@@ -4,7 +4,7 @@ export interface RegisterSaleInput {
   businessId: string;
 
   clientMovementId?: string;
-  
+
   userId: string;
 
   orderId: string;
@@ -19,7 +19,7 @@ export interface RegisterSaleInput {
 
   externalReference?: string;
 
-  idTemp?: string;
+  cashRegisterTurnId?: string;
 
-  treasuryAccountId: string;
+  treasuryAccountIdTemp: string;
 }

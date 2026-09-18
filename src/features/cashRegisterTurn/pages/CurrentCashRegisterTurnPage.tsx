@@ -106,7 +106,7 @@ export default function CurrentCashRegisterTurnPage({ businessId }: Props) {
         approvedByUserId: user.id,
         userId: user.id,
         idTemp: activeTurn.idTemp,
-        treasuryAccountId: activeTurn.treasuryAccountId,
+       treasuryAccountIdTemp: activeTurn.treasuryAccountIdTemp,
       });
     }
   };
@@ -128,7 +128,7 @@ export default function CurrentCashRegisterTurnPage({ businessId }: Props) {
         notes: data.notes,
         idTemp: activeTurn.idTemp,
         approvedByUserId: user.id,
-        treasuryAccountId: activeTurn.treasuryAccountId,
+       treasuryAccountIdTemp: activeTurn.treasuryAccountIdTemp,
       });
     }
   };

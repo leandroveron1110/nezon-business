@@ -319,6 +319,7 @@ export class FinancialMovementDexieRepository implements FinancialMovementPort {
       amount: raw.amount,
       paymentMethod: raw.paymentMethod,
       description: raw.description,
+      treasuryAccountIdTemp: raw.treasuryAccountIdTemp,
       notes: raw.notes,
       externalReference: raw.externalReference,
       sequence: raw.sequence,
@@ -363,8 +364,7 @@ export class FinancialMovementDexieRepository implements FinancialMovementPort {
      *
      * Banco → Mercado Pago
      */
-    const turnIdTemp =
-      movement.cashRegisterTurnId ?? existing?.cashRegisterTurnIdTemp;
+    const turnIdTemp = movement.cashRegisterTurnId;
 
     /**
      * Resolver la secuencia.
@@ -421,8 +421,7 @@ export class FinancialMovementDexieRepository implements FinancialMovementPort {
       /**
        * Cuenta de tesorería afectada.
        */
-      treasuryAccountIdTemp:
-        movement.treasuryAccountId ?? existing?.treasuryAccountIdTemp,
+      treasuryAccountIdTemp: movement.treasuryAccountIdTemp,
 
       /**
        * Identificador que relaciona movimientos

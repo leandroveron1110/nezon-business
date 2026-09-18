@@ -10,7 +10,7 @@ export interface RegisterCogsInput {
 
   idTemp?: string;
 
-  treasuryAccountId?: string;
+ treasuryAccountIdTemp?: string;
 
   description: string;
 
