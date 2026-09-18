@@ -91,12 +91,9 @@ export class FinancialMovementService implements IFinancialMovementPublicService
       businessId: input.businessId,
       userId: input.userId,
       cashRegisterTurnId: input.cashRegisterTurnId,
-
       type: FinancialMovementType.SALE,
       status: FinancialMovementStatus.CONFIRMED,
-
       treasuryAccountIdTemp: input.treasuryAccountIdTemp,
-
       amount: input.amount,
       paymentMethod: input.paymentMethod,
       description: input.description,
