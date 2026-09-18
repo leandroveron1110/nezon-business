@@ -70,4 +70,4 @@ export interface LocalFinancialMovement {
 }
 
 export const FINANCIAL_MOVEMENT_STORE =
-  "idTemp, id, businessId, cashRegisterTurnIdTemp, cashRegisterTurnId, orderIdTemp, orderId,treasuryAccountIdTemp,treasuryAccountIdTemp, type, status, paymentMethod, syncStatus, date";
+  "idTemp, id, businessId, cashRegisterTurnIdTemp, cashRegisterTurnId, orderIdTemp, orderId,treasuryAccountIdTemp,treasuryAccountId, type, status, paymentMethod, syncStatus, date";

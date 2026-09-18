@@ -70,7 +70,7 @@ export class HunayDB extends Dexie {
   constructor() {
     super("HunayBusinessDB");
 
-    this.version(3).stores({
+    this.version(4).stores({
       business: BUSINESS_STORE,
       products: PRODUCTS_STORE,
       orders: ORDERS_STORE,
