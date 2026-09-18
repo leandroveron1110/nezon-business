@@ -6,6 +6,7 @@ import {
   FinancialMovementType,
   PaymentMethodTypeFinancial,
 } from "../../domain/financial-movement/financial-movement-status.enum";
+import { ChangeSalePaymentMethodInput } from "../../input/financial-movement/change-sale-payment-method.input";
 import { RegisterCogsInput } from "../../input/financial-movement/register-cogs.Input";
 import { RegisterExpenseInput } from "../../input/financial-movement/register-expense.input";
 import { RegisterIncomeInput } from "../../input/financial-movement/register-income.input";
@@ -19,6 +20,25 @@ import { FianancialTotals } from "../../signal/financial-movement/financial-move
 
 export class FinancialMovementService implements IFinancialMovementPublicService {
   constructor(private readonly movement: FinancialMovementPort) {}
+
+  async changeSalePaymentMethod(
+    input: ChangeSalePaymentMethodInput,
+  ): Promise<FinancialMovement> {
+    const mov = await this.movement.findByOrderId(input.orderId);
+
+    if (!mov) {
+      throw new Error("Movimiento no encontrado");
+    }
+
+    if (mov.type !== FinancialMovementType.SALE) {
+      throw new Error("Movimiento el movimiento no es del tipo correcto");
+    }
+
+    mov.paymentMethod = input.paymentMethod;
+    mov.treasuryAccountId = input.treasuryAccountId;
+
+    return await this.movement.update(mov);
+  }
 
   async getActiveTurnTotals(idTemp: string): Promise<FianancialTotals> {
     const movements = await this.movement.findByCashRegister(idTemp);

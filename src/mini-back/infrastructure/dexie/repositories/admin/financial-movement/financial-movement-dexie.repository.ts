@@ -14,6 +14,14 @@ import {
 export class FinancialMovementDexieRepository implements FinancialMovementPort {
   constructor(private readonly db: HunayDB) {}
 
+  async findByOrderId(orderId: string): Promise<FinancialMovement | null> {
+    const localRecord = await this.db.financialMovement
+      .where("orderIdTemp")
+      .equals(orderId)
+      .first();
+    return localRecord ? this.toCoreDomain(localRecord) : null;
+  }
+
   async findByClientMovementId(
     clientMovementId: string,
   ): Promise<FinancialMovement | null> {
@@ -34,7 +42,6 @@ export class FinancialMovementDexieRepository implements FinancialMovementPort {
       .toArray();
 
     return movements.reduce((balance, movement) => {
-
       if (movement.status !== FinancialMovementStatus.CONFIRMED) {
         return balance;
       }

@@ -37,6 +37,7 @@ interface OrderPanelProps {
   scheduledAt: Date | null;
   discountType: "PERCENTAGE" | "FIXED" | null;
   discountValue: number;
+  orderIdTemp?: string;
   setDiscountType: (discountType: "PERCENTAGE" | "FIXED" | null) => void;
   setDiscountValue: (discountValue: number) => void;
   updateQty: (index: number, delta: number) => void;
@@ -68,6 +69,7 @@ export function OrderPanel(props: OrderPanelProps) {
     businessId,
     isSubmitting,
     items,
+    orderIdTemp,
     updateQty,
     updateItemNote,
     discountAmount,
@@ -95,7 +97,7 @@ export function OrderPanel(props: OrderPanelProps) {
     discountType,
     discountValue,
     setDiscountType,
-    setDiscountValue
+    setDiscountValue,
   } = props;
 
   // Control de colapso de la sección de cliente/delivery
@@ -214,13 +216,14 @@ export function OrderPanel(props: OrderPanelProps) {
         discountType={discountType}
         discountValue={discountValue}
         deliveryCost={deliveryCost}
-        total={subTotal - discountAmount + (isDelivery ? deliveryCost : 0)}
+        total={subTotal - discountAmount}
         isDelivery={isDelivery}
         isSubmitting={isSubmitting}
         hasItems={items.length > 0}
         paymentMethod={paymentMethod}
         setPaymentMethod={setPaymentMethod}
         createOrder={createOrder}
+        orderIdTemp={orderIdTemp}
       />
     </div>
   );

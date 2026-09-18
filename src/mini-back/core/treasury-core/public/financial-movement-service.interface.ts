@@ -9,10 +9,17 @@ import { RegisterMermaInput } from "../input/financial-movement/register-merma.i
 
 import { FianancialTotals } from "../signal/financial-movement/financial-movement-totals.signal";
 import { RegisterInternalTransferInput } from "../input/financial-movement/register-internal-transfer.input";
+import { ChangeSalePaymentMethodInput } from "../input/financial-movement/change-sale-payment-method.input";
 
 export interface IFinancialMovementPublicService {
   // Registra una entrada de dinero producida por una venta.
   registerSale(input: RegisterSaleInput): Promise<FinancialMovement>;
+
+  // Cambia el medio de pago y la cuenta de tesorería
+  // asociada a una venta existente.
+  changeSalePaymentMethod(
+    input: ChangeSalePaymentMethodInput,
+  ): Promise<FinancialMovement>;
 
   // Registra una devolución de dinero al cliente.
   registerRefund(input: RegisterRefundInput): Promise<FinancialMovement>;

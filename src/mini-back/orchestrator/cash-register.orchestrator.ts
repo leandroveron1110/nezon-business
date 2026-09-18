@@ -51,6 +51,10 @@ class CashRegisterTurnOrchestrator {
     return this.CashRegisterTurnService.getCashTurn(businessId);
   }
 
+  async findById(cashRegisterTurnId: string, businessId: string):  Promise<CashRegisterTurn> {
+    return this.CashRegisterTurnService.findById(cashRegisterTurnId, businessId);
+  }
+
   async openCashRegisterTurn(input: {
     businessId: string;
     userId: string;

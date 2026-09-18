@@ -16,6 +16,7 @@ import { OrderDetailSubHeader } from "./components/OrderDetailSubHeader";
 import { OrderDeliveryBar } from "./components/OrderDeliveryBar";
 import { OrderItemsList } from "./components/OrderItemsList";
 import { OrderDetailFooter } from "./components/OrderDetailFooter";
+import OrderBuilder from "../../create-order/OrderBuilder";
 
 interface Props {
   orderId: string;
@@ -30,23 +31,33 @@ const getStatusAction = (status: OrderStatus, deliveryType: DeliveryType) => {
   const isPickup = deliveryType === DeliveryType.PICKUP;
 
   const actions: Partial<
-    Record<OrderStatus, { label: string; next: OrderStatus; color: string }>
+    Record<
+      OrderStatus,
+      {
+        label: string;
+        next: OrderStatus;
+        color: string;
+      }
+    >
   > = {
     [OrderStatus.PENDING]: {
       label: "ACEPTAR PEDIDO",
       next: OrderStatus.CONFIRMED,
       color: "bg-blue-600 hover:bg-blue-700",
     },
+
     [OrderStatus.CONFIRMED]: {
       label: "EMPEZAR PREPARACIÓN",
       next: OrderStatus.PREPARING,
       color: "bg-orange-500 hover:bg-orange-600",
     },
+
     [OrderStatus.PREPARING]: {
       label: isPickup ? "LISTO PARA RETIRO" : "LISTO PARA ENVÍO",
       next: OrderStatus.READY,
       color: "bg-green-600 hover:bg-green-700",
     },
+
     [OrderStatus.READY]: {
       label: isPickup ? "ENTREGAR Y CERRAR" : "PEDIDO DESPACHADO",
       next: OrderStatus.COMPLETED,
@@ -59,20 +70,42 @@ const getStatusAction = (status: OrderStatus, deliveryType: DeliveryType) => {
 
 export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
   const { order, isLoading } = useGetOrderById(orderId);
+
   const { addAlert } = useAlert();
+
   const [loading, setLoading] = useState(false);
+
+  // ============================================================
+  // EDITAR ORDEN
+  // ============================================================
+
+  const [isEditing, setIsEditing] = useState(false);
+
   const ticketRef = useRef<HTMLDivElement>(null);
+
   const { print } = usePrintTicket();
+
   const [copied, setCopied] = useState(false);
+
+  // ============================================================
+  // COPY ADDRESS
+  // ============================================================
 
   const handleCopyAddress = (textToCopy: string) => {
     if (!textToCopy) return;
+
     navigator.clipboard.writeText(textToCopy);
+
     setCopied(true);
+
     setTimeout(() => setCopied(false), 2000);
   };
 
   const safeOrder = order ?? null;
+
+  // ============================================================
+  // TIME
+  // ============================================================
 
   const timeFormatted = useMemo(() => {
     if (!safeOrder) return null;
@@ -81,28 +114,41 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
 
     return formatTimeRemaining({
       targetDate: isScheduled ? safeOrder.scheduledAt : safeOrder.createdAt,
+
       isScheduled,
     });
   }, [safeOrder]);
 
+  // ============================================================
+  // PAYMENT
+  // ============================================================
+
   const isPaid = safeOrder?.paymentStatus === PaymentStatus.CONFIRMED;
+
+  // ============================================================
+  // STATUS ACTION
+  // ============================================================
 
   const action = useMemo(() => {
     if (!safeOrder) return null;
+
     return getStatusAction(safeOrder.status, safeOrder.deliveryType);
   }, [safeOrder]);
 
-  // ===================================
-  // HANDLERS LOGÍSTICOS
-  // ===================================
+  // ============================================================
+  // DELIVERY
+  // ============================================================
+
   const handleSolicitarCadete = async () => {
     if (!safeOrder || loading) return;
+
     try {
       setLoading(true);
+
       const result = await updateOrderStatusOrchestrator({
         idTemp: safeOrder.idTemp,
         thread: "DELIVERY",
-        nextValue: DeliveryStatus.REQUESTED, // Pasa a Solicitado
+        nextValue: DeliveryStatus.REQUESTED,
       });
 
       if (result.success) {
@@ -116,7 +162,10 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
         });
       }
     } catch (e) {
-      addAlert({ message: "Error al conectar con el servidor", type: "error" });
+      addAlert({
+        message: "Error al conectar con el servidor",
+        type: "error",
+      });
     } finally {
       setLoading(false);
     }
@@ -124,14 +173,18 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
 
   const handleCancelarCadete = async () => {
     if (!safeOrder || loading) return;
-    if (!window.confirm("¿Querés retirar este pedido de la base de cadetes?"))
+
+    if (!window.confirm("¿Querés retirar este pedido de la base de cadetes?")) {
       return;
+    }
+
     try {
       setLoading(true);
+
       const result = await updateOrderStatusOrchestrator({
         idTemp: safeOrder.idTemp,
         thread: "DELIVERY",
-        nextValue: DeliveryStatus.PENDING, // Vuelve a estar en el local sin mandar
+        nextValue: DeliveryStatus.PENDING,
       });
 
       if (result.success) {
@@ -147,19 +200,25 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
         });
       }
     } catch (e) {
-      addAlert({ message: "Error al conectar con el servidor", type: "error" });
+      addAlert({
+        message: "Error al conectar con el servidor",
+        type: "error",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  // =========================
-  // HANDLERS ORIGINALES
-  // =========================
+  // ============================================================
+  // PAYMENT
+  // ============================================================
+
   const handleTogglePayment = async () => {
     if (!safeOrder || loading) return;
+
     try {
       setLoading(true);
+
       const newStatus = isPaid
         ? PaymentStatus.PENDING
         : PaymentStatus.CONFIRMED;
@@ -171,22 +230,39 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
       });
 
       if (result.success) {
-        addAlert({ message: `Orden: ${result.data?.shortCode} actualizada` });
+        addAlert({
+          message: `Orden: ${result.data?.shortCode} actualizada`,
+        });
+
         onClose();
       } else {
-        addAlert({ message: result.error?.message || "Error", type: "error" });
+        addAlert({
+          message: result.error?.message || "Error",
+          type: "error",
+        });
       }
     } catch (e) {
-      addAlert({ message: "Error al actualizar pago", type: "error" });
+      addAlert({
+        message: "Error al actualizar pago",
+        type: "error",
+      });
     } finally {
       setLoading(false);
     }
   };
 
+  // ============================================================
+  // STATUS
+  // ============================================================
+
   const handleAdvance = async () => {
-    if (!safeOrder || !action || loading) return;
+    if (!safeOrder || !action || loading) {
+      return;
+    }
+
     try {
       setLoading(true);
+
       const result = await updateOrderStatusOrchestrator({
         idTemp: safeOrder.idTemp,
         thread: "STATUS",
@@ -194,61 +270,82 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
       });
 
       if (result.success) {
-        addAlert({ message: `Orden: ${action.label}` });
-        // if (action.next === OrderStatus.COMPLETED) onClose();
+        addAlert({
+          message: `Orden: ${action.label}`,
+        });
       } else {
-        addAlert({ message: result.error?.message || "Error", type: "error" });
+        addAlert({
+          message: result.error?.message || "Error",
+          type: "error",
+        });
       }
-      // if (action.next === OrderStatus.COMPLETED) onClose();
     } catch (e) {
-      addAlert({ message: "Error al actualizar estado", type: "error" });
+      addAlert({
+        message: "Error al actualizar estado",
+        type: "error",
+      });
     } finally {
       setLoading(false);
     }
   };
+
+  // ============================================================
+  // CANCEL ORDER
+  // ============================================================
 
   const handleCancelOrder = async (targetStatus: OrderStatus) => {
     if (
       !safeOrder ||
       !window.confirm("¿Seguro que deseas cancelar este pedido?")
-    )
+    ) {
       return;
+    }
+
     try {
       const result = await updateOrderStatusOrchestrator({
         idTemp: safeOrder.idTemp,
         thread: "STATUS",
-        nextValue: targetStatus, // Siempre pasa a CANCELLED
+        nextValue: targetStatus,
       });
+
       if (!result.success) {
         addAlert({
           message: result.error?.message || "Error al cancelar",
           type: "error",
         });
+
         return;
       }
+
       setLoading(true);
-      addAlert({ message: "Pedido cancelado", type: "info" });
+
+      addAlert({
+        message: "Pedido cancelado",
+        type: "info",
+      });
+
       onClose();
     } catch (e) {
-      addAlert({ message: "Error al cancelar", type: "error" });
+      addAlert({
+        message: "Error al cancelar",
+        type: "error",
+      });
     } finally {
       setLoading(false);
     }
   };
 
+  // ============================================================
+  // PRINT
+  // ============================================================
+
   const handlePrint = () => {
-    if (
-      order &&
-      ticketRef &&
-      ticketRef.current &&
-      ticketRef.current.innerHTML
-    ) {
-      // Esperamos a que React renderice el ticket
+    if (order && ticketRef.current && ticketRef.current.innerHTML) {
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           if (!ticketRef.current) return;
 
-          console.log(ticketRef.current?.getBoundingClientRect());
+          console.log(ticketRef.current.getBoundingClientRect());
 
           print(ticketRef.current);
         });
@@ -256,7 +353,13 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
     }
   };
 
-  if (isLoading || !safeOrder) return null;
+  // ============================================================
+  // VISIBILITY
+  // ============================================================
+
+  if (isLoading || !safeOrder) {
+    return null;
+  }
 
   const canShowActions = (): boolean => {
     return (
@@ -273,88 +376,136 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
     );
   };
 
+  // ============================================================
+  // DELIVERY TYPE
+  // ============================================================
+
   const onToggleDeliveryType = (nextType: "DELIVERY" | "TAKE_AWAY") => {
-    // Aquí puedes implementar la lógica para cambiar el tipo de entrega
     console.log(`Cambiando tipo de entrega a: ${nextType}`);
-    // Por ejemplo, podrías llamar a una función que actualice el estado del pedido en tu backend
   };
 
-  const onApplyDiscount = (type: "PERCENTAGE" | "FIXED", value: number) => {
-    
-  };
+  // ============================================================
+  // DISCOUNT
+  // ============================================================
+
+  const onApplyDiscount = (type: "PERCENTAGE" | "FIXED", value: number) => {};
+
+  // ============================================================
+  // RENDER
+  // ============================================================
 
   return (
-    <div
-      className="fixed inset-0 bg-black/60 z-50 flex justify-end"
-      onClick={onClose} // 👈 1. Cierra al tocar la parte negra de afuera
-    >
+    <>
+      {/* ======================================================== */}
+      {/* DETALLE DE ORDEN */}
+      {/* ======================================================== */}
+
       <div
-        className="bg-white w-full max-w-md h-full flex flex-col shadow-2xl animate-in slide-in-from-right duration-200"
-        onClick={(e) => e.stopPropagation()} // 👈 2. Evita que se cierre al tocar dentro del panel
+        className="fixed inset-0 bg-black/60 z-50 flex justify-end"
+        onClick={onClose}
       >
-        {safeOrder && (
-          <div
-            style={{
-              position: "absolute",
-              left: "-9999px",
-              top: "0",
-              visibility: "visible",
-              opacity: 0,
-              pointerEvents: "none",
-            }}
-          >
-            <div ref={ticketRef}>
-              <OrderTicket order={safeOrder} mode="CUSTOMER" />
+        <div
+          className="bg-white w-full max-w-md h-full flex flex-col shadow-2xl animate-in slide-in-from-right duration-200"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* ==================================================== */}
+          {/* TICKET OCULTO */}
+          {/* ==================================================== */}
+
+          {safeOrder && (
+            <div
+              style={{
+                position: "absolute",
+                left: "-9999px",
+                top: "0",
+                visibility: "visible",
+                opacity: 0,
+                pointerEvents: "none",
+              }}
+            >
+              <div ref={ticketRef}>
+                <OrderTicket order={safeOrder} mode="CUSTOMER" />
+              </div>
             </div>
-          </div>
-        )}
-        <OrderDetailHeader
-          safeOrder={safeOrder}
-          handlePrint={handlePrint}
-          onClose={onClose}
-          onToggleDeliveryType={onToggleDeliveryType}
-          OrderCancellationActions={OrderCancellationActions}
-          handleCancelOrder={handleCancelOrder}
-          onApplyDiscount={onApplyDiscount}
-        />
-
-        <OrderDetailSubHeader
-          safeOrder={safeOrder}
-          canShowMinutes={canShowMinutes}
-          timeFormatted={timeFormatted}
-        />
-
-        {/* ========================================================= */}
-        {/* LOGÍSTICA DE ENVÍO - BARRA COMPACTA POS (1-CLICK COPY)    */}
-        {/* ========================================================= */}
-        {canShowActions() &&
-          safeOrder.deliveryType === DeliveryType.DELIVERY && (
-            <OrderDeliveryBar
-              safeOrder={safeOrder}
-              copied={copied}
-              setCopied={setCopied}
-              loading={loading}
-              handleSolicitarCadete={handleSolicitarCadete}
-              handleCancelarCadete={handleCancelarCadete}
-            />
           )}
 
-        {/* ITEMS */}
+          {/* ==================================================== */}
+          {/* HEADER */}
+          {/* ==================================================== */}
 
-        <div className="flex-1 overflow-y-auto bg-white">
-          <OrderItemsList items={safeOrder.items} />
+          <OrderDetailHeader
+            safeOrder={safeOrder}
+            handlePrint={handlePrint}
+            onClose={onClose}
+            onToggleDeliveryType={onToggleDeliveryType}
+            OrderCancellationActions={OrderCancellationActions}
+            handleCancelOrder={handleCancelOrder}
+            onEditOrder={setIsEditing}
+          />
+
+          {/* ==================================================== */}
+          {/* SUBHEADER */}
+          {/* ==================================================== */}
+
+          <OrderDetailSubHeader
+            safeOrder={safeOrder}
+            canShowMinutes={canShowMinutes}
+            timeFormatted={timeFormatted}
+          />
+
+          {/* ==================================================== */}
+          {/* DELIVERY */}
+          {/* ==================================================== */}
+
+          {canShowActions() &&
+            safeOrder.deliveryType === DeliveryType.DELIVERY && (
+              <OrderDeliveryBar
+                safeOrder={safeOrder}
+                copied={copied}
+                setCopied={setCopied}
+                loading={loading}
+                handleSolicitarCadete={handleSolicitarCadete}
+                handleCancelarCadete={handleCancelarCadete}
+              />
+            )}
+
+          {/* ==================================================== */}
+          {/* ITEMS */}
+          {/* ==================================================== */}
+
+          <div className="flex-1 overflow-y-auto bg-white">
+            <OrderItemsList items={safeOrder.items} />
+          </div>
+
+          {/* ==================================================== */}
+          {/* FOOTER */}
+          {/* ==================================================== */}
+
+          <OrderDetailFooter
+            safeOrder={safeOrder}
+            isPaid={isPaid}
+            canShowActions={canShowActions}
+            loading={loading}
+            handleTogglePayment={handleTogglePayment}
+            action={action}
+            handleAdvance={handleAdvance}
+          />
         </div>
-
-        <OrderDetailFooter
-          safeOrder={safeOrder}
-          isPaid={isPaid}
-          canShowActions={canShowActions}
-          loading={loading}
-          handleTogglePayment={handleTogglePayment}
-          action={action}
-          handleAdvance={handleAdvance}
-        />
       </div>
-    </div>
+
+      {/* ======================================================== */}
+      {/* EDITOR DE ORDEN */}
+      {/* ======================================================== */}
+
+      {isEditing && (
+        <OrderBuilder
+          businessid={safeOrder.businessId}
+          printOrderCreated={() => {}}
+          mode="EDIT"
+          orderIdTemp={safeOrder.idTemp}
+          onClose={() => setIsEditing(false)}
+        />
+      )}
+    </>
   );
 }

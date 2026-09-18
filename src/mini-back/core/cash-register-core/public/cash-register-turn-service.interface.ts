@@ -5,17 +5,26 @@ import { InitializeCashRegisterTurnInput } from "../input/initialize.input";
 import { OpenCashRegisterTurnInput } from "../input/open.input";
 
 export interface ICashRegisterTurnService {
+  initialize(input: InitializeCashRegisterTurnInput): Promise<CashRegisterTurn>;
 
-    initialize(input: InitializeCashRegisterTurnInput): Promise<CashRegisterTurn>
+  open(input: OpenCashRegisterTurnInput): Promise<CashRegisterTurn>;
 
-    open(input: OpenCashRegisterTurnInput): Promise<CashRegisterTurn>
+  findById(idTemp: string, businessId: string): Promise<CashRegisterTurn>;
 
-    reopen(businessId: string, turnId: string): Promise<CashRegisterTurn>
+  reopen(businessId: string, turnId: string): Promise<CashRegisterTurn>;
 
-    close(input: CloseCashRegisterTurnInput, expectedCash: number): Promise<CashRegisterTurn | null>
+  close(
+    input: CloseCashRegisterTurnInput,
+    expectedCash: number,
+  ): Promise<CashRegisterTurn | null>;
 
-    historyCashRegiter(filter: HistoryFiltersInput): Promise<CashRegisterTurn[]>
+  historyCashRegiter(filter: HistoryFiltersInput): Promise<CashRegisterTurn[]>;
 
-    getCashTurn(businessId: string): Promise<{idTemp: string, treasuryAccountId: string, cashRegisterId: string}>
-
+  getCashTurn(
+    businessId: string,
+  ): Promise<{
+    idTemp: string;
+    treasuryAccountId: string;
+    cashRegisterId: string;
+  }>;
 }

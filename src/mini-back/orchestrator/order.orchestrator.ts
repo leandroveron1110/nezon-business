@@ -17,10 +17,13 @@ import { financialMovementOrchestrator } from "./financial-movement-orchestrator
 import { cashRegisterTurnOrchestrator } from "./cash-register.orchestrator";
 import { CashRegisterOrchestrator } from "./cash-register/cash-register-orchestrator";
 import { ChangeOrderPaymentMethodInput } from "../core/orders-core/input/change-order-payment-method.input";
+import { UpdateOrderInput } from "../core/orders-core/input/update-order.input";
+import { ChangeConfirmedPaymentMethodInput } from "../core/orders-core/input/change-confirmed-payment-method.input";
 
-const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
-
-export const createOrderOrchestrator = async (input: CreateOrderInput) => {
+export const createOrderOrchestrator = async (
+  input: CreateOrderInput,
+  shouldCharge: boolean,
+) => {
   const repositoryAdapter = new DexieOrderRepositoryAdapter();
   const identityAdapter = new DexieOrderIdentityAdapter();
 
@@ -42,49 +45,27 @@ export const createOrderOrchestrator = async (input: CreateOrderInput) => {
     };
   }
 
-  // 1. Ejecución soberana del negocio en Local (Dexie)
-  let result = await orderCore.createOrder(input);
+  // ============================================================
+  // 1. CREAR ORDEN
+  // ============================================================
 
-  // if (result.success && result.data) {
-  //   const order = result.data;
+  const result = await orderCore.createOrder(input);
 
-  //   // 2. Control de Sincronización Inmediata para pedidos HIGH (Síncrono y agresivo)
-  //   if (order.syncStatus === "SYNC_PENDING" && order.syncPriority === "HIGH") {
-  //     let attempts = 0;
-  //     let cloudId: string | null = null;
-  //     let success = false;
+  if (!result.success || !result.data) {
+    return result.data;
+  }
 
-  //     while (attempts < MAX_RETRIES && !success) {
-  //       try {
-  //         attempts++;
-  //         // Enviamos payload completo asegurando idempotencia mediante idTemp
-  //         cloudId = await cloudSyncService.triggerImmediateSync({
-  //           ...order,
-  //         });
-  //         success = true;
-  //       } catch (err) {
-  //         console.warn(
-  //           `Intento ${attempts} falló para orden ${order.shortCode}. Red inestable.`,
-  //         );
-  //         if (attempts < MAX_RETRIES) await delay(RETRY_DELAY_MS);
-  //       }
-  //     }
+  const order = result.data;
 
-  //     // 3. El Orquestador le comunica el resultado de la infraestructura al Core
-  //     if (success && cloudId) {
-  //       // El core impacta el ID remoto, corre el mutateState interno y guarda en Dexie
-  //       await orderCore.confirmCloudSync(order.idTemp, cloudId);
-  //     } else {
-  //       console.error(
-  //         `Sincronización inmediata fallida tras ${MAX_RETRIES} intentos.`,
-  //       );
-  //       // El core pasa la orden a SYNC_ERROR e impacta el historial en Dexie
-  //       await orderCore.notifySyncError(order.idTemp);
-  //     }
-  //   }
-  // }
+  if (!shouldCharge) {
+    return order;
+  }
 
-  return result.data;
+  await updateOrderStatusOrchestrator({
+    idTemp: order.idTemp,
+    thread: "PAYMENT",
+    nextValue: PaymentStatus.CONFIRMED,
+  });
 };
 
 export const assignCourierNameOrchestrator = async (
@@ -129,25 +110,18 @@ export const updateOrderStatusOrchestrator = async (
     0,
   );
 
-  // =================================================================
-  // 🌟 IMPACTO FINANCIERO Y CONTABLE (Coordinación de Cores)
-  // =================================================================
   try {
-    // ---------------------------------------------------------------
-    // 1. ESCENARIO HILO DE PAGO (PAYMENT)
-    // ---------------------------------------------------------------
-    const turn = await cashRegisterTurnOrchestrator.getCashTurn(
+    const turn = await cashRegisterTurnOrchestrator.findById(
+      result.data.cashRegisterTurnIdTemp || "",
       result.data.businessId,
     );
 
-    const cashRegisterOrchestrator = new CashRegisterOrchestrator();
+    const treasuryAccountIdTemp = await resolveTreasuryAccountId(
+      turn.cashRegisterId,
+      turn.businessId,
+      order.orderPaymentMethod,
+    );
 
-    const treasuryAccountIdTemp =
-      await cashRegisterOrchestrator.resolveTreasuryAccountId(
-        turn.cashRegisterId,
-        order.orderPaymentMethod,
-        order.businessId,
-      );
     if (input.thread === "PAYMENT") {
       const paymentValue = input.nextValue as PaymentStatus;
 
@@ -157,7 +131,7 @@ export const updateOrderStatusOrchestrator = async (
           businessId: order.businessId,
           userId: order.userId || "system",
           treasuryAccountId: treasuryAccountIdTemp,
-          amount: order.total - (order.totalDeliveryCost ?? 0),
+          amount: order.total,
           paymentMethod: order.orderPaymentMethod,
           orderId: order.idTemp,
           idTemp: turn.idTemp,
@@ -182,7 +156,7 @@ export const updateOrderStatusOrchestrator = async (
         await financialMovementOrchestrator.processRefundMovement({
           businessId: order.businessId,
           userId: order.userId || "system",
-          amount: order.total - (order.totalDeliveryCost ?? 0),
+          amount: order.total,
           paymentMethod: order.orderPaymentMethod,
           orderId: order.idTemp,
           idTemp: turn.idTemp,
@@ -209,7 +183,7 @@ export const updateOrderStatusOrchestrator = async (
             businessId: order.businessId,
             referenceCashRegisterTurnId: order.cashRegisterTurnIdTemp,
             userId: order.userId || "system",
-            amount: order.total - (order.totalDeliveryCost ?? 0),
+            amount: order.total,
             paymentMethod: order.orderPaymentMethod,
             orderId: order.idTemp,
             idTemp: turn.idTemp,
@@ -346,4 +320,122 @@ export async function changeOrderPaymentMethodOrchestrator(
   });
   const input: ChangeOrderPaymentMethodInput = { orderId, paymentMethod };
   return orderCore.changePaymentMethod(input);
+}
+
+export async function updateOrderOrchestrator(input: UpdateOrderInput) {
+  const repositoryAdapter = new DexieOrderRepositoryAdapter();
+  const identityAdapter = new DexieOrderIdentityAdapter();
+
+  const orderCore = OrderServicePublic({
+    repository: repositoryAdapter,
+    identity: identityAdapter,
+    cashRegister: repositoryAdapter,
+  });
+  return orderCore.updateOrder(input);
+}
+
+export async function changeConfirmedOrderPaymentMethodOrchestrator(
+  input: ChangeConfirmedPaymentMethodInput,
+) {
+  // ============================================================
+  // CORES
+  // ============================================================
+
+  const orderRepository = new DexieOrderRepositoryAdapter();
+  const orderIdentity = new DexieOrderIdentityAdapter();
+
+  const orderCore = OrderServicePublic({
+    repository: orderRepository,
+    identity: orderIdentity,
+    cashRegister: orderRepository,
+  });
+
+  const cashRegisterTurnCore = cashRegisterTurnOrchestrator;
+  const financialMovementCore = financialMovementOrchestrator;
+
+  const order = await orderRepository.findByIdTemp(input.orderId);
+
+  if (!order) {
+    throw new Error("No se encontró la orden.");
+  }
+
+  if (!order.cashRegisterTurnIdTemp) {
+    throw new Error("La orden no tiene asociado un turno de caja.");
+  }
+
+  const turn = await cashRegisterTurnCore.findById(
+    order.cashRegisterTurnIdTemp,
+    order.businessId,
+  );
+
+  let treasuryAccountId = await resolveTreasuryAccountId(
+    turn.cashRegisterId,
+    turn.businessId,
+    input.paymentMethod,
+  );
+
+  const orderResult = await orderCore.changeConfirmedPaymentMethod({
+    orderId: input.orderId,
+    paymentMethod: input.paymentMethod,
+    authorizationCode: input.authorizationCode,
+  });
+
+  if (!orderResult.success) {
+    return orderResult;
+  }
+
+  // ============================================================
+  // 6. MODIFICAR MOVIMIENTO FINANCIERO
+  // ============================================================
+
+  const movement = await financialMovementCore.changeSalePaymentMethod({
+    orderId: input.orderId,
+    paymentMethod: input.paymentMethod,
+    treasuryAccountId,
+  });
+
+  // ============================================================
+  // 7. RESULTADO
+  // ============================================================
+
+  return {
+    success: true,
+    data: {
+      order: orderResult.data,
+      movement,
+    },
+  };
+}
+
+export async function resolveTreasuryAccountId(
+  cashRegisterId: string,
+  businessId: string,
+  paymentMethod: PaymentMethodTypeFinancial,
+): Promise<string> {
+  const cashRegisterPaymentMethodCore = new CashRegisterOrchestrator();
+
+  if (paymentMethod === PaymentMethodTypeFinancial.CASH) {
+    const cashRegister = await cashRegisterPaymentMethodCore.findById(
+      cashRegisterId,
+      businessId,
+    );
+
+    return cashRegister.defaultTreasuryAccountId;
+  }
+
+  const { paymentMethods } =
+    await cashRegisterPaymentMethodCore.findByIdWithPaymentMethods(
+      cashRegisterId,
+      businessId,
+    );
+
+  const configuredPaymentMethod = paymentMethods.find(
+    (p) => p.paymentMethod === paymentMethod && p.isActive,
+  );
+
+  if (!configuredPaymentMethod) {
+    throw new Error("La caja no tiene asociado ese medio de pago activo.");
+  }
+
+  return configuredPaymentMethod.treasuryAccountId;
 }

@@ -1,3 +1,4 @@
+import { ChangeSalePaymentMethodInput } from "../core/treasury-core/input/financial-movement/change-sale-payment-method.input";
 import { RegisterInternalTransferInput } from "../core/treasury-core/input/financial-movement/register-internal-transfer.input";
 import {
   FinancialMovement,
@@ -92,6 +93,12 @@ class FinancialMovementOrchetrator {
     input: RegisterRefundInput,
   ): Promise<FinancialMovement> {
     return this.movementService.registerRefund(input);
+  }
+
+  async changeSalePaymentMethod(
+    input: ChangeSalePaymentMethodInput,
+  ): Promise<FinancialMovement> {
+    return this.movementService.changeSalePaymentMethod(input);
   }
 }
 

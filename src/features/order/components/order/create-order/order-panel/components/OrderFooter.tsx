@@ -31,6 +31,12 @@ interface OrderFooterProps {
   setPaymentMethod: (v: PaymentMethodType) => void;
 
   createOrder: (instantPrepare?: boolean) => void;
+
+  /**
+   * Si existe, estamos editando una orden existente.
+   * Si no existe, estamos creando una nueva.
+   */
+  orderIdTemp?: string;
 }
 
 const PAYMENT_METHODS: {
@@ -55,14 +61,18 @@ export function OrderFooter({
   paymentMethod,
   setPaymentMethod,
   createOrder,
+  orderIdTemp,
 }: OrderFooterProps) {
   const hasDiscount =
     discountType !== null && discountValue > 0;
 
+  const isEditing = !!orderIdTemp;
+
   return (
     <div className="shrink-0 border-t border-slate-200 bg-white shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+
       {/* MÉTODO DE PAGO */}
-      <div className="px-2 py-1.5 bg-slate-50 border-b border-slate-200">
+      <div className="border-b border-slate-200 bg-slate-50 px-2 py-1.5">
         <div className="flex gap-1.5">
           {PAYMENT_METHODS.map((method) => {
             const isSelected = paymentMethod === method.key;
@@ -72,10 +82,10 @@ export function OrderFooter({
                 key={method.key}
                 type="button"
                 onClick={() => setPaymentMethod(method.key)}
-                className={`flex-1 h-7 rounded-md border text-[9px] font-black transition-all ${
+                className={`h-7 flex-1 rounded-md border text-[9px] font-black transition-all ${
                   isSelected
-                    ? "bg-slate-900 text-white border-slate-900 shadow-sm"
-                    : "bg-white text-slate-500 border-slate-200 hover:bg-slate-100"
+                    ? "border-slate-900 bg-slate-900 text-white shadow-sm"
+                    : "border-slate-200 bg-white text-slate-500 hover:bg-slate-100"
                 }`}
               >
                 {method.label}
@@ -87,6 +97,7 @@ export function OrderFooter({
 
       {/* RESUMEN */}
       <div className="bg-slate-900 px-3 py-2 text-white">
+
         {/* DETALLE DE PRECIOS */}
         <div className="space-y-0.5 text-[10px] font-bold">
           <div className="flex items-center justify-between text-slate-400">
@@ -128,24 +139,41 @@ export function OrderFooter({
 
         {/* ACCIONES */}
         {!isSubmitting && (
-          <div className="mt-2 flex gap-1.5">
-            <button
-              type="button"
-              onClick={() => createOrder(false)}
-              disabled={!hasItems}
-              className="flex-1 h-8 rounded-md border border-slate-700 bg-slate-800 text-[9px] font-black uppercase text-white transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Solo guardar
-            </button>
+          <div className="mt-2">
+            {isEditing ? (
+              <button
+                type="button"
+                onClick={() => createOrder(false)}
+                disabled={!hasItems}
+                className="h-8 w-full rounded-md bg-emerald-600 text-[10px] font-black uppercase tracking-wider text-white shadow-sm transition-colors hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Guardar cambios
+              </button>
+            ) : (
+              <div className="flex gap-1.5">
 
-            <button
-              type="button"
-              onClick={() => createOrder(true)}
-              disabled={!hasItems}
-              className="flex-[2] h-8 rounded-md bg-emerald-600 text-[10px] font-black uppercase tracking-wider text-white shadow-sm transition-colors hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Marchar comanda
-            </button>
+                {/* COBRAR */}
+                <button
+                  type="button"
+                  onClick={() => createOrder(true)}
+                  disabled={!hasItems}
+                  className="flex-1 h-8 rounded-md border border-slate-700 bg-slate-800 text-[9px] font-black uppercase text-white transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Cobrar
+                </button>
+
+                {/* MARCHAR COMANDA */}
+                <button
+                  type="button"
+                  onClick={() => createOrder(false)}
+                  disabled={!hasItems}
+                  className="flex-[2] h-8 rounded-md bg-emerald-600 text-[10px] font-black uppercase tracking-wider text-white shadow-sm transition-colors hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Marchar comanda
+                </button>
+
+              </div>
+            )}
           </div>
         )}
       </div>

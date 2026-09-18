@@ -38,6 +38,8 @@ import {
 
 import { CashRegisterPort } from "../ports/cash-register.port";
 import { ChangeOrderPaymentMethodInput } from "../input/change-order-payment-method.input";
+import { UpdateOrderInput } from "../input/update-order.input";
+import { ChangeConfirmedPaymentMethodInput } from "../input/change-confirmed-payment-method.input";
 
 export class OrderService implements IOrderPublicService {
   constructor(
@@ -175,6 +177,123 @@ export class OrderService implements IOrderPublicService {
     };
   }
 
+  // ==========================================================================
+  // UPDATE ORDER
+  // ==========================================================================
+
+  async updateOrder(input: UpdateOrderInput): Promise<OrderServiceResponse> {
+    const order = await this.repository.findByIdTemp(input.idTemp);
+
+    if (!order) {
+      return {
+        success: false,
+        error: {
+          code: "REPOSITORY_ERROR",
+          message: "No se encontró la orden especificada.",
+        },
+      };
+    }
+
+    if (
+      order.status === OrderStatus.CANCELLED ||
+      order.status === OrderStatus.REJECTED
+    ) {
+      return {
+        success: false,
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "No se puede editar una orden cancelada o rechazada.",
+        },
+      };
+    }
+
+    if (
+      order.orderPaymentMethod != input.orderPaymentMethod &&
+      order.paymentStatus === PaymentStatus.CONFIRMED
+    ) {
+      return {
+        success: false,
+        error: {
+          code: "VALIDATION_ERROR",
+          message:
+            "No se puede editar el metodo de pago de una orden ya pagada.",
+        },
+      };
+    }
+
+    // ------------------------------------------------------------------------
+    // 3. Calcular descuento
+    // ------------------------------------------------------------------------
+
+    let discountAmount = 0;
+    let total = input.subtotal;
+
+    if (input.discountType !== null && input.discountType !== undefined) {
+      if (input.discountValue === null || input.discountValue === undefined) {
+        return {
+          success: false,
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Se especificó un tipo de descuento pero no su valor.",
+          },
+        };
+      }
+
+      try {
+        const discountResult = OrderDiscountRule.calculate(
+          input.subtotal,
+          input.discountType,
+          input.discountValue,
+        );
+
+        discountAmount = discountResult.discountAmount;
+        total = discountResult.total;
+      } catch (error) {
+        return {
+          success: false,
+          error: {
+            code: "VALIDATION_ERROR",
+            message:
+              error instanceof Error
+                ? error.message
+                : "El descuento no es válido.",
+          },
+        };
+      }
+    }
+
+    const updates: Partial<Order> = {
+      customerName: input.customerName?.trim() || order.customerName,
+      customerPhone: input.customerPhone || "",
+      customerAddress: input.customerAddress,
+      customerObservations: input.customerObservations,
+      items: input.items,
+      subtotal: input.subtotal,
+      discountType: input.discountType ?? null,
+      discountValue: input.discountValue ?? null,
+      discountAmount,
+      total,
+      deliveryType: input.deliveryType,
+      deliveryProvider: input.deliveryProvider,
+      totalDeliveryCost:
+        input.deliveryType === "DELIVERY" ? input.totalDeliveryCost : 0,
+      deliveryQuotationStatus: input.deliveryQuotationStatus,
+      orderPaymentMethod: input.orderPaymentMethod,
+      scheduledAt: input.scheduledAt,
+      updatedAt: new Date(),
+    };
+
+    await this.repository.update(order.idTemp, updates);
+
+    return {
+      success: true,
+      data: {
+        ...order,
+        ...updates,
+      } as Order,
+    };
+  }
+
   async changePaymentMethod(
     input: ChangeOrderPaymentMethodInput,
   ): Promise<OrderServiceResponse> {
@@ -225,6 +344,68 @@ export class OrderService implements IOrderPublicService {
 
     await this.repository.update(order.idTemp, updates);
     return { success: true, data: { ...order, ...updates } as Order };
+  }
+
+  async changeConfirmedPaymentMethod(
+    input: ChangeConfirmedPaymentMethodInput,
+  ): Promise<OrderServiceResponse> {
+    const order = await this.repository.findByIdTemp(input.orderId);
+
+    if (!order) {
+      return {
+        success: false,
+        error: {
+          code: "REPOSITORY_ERROR",
+          message: "No se encontró la orden especificada.",
+        },
+      };
+    }
+
+    if (
+      order.status === OrderStatus.CANCELLED ||
+      order.status === OrderStatus.REJECTED
+    ) {
+      return {
+        success: false,
+        error: {
+          code: "VALIDATION_ERROR",
+          message:
+            "No se puede cambiar el medio de pago de una orden cancelada o rechazada.",
+        },
+      };
+    }
+
+    if (order.orderPaymentMethod === input.paymentMethod) {
+      return {
+        success: true,
+        data: order,
+      };
+    }
+
+    if (input.authorizationCode !== "1234") {
+      return {
+        success: false,
+        error: {
+          code: "INVALID_AUTHORIZATION_CODE",
+          message: "El código de autorización es incorrecto.",
+        },
+      };
+    }
+
+    const updates: Partial<Order> = {
+      orderPaymentMethod: input.paymentMethod,
+      updatedAt: new Date(),
+    };
+
+    await this.repository.update(order.idTemp, updates);
+
+    return {
+      success: true,
+      data: {
+        ...order,
+        ...updates,
+      } as Order,
+    };
   }
 
   // ==========================================================================

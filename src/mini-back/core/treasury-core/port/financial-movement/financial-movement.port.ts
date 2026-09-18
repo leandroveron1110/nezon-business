@@ -10,6 +10,8 @@ export interface FinancialMovementPort {
 
   findByCashRegister(cashRegisterId: string): Promise<FinancialMovement[]>;
 
+  findByOrderId(orderId: string): Promise<FinancialMovement | null>;
+
   // 💡 Necesarios para evitar duplicados en sincronización y reportes del día
   findByClientMovementId(
     clientMovementId: string,

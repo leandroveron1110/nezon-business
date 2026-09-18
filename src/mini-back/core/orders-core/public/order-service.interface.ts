@@ -2,10 +2,12 @@
 
 import { Order } from "../domain/order.entity";
 import { ApplyOrderDiscountInput } from "../input/apply-order-discount.input";
+import { ChangeConfirmedPaymentMethodInput } from "../input/change-confirmed-payment-method.input";
 import { ChangeOrderPaymentMethodInput } from "../input/change-order-payment-method.input";
 import { CreateOrderInput } from "../input/create-order.input";
 import { MutateOrderStateInput } from "../input/mutate-order.input";
 import { UpdateOrderStatusInput } from "../input/update-order-status.input";
+import { UpdateOrderInput } from "../input/update-order.input";
 
 export interface IOrderPublicService {
   /**
@@ -15,6 +17,8 @@ export interface IOrderPublicService {
   createOrder(input: CreateOrderInput): Promise<OrderServiceResponse>;
 
   updateStatus(input: UpdateOrderStatusInput): Promise<OrderServiceResponse>;
+
+  updateOrder(input: UpdateOrderInput): Promise<OrderServiceResponse>;
 
   /**
    * Aplica o reemplaza el descuento actual de la orden.
@@ -39,6 +43,10 @@ export interface IOrderPublicService {
   changePaymentMethod(
     input: ChangeOrderPaymentMethodInput,
   ): Promise<OrderServiceResponse>;
+
+  changeConfirmedPaymentMethod(
+    input: ChangeConfirmedPaymentMethodInput,
+  ): Promise<OrderServiceResponse>;
 }
 
 /** Respuesta estandarizada que el Core devuelve al mundo exterior */
@@ -50,7 +58,8 @@ export interface OrderServiceResponse {
       | "VALIDATION_ERROR"
       | "REPOSITORY_ERROR"
       | "LOGISTICS_ERROR"
-      | "INVALID_THREAD";
+      | "INVALID_THREAD"
+      | "INVALID_AUTHORIZATION_CODE";
     message: string;
   };
 }

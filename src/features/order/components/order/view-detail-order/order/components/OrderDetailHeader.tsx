@@ -1,17 +1,17 @@
 import OrderStatusBadge from "@/features/order/components/OrderStatusBadge";
 import { UIOrder } from "@/features/order/types/ui-order";
 import { X } from "lucide-react";
-import { OrderActionsMenu } from "./OrderActionsMenu";
+import { OrderActionsMenu } from "./order-action-menu/OrderActionsMenu";
 import { OrderStatus } from "@/types/order-state-machine";
 
 interface OrderDetailHeaderProps {
   safeOrder: UIOrder;
   handlePrint: () => void;
   onClose: () => void;
-  onApplyDiscount: (type: "PERCENTAGE" | "FIXED", value: number) => void;
   onToggleDeliveryType: (nextType: "DELIVERY" | "TAKE_AWAY") => void;
   OrderCancellationActions: any;
   handleCancelOrder: (targetStatus: OrderStatus) => void;
+  onEditOrder: (b: boolean)=> void;
 }
 
 export function OrderDetailHeader({
@@ -20,7 +20,7 @@ export function OrderDetailHeader({
   onClose,
   onToggleDeliveryType,
   OrderCancellationActions,
-  onApplyDiscount,
+  onEditOrder,
   handleCancelOrder,
 }: OrderDetailHeaderProps) {
   return (
@@ -45,6 +45,7 @@ export function OrderDetailHeader({
           onToggleDeliveryType={onToggleDeliveryType}
           OrderCancellationActions={OrderCancellationActions}
           handleCancelOrder={handleCancelOrder}
+          onEditOrder={onEditOrder}
         />
 
         {/* Botón de Cerrar Modal/Drawer */}

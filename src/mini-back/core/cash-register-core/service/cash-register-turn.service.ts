@@ -6,9 +6,7 @@ import { HistoryFiltersInput } from "../input/hitory-filter.input";
 import { InitializeCashRegisterTurnInput } from "../input/initialize.input";
 import { OpenCashRegisterTurnInput } from "../input/open.input";
 
-import {
-  CashRegisterTurnPort,
-} from "../port/cash-register-turn.port";
+import { CashRegisterTurnPort } from "../port/cash-register-turn.port";
 import { CashRegisterPort } from "../port/cash-register.port";
 import { ICashRegisterTurnService } from "../public/cash-register-turn-service.interface";
 
@@ -17,13 +15,24 @@ export class CashRegisterTurnService implements ICashRegisterTurnService {
     private readonly CashRegisterTurn: CashRegisterTurnPort,
     private readonly CashRegisterPort: CashRegisterPort, // Repositorio de cajas registradoras físicas
   ) {}
+  
+  async findById(
+    idTemp: string,
+    businessId: string,
+  ): Promise<CashRegisterTurn> {
+    const turn = await this.CashRegisterTurn.findByidTemp(idTemp);
+
+    if (!turn || turn.businessId !== businessId) {
+      throw new Error("Turno de caja no encontrado.");
+    }
+
+    return turn;
+  }
   reopen(businessId: string, turnId: string): Promise<CashRegisterTurn> {
     throw new Error("Method not implemented.");
   }
 
-  async getCashTurn(
-    businessId: string,
-  ): Promise<{
+  async getCashTurn(businessId: string): Promise<{
     idTemp: string;
     treasuryAccountId: string;
     cashRegisterId: string;
