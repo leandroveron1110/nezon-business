@@ -68,7 +68,7 @@ export default function OpenTurnModal({
   const parsedAmount = parseCurrency(initialCash);
 
   const selectedCashRegister = cashRegisters.find(
-    (cr) => (cr.id ?? cr.idTemp) === cashRegisterId,
+    (cr) => (cr.idTemp) === cashRegisterId,
   );
 
   const resetForm = () => {
@@ -99,6 +99,8 @@ export default function OpenTurnModal({
     setAuthorizationError("");
 
     try {
+
+      console.log("cashRegisterId", cashRegisterId)
       // Primer intento: validación contra Tesorería.
       const success = await onConfirmOpen(
         parsedAmount,
@@ -204,7 +206,7 @@ export default function OpenTurnModal({
                 {cashRegisters
                   .filter((cr) => cr.isActive)
                   .map((cr) => {
-                    const id = cr.id ?? cr.idTemp;
+                    const id = cr.idTemp;
                     return (
                       <option key={id} value={id}>
                         {cr.name}

@@ -20,22 +20,18 @@ export class TreasuryAccountDexieRepository implements TreasuryAccountPort {
    * pendiente de sincronización.
    */
   async save(account: TreasuryAccount): Promise<TreasuryAccount> {
-    const existing = await db.treasuryAccount.get(account.idTemp);
 
     const localAccount: LocalTreasuryAccount = {
       idTemp: account.idTemp || crypto.randomUUID(),
       businessId: account.businessId,
-      syncStatus:
-        existing?.syncStatus === "SYNCED"
-          ? "SYNC_PENDING"
-          : (existing?.syncStatus ?? "SYNC_PENDING"),
+      syncStatus: "SYNC_PENDING",
       syncPriority: "HIGH",
       name: account.name,
       type: account.type,
       currency: account.currency,
       currentBalance: account.currentBalance,
       isActive: account.isActive,
-      createdAt: existing?.createdAt ?? account.createdAt,
+      createdAt: account.createdAt,
       updatedAt: account.updatedAt,
     };
 
@@ -67,7 +63,6 @@ export class TreasuryAccountDexieRepository implements TreasuryAccountPort {
    * Incluye cuentas activas e inactivas.
    */
   async findByBusinessId(businessId: string): Promise<TreasuryAccount[]> {
-    console.log("Finding treasury accounts for businessId:", businessId);
     const accounts = await db.treasuryAccount
       .where("businessId")
       .equals(businessId)

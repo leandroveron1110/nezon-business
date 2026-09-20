@@ -219,7 +219,7 @@ export class FinancialMovementService implements IFinancialMovementPublicService
 
       status: FinancialMovementStatus.CONFIRMED,
 
-      amount: -input.amount,
+      amount: input.amount,
 
       description: input.description,
 

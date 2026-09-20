@@ -13,7 +13,7 @@ export interface LocalCashRegister {
 
   name: string;                       // Ej: "Caja Mostrador 1", "Barra Principal", "Delivery 01"
   
-  // Cuenta de tesorería asociada por defecto para cobros en efectivo
+  // Cuenta de tesorería asociada por defecto para cobros en efectivo con el idTemp local de tesoreria
   defaultTreasuryAccountId: string;   // FK a LocalTreasuryAccount (tipo CASH)
 
   isActive: boolean;
@@ -23,4 +23,4 @@ export interface LocalCashRegister {
 
 // ÍNDICES DEXIE
 export const CASH_REGISTER_STORE = 
-  "idTemp, id, businessId, name, [businessId+name], [businessId+idTemp], isActive, defaultTreasuryAccountId";
+  "idTemp, id, businessId, name, [businessId+name], [businessId+idTemp], isActive, syncStatus, defaultTreasuryAccountId";

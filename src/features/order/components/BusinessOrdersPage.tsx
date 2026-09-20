@@ -29,6 +29,9 @@ import { OrderCard } from "./order/order-card/OrderCard";
 import { syncCatalogIfNeeded } from "@/features/common/database/sync/sync";
 import { OrderDetailsSidePanel } from "./order/view-detail-order/order/OrderDetailsSidePanel";
 import { useCashRegisterTurnStatus } from "@/features/cashRegisterTurn/hooks/useCashRegisterTurnStatus";
+import { getTreasuryAccountSyncWorker } from "@/mini-back/infrastructure/workers/treasury-account/treasury-account.worker";
+import { getCashRegisterSyncWorker } from "@/mini-back/infrastructure/workers/cash-register/cash-register-sync-worker";
+import { getCashRegisterPaymentMethodSyncWorker } from "@/mini-back/infrastructure/workers/cegister-payment-method/cash-egister-payment-method-sync-worker";
 
 interface Props {
   businessId: string;
@@ -85,6 +88,19 @@ export default function BusinessOrdersPage({ businessId }: Props) {
 
   useEffect(() => {
     syncCatalogIfNeeded(businessId);
+
+    const loader = async () => {
+      const worker = getTreasuryAccountSyncWorker();
+
+      await worker.processQueue(businessId);
+      const cashRegisterWorker = getCashRegisterSyncWorker();
+      const paymentMethodWorker = getCashRegisterPaymentMethodSyncWorker();
+
+      void cashRegisterWorker.processQueue(businessId);
+      void paymentMethodWorker.processQueue(businessId);
+    };
+
+    loader();
   }, [businessId]);
 
   useEffect(() => {
@@ -480,7 +496,6 @@ export default function BusinessOrdersPage({ businessId }: Props) {
         onClose={handleClosePrintModal}
         onSelect={executePrint}
       />
-
 
       {isNewOrder && (
         <OrderBuilder

@@ -23,10 +23,6 @@ export class DeliveryWorker {
   async run(): Promise<void> {
     const orders = await this.repository.findPendingQuotation();
 
-    console.log(
-      `[DeliveryWorker] Procesando ${orders.length} órdenes pendientes de cotización...`,
-    );
-
     for (const order of orders) {
       try {
         await this.process(order);
@@ -45,9 +41,6 @@ export class DeliveryWorker {
   private async process(order: LocalOrder): Promise<void> {
     if (!order.customerAddress) return;
 
-    console.log(
-      `[DeliveryWorker] Procesando cotización para orden ${order.idTemp} con dirección: ${order.customerAddress}`,
-    );
     const quotation = await this.deliveryService.quoteDelivery({
       rawAddress: order.customerAddress,
       businessId: order.businessId,
@@ -55,15 +48,8 @@ export class DeliveryWorker {
       locations: LOCATION_DATA,
     });
 
-    console.log(
-      `[DeliveryWorker] Cotización para orden ${order.idTemp}:`,
-      quotation,
-    );
     if (!quotation.success || !quotation.data) {
-      console.log(
-        `[DeliveryWorker] Error en cotización para orden ${order.idTemp}:`,
-        quotation.error,
-      );
+
       await this.sendToBase(order, {
         quotationStatus: "MANUAL",
         resolutionStrategy: "MANUAL",
@@ -102,9 +88,7 @@ export class DeliveryWorker {
     order: LocalOrder,
     quotation: DeliveryQuotation,
   ): Promise<void> {
-    console.log(
-      `[DeliveryWorker] Enviando solicitud de cotización a Base para orden ${order.idTemp} con dirección: ${order.customerAddress}`,
-    );
+
     const businessDiex = new BusinessLocalRepository();
     const business = await businessDiex.getCurrentBusiness();
     const response = await requestDeliveryQuotation({

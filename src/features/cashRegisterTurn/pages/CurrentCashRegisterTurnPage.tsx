@@ -106,7 +106,7 @@ export default function CurrentCashRegisterTurnPage({ businessId }: Props) {
         approvedByUserId: user.id,
         userId: user.id,
         idTemp: activeTurn.idTemp,
-       treasuryAccountIdTemp: activeTurn.treasuryAccountIdTemp,
+        treasuryAccountIdTemp: activeTurn.treasuryAccountIdTemp,
       });
     }
   };
@@ -128,7 +128,7 @@ export default function CurrentCashRegisterTurnPage({ businessId }: Props) {
         notes: data.notes,
         idTemp: activeTurn.idTemp,
         approvedByUserId: user.id,
-       treasuryAccountIdTemp: activeTurn.treasuryAccountIdTemp,
+        treasuryAccountIdTemp: activeTurn.treasuryAccountIdTemp,
       });
     }
   };
@@ -137,8 +137,7 @@ export default function CurrentCashRegisterTurnPage({ businessId }: Props) {
     openingAmount: number,
     cashRegisterId: string,
     openingNotes: string,
-        forceOpen?: boolean,
-
+    forceOpen?: boolean,
   ): Promise<boolean> => {
     if (!user?.id) {
       return false;
@@ -149,7 +148,7 @@ export default function CurrentCashRegisterTurnPage({ businessId }: Props) {
       openingAmount,
       cashRegisterId,
       openingNotes,
-      forceOpen
+      forceOpen,
     });
   };
 

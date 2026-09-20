@@ -30,7 +30,14 @@ export interface LocalCashRegisterPaymentMethod {
    *
    * FK → LocalTreasuryAccount
    */
- treasuryAccountIdTemp: string;
+  treasuryAccountIdTemp: string;
+    /**
+   * ID definitivo de la cuenta de tesorería
+   * asignado por el servidor.
+   *
+   * FK → TreasuryAccount.id
+   */
+  treasuryAccountId?: string | null
 
   syncStatus: SyncStatus;
   syncPriority: "HIGH";
@@ -42,4 +49,4 @@ export interface LocalCashRegisterPaymentMethod {
 }
 
 export const CASH_REGISTER_PAYMENT_METHOD_STORE =
-  "idTemp, id, businessId, cashRegisterId, paymentMethod,treasuryAccountIdTemp, [cashRegisterId+paymentMethod], isActive";
+  "idTemp, id, businessId, cashRegisterId, paymentMethod, treasuryAccountIdTemp, syncStatus, [cashRegisterId+paymentMethod], isActive";

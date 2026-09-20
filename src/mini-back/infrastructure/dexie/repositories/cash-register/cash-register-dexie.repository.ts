@@ -15,7 +15,7 @@ export class CashRegisterDexieRepository implements CashRegisterPort {
       isActive: register.isActive,
       createdAt: register.createdAt,
       syncPriority: "HIGH",
-      syncStatus: "PENDING" as SyncStatus,
+      syncStatus: "SYNC_PENDING" as SyncStatus,
       updatedAt: register.updatedAt,
     });
     return register;

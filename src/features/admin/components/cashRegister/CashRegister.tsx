@@ -22,6 +22,8 @@ import { CashRegister } from "@/mini-back/core/cash-register-core/domain/cash-re
 import { TreasuryAccount } from "@/mini-back/core/treasury-core/domain/treasury-account/treasury-account";
 import { CashRegisterPaymentMethod } from "@/mini-back/core/cash-register-core/public";
 import { PaymentMethodTypeFinancial } from "@/mini-back/shared/enums/financial-movement-status.enum";
+import { getCashRegisterSyncWorker } from "@/mini-back/infrastructure/workers/cash-register/cash-register-sync-worker";
+import { getCashRegisterPaymentMethodSyncWorker } from "@/mini-back/infrastructure/workers/cegister-payment-method/cash-egister-payment-method-sync-worker";
 
 const cashRegisterOrchestrator = new CashRegisterOrchestrator();
 const treasuryAccountOrchestrator = new TreasuryAccountOrchestrator();
@@ -53,6 +55,7 @@ export default function CashRegisterPage({
   const [registers, setRegisters] = useState<CashRegisterWithPaymentMethods[]>(
     [],
   );
+
   const [treasuryAccounts, setTreasuryAccounts] = useState<TreasuryAccount[]>(
     [],
   );
@@ -66,11 +69,18 @@ export default function CashRegisterPage({
   const [configuringRegisterId, setConfiguringRegisterId] = useState<
     string | null
   >(null);
+
   const [paymentMethod, setPaymentMethod] = useState<
     PaymentMethodTypeFinancial | ""
   >("");
+
   const [paymentTreasuryAccountId, setPaymentTreasuryAccountId] = useState("");
+
   const [savingPaymentMethod, setSavingPaymentMethod] = useState(false);
+
+  // ============================================================
+  // COMPATIBILIDAD DE CUENTAS
+  // ============================================================
 
   const compatibleTreasuryAccounts = paymentMethod
     ? treasuryAccounts.filter((account) =>
@@ -80,13 +90,32 @@ export default function CashRegisterPage({
       )
     : [];
 
+  // ============================================================
+  // INICIALIZAR WORKERS
+  // ============================================================
+
+  useEffect(() => {
+    const cashRegisterWorker = getCashRegisterSyncWorker();
+    const paymentMethodWorker = getCashRegisterPaymentMethodSyncWorker();
+
+    void cashRegisterWorker.processQueue(businessId);
+    void paymentMethodWorker.processQueue(businessId);
+
+    void loadData();
+  }, [businessId]);
+
+  // ============================================================
+  // CARGAR DATOS
+  // ============================================================
+
   async function loadData() {
     setLoading(true);
+
     try {
-      const cashRegisters =
-        await cashRegisterOrchestrator.findByBusinessId(businessId);
-      const accounts =
-        await treasuryAccountOrchestrator.findActiveByBusinessId(businessId);
+      const [cashRegisters, accounts] = await Promise.all([
+        cashRegisterOrchestrator.findByBusinessId(businessId),
+        treasuryAccountOrchestrator.findActiveByBusinessId(businessId),
+      ]);
 
       const registersWithPaymentMethods = await Promise.all(
         cashRegisters.map(async (register) => {
@@ -99,6 +128,8 @@ export default function CashRegisterPage({
 
       setRegisters(registersWithPaymentMethods);
       setTreasuryAccounts(accounts);
+    } catch (error) {
+      console.error("[CashRegisterPage] Error cargando datos:", error);
     } finally {
       setLoading(false);
     }
@@ -107,6 +138,10 @@ export default function CashRegisterPage({
   useEffect(() => {
     void loadData();
   }, [businessId]);
+
+  // ============================================================
+  // CREAR CAJA
+  // ============================================================
 
   async function handleCreate() {
     if (!name.trim()) {
@@ -122,6 +157,15 @@ export default function CashRegisterPage({
     setCreating(true);
 
     try {
+      /*
+       * IMPORTANTE:
+       *
+       * treasuryAccountId contiene el idTemp local.
+       *
+       * El orchestrator crea la caja localmente.
+       * El worker se encargará posteriormente
+       * de resolver el ID definitivo del servidor.
+       */
       await cashRegisterOrchestrator.create({
         idTemp: crypto.randomUUID(),
         businessId,
@@ -131,9 +175,24 @@ export default function CashRegisterPage({
 
       setName("");
       setTreasuryAccountId("");
+
+      /*
+       * No esperamos al servidor.
+       *
+       * La UI vuelve a leer IndexedDB inmediatamente.
+       */
       await loadData();
+
+      /*
+       * Intentamos sincronizar inmediatamente.
+       *
+       * Si está offline, el worker simplemente dejará
+       * el registro pendiente.
+       */
+      void getCashRegisterSyncWorker().processQueue();
     } catch (error) {
-      console.error(error);
+      console.error("[CashRegisterPage] Error creando caja:", error);
+
       alert(
         error instanceof Error ? error.message : "No se pudo crear la caja",
       );
@@ -142,17 +201,29 @@ export default function CashRegisterPage({
     }
   }
 
+  // ============================================================
+  // ACTIVAR / DESACTIVAR CAJA
+  // ============================================================
+
   async function handleToggle(idTemp: string) {
     try {
       await cashRegisterOrchestrator.toggleActive(idTemp, businessId);
+
       await loadData();
+
+      void getCashRegisterSyncWorker().processQueue();
     } catch (error) {
-      console.error(error);
+      console.error("[CashRegisterPage] Error cambiando estado:", error);
+
       alert(
         error instanceof Error ? error.message : "No se pudo cambiar el estado",
       );
     }
   }
+
+  // ============================================================
+  // FORMULARIO MEDIO DE PAGO
+  // ============================================================
 
   function openPaymentMethodForm(cashRegisterId: string) {
     setConfiguringRegisterId(cashRegisterId);
@@ -181,12 +252,23 @@ export default function CashRegisterPage({
     );
 
     if (compatibleAccounts.length === 1) {
+      /*
+       * Guardamos idTemp.
+       *
+       * El worker posteriormente resolverá
+       * treasuryAccountId.
+       */
       setPaymentTreasuryAccountId(compatibleAccounts[0].idTemp);
+
       return;
     }
 
     setPaymentTreasuryAccountId("");
   }
+
+  // ============================================================
+  // CREAR MEDIO DE PAGO
+  // ============================================================
 
   async function handleCreatePaymentMethod() {
     if (!configuringRegisterId) return;
@@ -204,18 +286,44 @@ export default function CashRegisterPage({
     setSavingPaymentMethod(true);
 
     try {
+      /*
+       * IMPORTANTE:
+       *
+       * configuringRegisterId:
+       *     idTemp de CashRegister
+       *
+       * paymentTreasuryAccountId:
+       *     idTemp de TreasuryAccount
+       *
+       * Todo se guarda localmente.
+       */
       await cashRegisterOrchestrator.createPaymentMethod({
         idTemp: crypto.randomUUID(),
+
         businessId,
+
         cashRegisterId: configuringRegisterId,
+
         paymentMethod,
-       treasuryAccountIdTemp: paymentTreasuryAccountId,
+
+        treasuryAccountIdTemp: paymentTreasuryAccountId,
       });
 
       closePaymentMethodForm();
+
       await loadData();
+
+      /*
+       * Intentamos sincronizar inmediatamente.
+       *
+       * Si CashRegister todavía no está sincronizada,
+       * el worker del PaymentMethod puede quedar pendiente
+       * hasta que la dependencia esté disponible.
+       */
+      void getCashRegisterPaymentMethodSyncWorker().processQueue();
     } catch (error) {
-      console.error(error);
+      console.error("[CashRegisterPage] Error creando medio de pago:", error);
+
       alert(
         error instanceof Error
           ? error.message
@@ -226,6 +334,10 @@ export default function CashRegisterPage({
     }
   }
 
+  // ============================================================
+  // LOADING
+  // ============================================================
+
   if (loading) {
     return (
       <div className="mx-auto w-full max-w-5xl space-y-6 p-4">
@@ -233,11 +345,17 @@ export default function CashRegisterPage({
           <div className="h-6 w-36 animate-pulse rounded-md bg-slate-200" />
           <div className="h-4 w-72 animate-pulse rounded-md bg-slate-100" />
         </div>
+
         <div className="h-32 animate-pulse rounded-2xl bg-slate-100" />
+
         <div className="h-64 animate-pulse rounded-2xl bg-slate-100" />
       </div>
     );
   }
+
+  // ============================================================
+  // UI
+  // ============================================================
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6 p-4">
@@ -247,10 +365,12 @@ export default function CashRegisterPage({
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 ring-1 ring-emerald-600/10">
             <Store className="h-5 w-5" />
           </div>
+
           <h1 className="text-xl font-bold tracking-tight text-slate-900">
             Cajas físicas
           </h1>
         </div>
+
         <p className="mt-1 text-sm text-slate-500">
           Configurá los puntos de cobro presenciales y la ruta de sus fondos.
         </p>
@@ -258,12 +378,14 @@ export default function CashRegisterPage({
 
       {/* FORMULARIO DE CREACIÓN DE CAJA */}
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
-        <div className="mb-5 flex items-center gap-2 pb-4 border-b border-slate-100">
+        <div className="mb-5 flex items-center gap-2 border-b border-slate-100 pb-4">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
             <Plus className="h-4 w-4" />
           </div>
+
           <div>
             <h2 className="text-sm font-bold text-slate-900">Nueva caja</h2>
+
             <p className="text-xs text-slate-500">
               Crea un nuevo punto de venta vinculando su efectivo por defecto.
             </p>
@@ -276,8 +398,10 @@ export default function CashRegisterPage({
             <label className="text-xs font-semibold text-slate-700">
               Nombre de la caja <span className="text-emerald-600">*</span>
             </label>
+
             <div className="relative">
               <Store className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -294,8 +418,10 @@ export default function CashRegisterPage({
               Cuenta de efectivo por defecto{" "}
               <span className="text-emerald-600">*</span>
             </label>
+
             <div className="relative">
               <Banknote className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+
               <select
                 value={treasuryAccountId}
                 onChange={(e) => setTreasuryAccountId(e.target.value)}
@@ -303,6 +429,7 @@ export default function CashRegisterPage({
                 className="w-full appearance-none rounded-lg border border-slate-200 bg-white py-2 pl-10 pr-9 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 disabled:opacity-50"
               >
                 <option value="">Seleccionar cuenta de tesorería</option>
+
                 {treasuryAccounts
                   .filter((account) => account.type === "CASH")
                   .map((account) => (
@@ -311,6 +438,7 @@ export default function CashRegisterPage({
                     </option>
                   ))}
               </select>
+
               <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             </div>
           </div>
@@ -327,6 +455,7 @@ export default function CashRegisterPage({
             ) : (
               <Plus className="h-4 w-4" />
             )}
+
             <span>{creating ? "Creando..." : "Crear caja"}</span>
           </button>
         </div>
@@ -338,6 +467,7 @@ export default function CashRegisterPage({
           <h2 className="text-sm font-semibold text-slate-900">
             Cajas registradas
           </h2>
+
           <span className="text-xs font-medium text-slate-500">
             {registers.length} {registers.length === 1 ? "caja" : "cajas"}
           </span>
@@ -348,9 +478,11 @@ export default function CashRegisterPage({
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white shadow-xs ring-1 ring-slate-200">
               <Store className="h-6 w-6 text-slate-400" />
             </div>
+
             <h3 className="mt-4 text-sm font-semibold text-slate-900">
               No hay cajas físicas
             </h3>
+
             <p className="mt-1 max-w-sm text-xs text-slate-500">
               Creá tu primera caja para comenzar a procesar ventas presenciales.
             </p>
@@ -384,6 +516,7 @@ export default function CashRegisterPage({
                           <h3 className="text-sm font-bold text-slate-900">
                             {cashRegister.name}
                           </h3>
+
                           <span
                             className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${
                               cashRegister.isActive
@@ -398,13 +531,16 @@ export default function CashRegisterPage({
                                   : "bg-slate-400"
                               }`}
                             />
+
                             {cashRegister.isActive ? "Activa" : "Inactiva"}
                           </span>
                         </div>
 
                         <p className="flex items-center gap-1.5 text-xs text-slate-500">
                           <Banknote className="h-3.5 w-3.5 text-slate-400" />
+
                           <span>Efectivo:</span>
+
                           <span className="font-semibold text-slate-700">
                             {cashTreasury?.name ??
                               cashRegister.defaultTreasuryAccountId}
@@ -428,13 +564,14 @@ export default function CashRegisterPage({
                     </button>
                   </div>
 
-                  {/* SECCIÓN MEDIOS DE PAGO */}
+                  {/* MEDIOS DE PAGO */}
                   <div className="border-t border-slate-100 bg-slate-50/50 p-5">
                     <div className="flex items-center justify-between pb-3">
                       <div>
                         <h4 className="text-xs font-semibold text-slate-900">
                           Medios de pago adicionales
                         </h4>
+
                         <p className="text-[11px] text-slate-500">
                           Cuentas de acreditación para pagos no en efectivo.
                         </p>
@@ -452,7 +589,7 @@ export default function CashRegisterPage({
                       </button>
                     </div>
 
-                    {/* LISTADO DE MEDIOS */}
+                    {/* LISTADO */}
                     {paymentMethods.length === 0 ? (
                       <div className="rounded-xl border border-dashed border-slate-200 bg-white p-4 text-center">
                         <p className="text-xs text-slate-400">
@@ -461,11 +598,10 @@ export default function CashRegisterPage({
                         </p>
                       </div>
                     ) : (
-                      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white divide-y divide-slate-100">
+                      <div className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white">
                         {paymentMethods.map((pm) => {
                           const treasuryAccount = treasuryAccounts.find(
-                            (acc) =>
-                              acc.idTemp === pm.treasuryAccountIdTemp
+                            (acc) => acc.idTemp === pm.treasuryAccountIdTemp,
                           );
 
                           return (
@@ -477,13 +613,16 @@ export default function CashRegisterPage({
                                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
                                   <CreditCard className="h-4 w-4" />
                                 </div>
+
                                 <div>
                                   <p className="text-xs font-semibold text-slate-900">
                                     {PAYMENT_METHOD_LABELS[pm.paymentMethod] ??
                                       pm.paymentMethod}
                                   </p>
+
                                   <p className="flex items-center gap-1 text-[11px] text-slate-500">
                                     <ArrowRight className="h-3 w-3 text-slate-400" />
+
                                     <span>
                                       {treasuryAccount?.name ??
                                         pm.treasuryAccountIdTemp}
@@ -507,13 +646,14 @@ export default function CashRegisterPage({
                       </div>
                     )}
 
-                    {/* FORMULARIO AGREGAR MEDIO */}
+                    {/* FORMULARIO */}
                     {isConfiguring && (
                       <div className="mt-4 rounded-xl border border-emerald-200 bg-white p-4 shadow-sm">
-                        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                           <h5 className="text-xs font-bold text-slate-900">
                             Configurar nuevo medio de pago
                           </h5>
+
                           <button
                             type="button"
                             onClick={closePaymentMethodForm}
@@ -525,14 +665,16 @@ export default function CashRegisterPage({
                         </div>
 
                         <div className="grid gap-4 pt-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
-                          {/* SELECT MEDIO */}
+                          {/* MEDIO */}
                           <div className="space-y-1.5">
                             <label className="text-xs font-semibold text-slate-700">
                               Medio de pago{" "}
                               <span className="text-emerald-600">*</span>
                             </label>
+
                             <div className="relative">
                               <Wallet className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+
                               <select
                                 value={paymentMethod}
                                 onChange={(e) =>
@@ -546,21 +688,26 @@ export default function CashRegisterPage({
                                 className="w-full appearance-none rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-8 text-xs text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 disabled:opacity-50"
                               >
                                 <option value="">Seleccionar medio</option>
+
                                 <option value="TRANSFER">Transferencia</option>
+
                                 <option value="CARD">Tarjeta</option>
                               </select>
+
                               <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
                             </div>
                           </div>
 
-                          {/* SELECT CUENTA */}
+                          {/* CUENTA */}
                           <div className="space-y-1.5">
                             <label className="text-xs font-semibold text-slate-700">
                               Acreditar en{" "}
                               <span className="text-emerald-600">*</span>
                             </label>
+
                             <div className="relative">
                               <Landmark className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+
                               <select
                                 value={paymentTreasuryAccountId}
                                 onChange={(e) =>
@@ -580,17 +727,19 @@ export default function CashRegisterPage({
                                       ? "Sin cuentas compatibles"
                                       : "Seleccionar cuenta"}
                                 </option>
+
                                 {compatibleTreasuryAccounts.map((acc) => (
                                   <option key={acc.idTemp} value={acc.idTemp}>
                                     {acc.name}
                                   </option>
                                 ))}
                               </select>
+
                               <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
                             </div>
                           </div>
 
-                          {/* BOTÓN GUARDAR */}
+                          {/* GUARDAR */}
                           <button
                             type="button"
                             onClick={handleCreatePaymentMethod}
@@ -607,13 +756,14 @@ export default function CashRegisterPage({
                             ) : (
                               <Check className="h-3.5 w-3.5" />
                             )}
+
                             <span>
                               {savingPaymentMethod ? "Guardando..." : "Guardar"}
                             </span>
                           </button>
                         </div>
 
-                        {/* MENSAJES DUALES DE AYUDA */}
+                        {/* AYUDA */}
                         {paymentMethod &&
                           compatibleTreasuryAccounts.length === 0 && (
                             <p className="mt-2 text-xs font-medium text-amber-600">
@@ -627,6 +777,7 @@ export default function CashRegisterPage({
                               .
                             </p>
                           )}
+
                         {paymentMethod &&
                           compatibleTreasuryAccounts.length === 1 && (
                             <p className="mt-2 text-xs text-slate-400">
