@@ -454,7 +454,7 @@ export class OrderService implements IOrderPublicService {
 
         total = discountResult.total;
       } catch (error) {
-        console.log("error con los descuentos", error);
+        // console.log("error con los descuentos", error);
         return {
           success: false,
           error: {

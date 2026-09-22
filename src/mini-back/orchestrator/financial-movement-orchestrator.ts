@@ -26,6 +26,10 @@ class FinancialMovementOrchetrator {
 
   // En TreasuryAccountOrchestrator
 
+  async getByBusinessId(businessId: string): Promise<FinancialMovement[]> {
+    return this.movementService.getByBusinessId(businessId);
+  }
+
   async registerInternalTransfer(
     input: RegisterInternalTransferInput,
   ): Promise<FinancialMovement[]> {

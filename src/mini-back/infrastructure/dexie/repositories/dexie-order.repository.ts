@@ -27,7 +27,7 @@ export class DexieOrderRepositoryAdapter
     };
   }
   async save(input: Order): Promise<void> {
-    // console.log("Guardando orden en Dexie:", input.idTemp);
+    // // console.log("Guardando orden en Dexie:", input.idTemp);
     await db.orders.add({
       idTemp: input.idTemp,
       businessId: input.businessId,
@@ -74,7 +74,7 @@ export class DexieOrderRepositoryAdapter
   }
 
   async findByIdTemp(idTemp: string): Promise<Order | null> {
-    // console.log("Buscando orden en Dexie por idTemp:", idTemp);
+    // // console.log("Buscando orden en Dexie por idTemp:", idTemp);
     const result = await db.orders.where("idTemp").equals(idTemp).first();
     return (result as Order) || null;
   }

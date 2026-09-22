@@ -39,6 +39,7 @@ export class CashRegisterPaymentMethodRepository implements CashRegisterPaymentM
       .equals(cashRegisterId)
       .toArray();
 
+      // console.log("findByCashRegisterId repo", results, cashRegisterId)
     return results.map((item) => this.toDomain(item));
   }
 

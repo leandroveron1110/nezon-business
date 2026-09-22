@@ -128,6 +128,7 @@ export const updateOrderStatusOrchestrator = async (
       if (paymentValue === PaymentStatus.CONFIRMED) {
         // A) Registrar la entrada de dinero a Caja
         await financialMovementOrchestrator.processSaleMovement({
+          idTemp: crypto.randomUUID(),
           businessId: order.businessId,
           userId: order.userId || "system",
           treasuryAccountIdTemp: treasuryAccountIdTemp,
@@ -142,24 +143,26 @@ export const updateOrderStatusOrchestrator = async (
         // B) Reconocer el COGS al concretarse la Venta
         if (totalCogs > 0) {
           await financialMovementOrchestrator.processCogsMovement({
+            idTemp: crypto.randomUUID(),
             businessId: order.businessId,
             userId: order.userId || "system",
             approvedByUserId: order.userId || "system",
             amount: totalCogs,
             orderId: order.idTemp,
-            idTemp: turn.idTemp,
+            cashRegisterTurnId: turn.idTemp,
             description: `Costo de mercadería (COGS) pedido #${order.shortCode || order.idTemp.slice(-4)}`,
           });
         }
       } else if (paymentValue === PaymentStatus.PENDING) {
         // Reversión del pago en Caja
         await financialMovementOrchestrator.processRefundMovement({
+          idTemp:crypto.randomUUID(),
           businessId: order.businessId,
           userId: order.userId || "system",
           amount: order.total,
           paymentMethod: order.orderPaymentMethod,
           orderId: order.idTemp,
-          idTemp: turn.idTemp,
+          cashRegisterTurnId: turn.idTemp,
           treasuryAccountIdTemp: treasuryAccountIdTemp,
           description: `Reversión de cobro pedido #${order.shortCode || order.idTemp.slice(-4)}`,
         });
@@ -180,13 +183,14 @@ export const updateOrderStatusOrchestrator = async (
         // 1. Devolución de dinero si la orden estaba cobrada
         if (order.paymentStatus === PaymentStatus.CONFIRMED) {
           await financialMovementOrchestrator.processRefundMovement({
+            idTemp: crypto.randomUUID(),
             businessId: order.businessId,
             referenceCashRegisterTurnId: order.cashRegisterTurnIdTemp,
             userId: order.userId || "system",
             amount: order.total,
             paymentMethod: order.orderPaymentMethod,
             orderId: order.idTemp,
-            idTemp: turn.idTemp,
+            cashRegisterTurnId: turn.idTemp,
             treasuryAccountIdTemp: treasuryAccountIdTemp,
             description: `Devolución por cancelación de pedido #${order.shortCode || order.idTemp.slice(-4)}`,
           });
@@ -199,13 +203,14 @@ export const updateOrderStatusOrchestrator = async (
 
         if (wasInProduction && totalCogs > 0) {
           await financialMovementOrchestrator.processMermaMovement({
+            idTemp: crypto.randomUUID(),
             businessId: order.businessId,
             userId: order.userId || "system",
             approvedByUserId: order.userId || "system",
             amount: totalCogs,
             orderId: order.idTemp,
             treasuryAccountIdTemp: treasuryAccountIdTemp,
-            idTemp: turn.idTemp,
+            cashRegisterTurnId: turn.idTemp,
             description: `Merma por cancelación de pedido en cocina #${order.shortCode || order.idTemp.slice(-4)}`,
           });
         }

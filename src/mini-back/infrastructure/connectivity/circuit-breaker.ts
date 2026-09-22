@@ -22,7 +22,7 @@ class CircuitBreaker {
     this.nextAttempt = Date.now() + this.retryTimeout;
 
     connectivityManager.reportHeartbeat(false);
-    // console.log("[CircuitBreaker] OPEN");
+    // // console.log("[CircuitBreaker] OPEN");
   }
 
   private close() {
@@ -31,7 +31,7 @@ class CircuitBreaker {
 
     connectivityManager.reportHeartbeat(true);
 
-    // console.log("[CircuitBreaker] CLOSED");
+    // // console.log("[CircuitBreaker] CLOSED");
   }
 
   public reset() {
@@ -43,7 +43,7 @@ class CircuitBreaker {
   private halfOpen() {
     this.state = "HALF_OPEN";
 
-    // console.log("[CircuitBreaker] HALF_OPEN");
+    // // console.log("[CircuitBreaker] HALF_OPEN");
   }
 
   async execute<T>(fn: () => Promise<T>): Promise<T> {

@@ -345,7 +345,7 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
         requestAnimationFrame(() => {
           if (!ticketRef.current) return;
 
-          console.log(ticketRef.current.getBoundingClientRect());
+          // console.log(ticketRef.current.getBoundingClientRect());
 
           print(ticketRef.current);
         });
@@ -381,7 +381,7 @@ export function OrderDetailsSidePanel({ orderId, onClose }: Props) {
   // ============================================================
 
   const onToggleDeliveryType = (nextType: "DELIVERY" | "TAKE_AWAY") => {
-    console.log(`Cambiando tipo de entrega a: ${nextType}`);
+    // console.log(`Cambiando tipo de entrega a: ${nextType}`);
   };
 
   // ============================================================

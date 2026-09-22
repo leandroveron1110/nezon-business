@@ -14,6 +14,16 @@ import {
 export class FinancialMovementDexieRepository implements FinancialMovementPort {
   constructor(private readonly db: HunayDB) {}
 
+  async findByBusinessId(businessId: string): Promise<FinancialMovement[]> {
+    const result = await this.db.financialMovement
+      .where("businessId")
+      .equals(businessId)
+      .reverse()
+      .sortBy("date");
+
+    return result.map(f => this.toCoreDomain(f));
+  }
+
   async findByOrderId(orderId: string): Promise<FinancialMovement | null> {
     const localRecord = await this.db.financialMovement
       .where("orderIdTemp")
@@ -188,51 +198,16 @@ export class FinancialMovementDexieRepository implements FinancialMovementPort {
     }
   }
 
-  /**
-   * Guarda múltiples movimientos financieros
-   * de forma atómica.
-   *
-   * Esta operación se utiliza cuando una única
-   * operación de negocio genera múltiples
-   * movimientos financieros relacionados.
-   *
-   * Ejemplo:
-   *
-   * Transferencia interna:
-   *
-   * Mercado Pago  -$50.000
-   * Caja          +$50.000
-   *
-   * Si alguno de los movimientos no puede
-   * guardarse, la transacción completa falla
-   * y ninguno queda persistido.
-   */
   async saveMany(movements: FinancialMovement[]): Promise<FinancialMovement[]> {
     if (movements.length === 0) {
       return [];
     }
 
-    /**
-     * Construimos todos los registros antes
-     * de iniciar la transacción.
-     *
-     * De esta manera cualquier error de
-     * transformación se detecta antes de
-     * realizar escrituras.
-     */
     const localRecords = await Promise.all(
       movements.map((movement) => this.toLocalRecord(movement)),
     );
 
-    /**
-     * Guardamos todos los movimientos dentro
-     * de una única transacción de IndexedDB.
-     *
-     * Esto garantiza atomicidad:
-     *
-     * - Se guardan todos.
-     * - O no se guarda ninguno.
-     */
+
     await this.db.transaction("rw", this.db.financialMovement, async () => {
       await this.db.financialMovement.bulkPut(localRecords);
     });
@@ -305,7 +280,7 @@ export class FinancialMovementDexieRepository implements FinancialMovementPort {
 
   private toCoreDomain(raw: LocalFinancialMovement): FinancialMovement {
     return {
-      id: raw.id ?? raw.idTemp,
+      idTemp: raw.idTemp,
       clientMovementId: raw.idTemp,
       businessId: raw.businessId,
       userId: raw.userId,

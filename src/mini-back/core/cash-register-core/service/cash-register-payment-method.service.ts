@@ -187,6 +187,8 @@ export class CashRegisterPaymentMethodService implements ICashRegisterPaymentMet
       businessId,
     );
 
+    // console.log("ensureCashRegisterExists", exists)
+
     if (!exists) {
       throw new Error("Negocio Denegado: La caja física no existe.");
     }

@@ -50,6 +50,8 @@ export function TransferTreasuryModal({
       const orchestrator = new TreasuryAccountOrchestrator();
 
       await orchestrator.transfer({
+        idTemp: crypto.randomUUID(),
+        idTempIncoming: crypto.randomUUID(),
         externalReference: "",
         businessId,
         sourceTreasuryAccountId: sourceId,

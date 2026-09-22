@@ -21,6 +21,10 @@ import { FianancialTotals } from "../../signal/financial-movement/financial-move
 export class FinancialMovementService implements IFinancialMovementPublicService {
   constructor(private readonly movement: FinancialMovementPort) {}
 
+  async getByBusinessId(businessId: string): Promise<FinancialMovement[]> {
+    return this.movement.findByBusinessId(businessId);
+  }
+
   async changeSalePaymentMethod(
     input: ChangeSalePaymentMethodInput,
   ): Promise<FinancialMovement> {
@@ -51,7 +55,7 @@ export class FinancialMovementService implements IFinancialMovementPublicService
 
         if (m.type === FinancialMovementType.COGS) return acc;
 
-        console.log(m.amount, m.cashRegisterTurnId);
+        // console.log(m.amount, m.cashRegisterTurnId);
 
         const isExpenseOrRefund =
           m.type === FinancialMovementType.EXPENSE ||
@@ -87,6 +91,7 @@ export class FinancialMovementService implements IFinancialMovementPublicService
 
   async registerSale(input: RegisterSaleInput): Promise<FinancialMovement> {
     const financialMovement: FinancialMovement = {
+      idTemp: input.idTemp,
       clientMovementId: input.clientMovementId,
       businessId: input.businessId,
       userId: input.userId,
@@ -109,12 +114,13 @@ export class FinancialMovementService implements IFinancialMovementPublicService
 
   async registerRefund(input: RegisterRefundInput): Promise<FinancialMovement> {
     const financialMovement: FinancialMovement = {
+      idTemp: input.idTemp,
       clientMovementId: input.clientMovementId,
       businessId: input.businessId,
       userId: input.userId,
       approvedByUserId: input.userId,
 
-      cashRegisterTurnId: input.idTemp,
+      cashRegisterTurnId: input.cashRegisterTurnId,
 
       treasuryAccountIdTemp: input.treasuryAccountIdTemp,
 
@@ -138,11 +144,12 @@ export class FinancialMovementService implements IFinancialMovementPublicService
 
   async registerIncome(input: RegisterIncomeInput): Promise<FinancialMovement> {
     const financialMovement: FinancialMovement = {
+      idTemp: input.idTemp,
       clientMovementId: input.clientMovementId,
       businessId: input.businessId,
       userId: input.userId,
       approvedByUserId: input.approvedByUserId,
-      cashRegisterTurnId: input.idTemp,
+      cashRegisterTurnId: input.cashRegisterTurnId,
 
       type: FinancialMovementType.INCOME,
       status: FinancialMovementStatus.CONFIRMED,
@@ -165,11 +172,12 @@ export class FinancialMovementService implements IFinancialMovementPublicService
     input: RegisterExpenseInput,
   ): Promise<FinancialMovement> {
     const financialMovement: FinancialMovement = {
+      idTemp: input.idTemp,
       clientMovementId: input.clientMovementId,
       businessId: input.businessId,
       userId: input.userId,
       approvedByUserId: input.approvedByUserId,
-      cashRegisterTurnId: input.idTemp,
+      cashRegisterTurnId: input.cashRegisterTurnId,
 
       treasuryAccountIdTemp: input.treasuryAccountIdTemp,
 
@@ -205,6 +213,7 @@ export class FinancialMovementService implements IFinancialMovementPublicService
     const now = new Date();
 
     const outgoingMovement: FinancialMovement = {
+      idTemp: input.idTemp,
       clientMovementId: input.outgoingClientMovementId,
 
       businessId: input.businessId,
@@ -231,6 +240,7 @@ export class FinancialMovementService implements IFinancialMovementPublicService
     };
 
     const incomingMovement: FinancialMovement = {
+      idTemp: input.idTempIncoming,
       clientMovementId: input.incomingClientMovementId,
 
       businessId: input.businessId,
@@ -262,10 +272,11 @@ export class FinancialMovementService implements IFinancialMovementPublicService
   // 📦 REGISTRO DE COSTO DE MERCADERÍA (COGS)
   async registerCogs(input: RegisterCogsInput): Promise<FinancialMovement> {
     const financialMovement: FinancialMovement = {
+      idTemp: input.idTemp,
       clientMovementId: input.clientMovementId,
       businessId: input.businessId,
       userId: input.userId,
-      cashRegisterTurnId: input.idTemp,
+      cashRegisterTurnId: input.cashRegisterTurnId,
 
       type: FinancialMovementType.COGS,
       status: FinancialMovementStatus.CONFIRMED,
@@ -283,10 +294,11 @@ export class FinancialMovementService implements IFinancialMovementPublicService
 
   async registerMerma(input: RegisterMermaInput): Promise<FinancialMovement> {
     const financialMovement: FinancialMovement = {
+      idTemp: input.idTemp,
       clientMovementId: input.clientMovementId,
       businessId: input.businessId,
       userId: input.userId,
-      cashRegisterTurnId: input.idTemp,
+      cashRegisterTurnId: input.cashRegisterTurnId,
 
       type: FinancialMovementType.MERMAS,
       status: FinancialMovementStatus.CONFIRMED,

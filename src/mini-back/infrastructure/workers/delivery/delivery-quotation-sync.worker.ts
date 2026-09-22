@@ -22,12 +22,12 @@ export class DeliveryQuotationSyncWorker {
     // Todas las órdenes pertenecen al mismo negocio.
     const businessId = waitingOrders[0].businessId;
 
-    console.log("''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''");
-    console.log(waitingOrders);
+    // console.log("''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''");
+    // console.log(waitingOrders);
 
-    console.log(
-      `[DeliveryQuotationSyncWorker] Buscando cotizaciones resueltas para ${waitingOrders.length} órdenes...`,
-    );
+    // console.log(
+    //   `[DeliveryQuotationSyncWorker] Buscando cotizaciones resueltas para ${waitingOrders.length} órdenes...`,
+    // );
 
     const quotations = await fetchResolvedDeliveryQuotations(businessId);
 
@@ -59,9 +59,9 @@ export class DeliveryQuotationSyncWorker {
       return;
     }
 
-    console.log(
-      `[DeliveryQuotationSyncWorker] Aplicando cotización a orden ${quotation.orderId}`,
-    );
+    // console.log(
+    //   `[DeliveryQuotationSyncWorker] Aplicando cotización a orden ${quotation.orderId}`,
+    // );
 
     await this.repository.completeManualQuotation({
       idTemp: quotation.orderId,

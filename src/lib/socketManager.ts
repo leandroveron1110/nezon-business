@@ -56,7 +56,7 @@ export function disconnectSocketForBusiness(businessId: string) {
 export function disconnectAllSockets() {
   Object.entries(sockets).forEach(([id, socket]) => {
     socket.disconnect();
-    // console.log(`🧹 Socket del negocio ${id} desconectado`);
+    // // console.log(`🧹 Socket del negocio ${id} desconectado`);
   });
   Object.keys(sockets).forEach((key) => delete sockets[key]);
 }

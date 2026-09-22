@@ -38,7 +38,7 @@ export function useBusinessPushSubscription() {
 
     const handleHydration = () => {
       setIsHydrated(true);
-      // console.log(
+      // // console.log(
       //   "✅ Zustand Store hidratado. Listo para la suscripción de Negocios.",
       // );
     };

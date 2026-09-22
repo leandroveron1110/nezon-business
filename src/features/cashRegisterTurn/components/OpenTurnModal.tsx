@@ -100,7 +100,7 @@ export default function OpenTurnModal({
 
     try {
 
-      console.log("cashRegisterId", cashRegisterId)
+      // console.log("cashRegisterId", cashRegisterId)
       // Primer intento: validación contra Tesorería.
       const success = await onConfirmOpen(
         parsedAmount,

@@ -32,4 +32,4 @@ export interface LocalCashRegisterTurn {
 }
 // ÍNDICES DEXIE
 export const CASH_REGISTER_TURN_STORE =
-  "idTemp, id, businessId, status, syncStatus, openingDate, [businessId+status]";
+  "idTemp, id, businessId, status, syncStatus, openingDate, [businessId+status], [businessId+cashRegisterId+status]";

@@ -1,4 +1,6 @@
 export interface RegisterInternalTransferInput {
+  idTemp: string;
+  idTempIncoming: string; 
   businessId: string;
   sourceTreasuryAccountId: string;
   destinationTreasuryAccountId: string;

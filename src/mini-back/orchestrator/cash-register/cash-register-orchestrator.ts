@@ -104,16 +104,22 @@ export class CashRegisterOrchestrator {
     idTemp: string,
     businessId: string,
   ): Promise<CashRegisterWithPaymentMethods> {
+
+    // console.log(idTemp, businessId)
     const cashRegister = await this.cashRegisterService.findById(
       idTemp,
       businessId,
     );
+
+    // console.log("cashRegister",cashRegister)
 
     const paymentMethods =
       await this.cashRegisterPaymentMethodService.findByCashRegisterId(
         idTemp,
         businessId,
       );
+
+      // console.log("paymentMethods", paymentMethods)
 
     return {
       cashRegister,

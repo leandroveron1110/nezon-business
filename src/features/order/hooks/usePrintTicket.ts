@@ -76,11 +76,11 @@ export function usePrintTicket() {
     document.body.appendChild(printArea);
 
     // DEBUG
-    console.log(
-      "Ancho real del ticket:",
-      element.getBoundingClientRect().width,
-      "px"
-    );
+    // console.log(
+    //   "Ancho real del ticket:",
+    //   element.getBoundingClientRect().width,
+    //   "px"
+    // );
     const rect = element.getBoundingClientRect();
 
     console.table({

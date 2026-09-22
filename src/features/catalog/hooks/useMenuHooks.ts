@@ -67,7 +67,7 @@ const updateCatalogCache = <T>(
       // -------------------------------------------------------------------
 
       // Ejemplo MÍNIMO y NO-FUNCIONABLE para fines de demostración:
-      // console.log(
+      // // console.log(
       //   `Actualización optimista para ${updateType} con ID ${itemId}.`
       // );
       // Si no se puede hacer la actualización in-place de forma segura,

@@ -166,7 +166,7 @@ export class DeliveryService {
         locations: input.locations,
       });
 
-      console.log("RESOLUTION", resolution);
+      // console.log("RESOLUTION", resolution);
 
 
       if (!resolution.success || !resolution.data) {
@@ -244,7 +244,7 @@ export class DeliveryService {
         },
       };
 
-      console.log("QUOTATION RESULT", result);
+      // console.log("QUOTATION RESULT", result);
 
       return result;
     } catch {

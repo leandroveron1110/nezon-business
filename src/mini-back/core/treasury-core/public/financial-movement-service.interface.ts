@@ -65,4 +65,6 @@ export interface IFinancialMovementPublicService {
    * al turno de caja activo.
    */
   getActiveTurnTotals(idTemp: string): Promise<FianancialTotals>;
+
+  getByBusinessId(businessId: string): Promise<FinancialMovement[]>;
 }

@@ -98,6 +98,7 @@ export default function CurrentCashRegisterTurnPage({ businessId }: Props) {
   }) => {
     if (user?.id && activeTurn?.idTemp) {
       await financialMovementOrchestrator.processIncomeMovement({
+        idTemp: crypto.randomUUID(),
         businessId,
         amount: data.amount,
         paymentMethod: data.paymentMethod,
@@ -105,7 +106,7 @@ export default function CurrentCashRegisterTurnPage({ businessId }: Props) {
         notes: data.notes,
         approvedByUserId: user.id,
         userId: user.id,
-        idTemp: activeTurn.idTemp,
+        cashRegisterTurnId: activeTurn.idTemp,
         treasuryAccountIdTemp: activeTurn.treasuryAccountIdTemp,
       });
     }
@@ -120,13 +121,14 @@ export default function CurrentCashRegisterTurnPage({ businessId }: Props) {
   }) => {
     if (user?.id && activeTurn?.idTemp) {
       await financialMovementOrchestrator.processExpenseMovement({
+        idTemp: crypto.randomUUID(),
         businessId,
         userId: user.id,
         amount: data.amount,
         paymentMethod: data.paymentMethod,
         description: data.description,
         notes: data.notes,
-        idTemp: activeTurn.idTemp,
+        cashRegisterTurnId: activeTurn.idTemp,
         approvedByUserId: user.id,
         treasuryAccountIdTemp: activeTurn.treasuryAccountIdTemp,
       });

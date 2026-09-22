@@ -43,7 +43,7 @@ export async function requestDeliveryQuotation(
   input: RequestDeliveryQuotationInput,
 ): Promise<boolean> {
   try {
-    console.log(input)
+    // console.log(input)
     const res = await apiPost<void>(
       "/delivery-commands",
       {

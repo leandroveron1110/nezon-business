@@ -61,7 +61,7 @@ export const syncCatalog = async (menus: IMenu[]) => {
       await db.products.bulkPut(productsToStore);
     });
 
-    // console.log(`🚀 Nezon: Materia prima cargada (${productsToStore.length} productos)`);
+    // // console.log(`🚀 Nezon: Materia prima cargada (${productsToStore.length} productos)`);
   } catch (error) {
     console.error("❌ Error en sincronización:", error);
     throw error;
@@ -84,7 +84,7 @@ export const syncCatalogIfNeeded = async (businessId: string) => {
       const lastUpdated = serverInfo.data?.lastUpdated
       // 3. Comparar. Si es igual, no hacemos nada.
       if (lastUpdated && lastUpdated === localVersion) {
-        // console.log("🚀 Nezon: El catálogo ya está actualizado.");
+        // // console.log("🚀 Nezon: El catálogo ya está actualizado.");
         return;
       }
   

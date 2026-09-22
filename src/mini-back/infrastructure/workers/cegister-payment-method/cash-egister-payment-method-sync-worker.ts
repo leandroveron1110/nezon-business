@@ -218,6 +218,8 @@ class CashRegisterPaymentMethodSyncWorker {
           await db.cashRegisterPaymentMethod.update(paymentMethod.idTemp, {
             id: remote.id,
 
+            cashRegisterId: remote.cashRegisterIdTemp,
+
             treasuryAccountId: remote.treasuryAccountId ?? null,
 
             syncStatus: "SYNCED",
@@ -346,7 +348,7 @@ class CashRegisterPaymentMethodSyncWorker {
 
         businessId: remote.businessId ?? businessId,
 
-        cashRegisterId: remote.cashRegisterId,
+        cashRegisterId: remote.cashRegisterIdTemp,
 
         paymentMethod: remote.paymentMethod,
 

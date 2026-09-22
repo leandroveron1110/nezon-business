@@ -153,7 +153,7 @@ export default function BusinessOrdersPage({ businessId }: Props) {
       requestAnimationFrame(() => {
         if (!printRef.current) return;
 
-        console.log(printRef.current?.getBoundingClientRect());
+        // console.log(printRef.current?.getBoundingClientRect());
         window.addEventListener(
           "afterprint",
           () => {

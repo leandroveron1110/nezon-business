@@ -1,4 +1,5 @@
 export interface RegisterMermaInput {
+  idTemp: string;
   businessId: string;
 
   userId: string;
@@ -8,9 +9,9 @@ export interface RegisterMermaInput {
 
   amount: number;
 
-  idTemp?: string;
+  cashRegisterTurnId?: string;
 
- treasuryAccountIdTemp: string;
+  treasuryAccountIdTemp: string;
 
   description: string;
 

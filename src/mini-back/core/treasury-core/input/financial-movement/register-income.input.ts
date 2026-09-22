@@ -1,6 +1,7 @@
 import { PaymentMethodTypeFinancial } from "../../domain/financial-movement/financial-movement-status.enum";
 
 export interface RegisterIncomeInput {
+  idTemp: string;
   businessId: string;
 
   userId: string;
@@ -10,14 +11,14 @@ export interface RegisterIncomeInput {
 
   amount: number;
 
-  idTemp?: string;
+  cashRegisterTurnId?: string;
 
- treasuryAccountIdTemp: string;
+  treasuryAccountIdTemp: string;
 
   paymentMethod: PaymentMethodTypeFinancial;
 
   description: string;
 
   notes?: string;
-  externalReference?: string
+  externalReference?: string;
 }

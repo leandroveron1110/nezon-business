@@ -1,7 +1,12 @@
-import { FinancialMovementStatus, FinancialMovementType, PaymentMethodTypeFinancial } from "./financial-movement-status.enum";
+import {
+  FinancialMovementStatus,
+  FinancialMovementType,
+  PaymentMethodTypeFinancial,
+} from "./financial-movement-status.enum";
 
 export interface FinancialMovement {
   id?: string;
+  idTemp: string;
   clientMovementId?: string;
   businessId: string;
   userId: string;
@@ -18,7 +23,7 @@ export interface FinancialMovement {
   orderId?: string;
   cashRegisterTurnId?: string;
   referenceCashRegisterTurnId?: string;
- treasuryAccountIdTemp?: string;
+  treasuryAccountIdTemp?: string;
   destinationTreasuryAccountId?: string;
   transferGroupId?: string;
 }

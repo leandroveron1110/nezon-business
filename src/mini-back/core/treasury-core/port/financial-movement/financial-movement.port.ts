@@ -12,6 +12,8 @@ export interface FinancialMovementPort {
 
   findByOrderId(orderId: string): Promise<FinancialMovement | null>;
 
+  findByBusinessId(businessId: string): Promise<FinancialMovement[]>;
+
   // 💡 Necesarios para evitar duplicados en sincronización y reportes del día
   findByClientMovementId(
     clientMovementId: string,

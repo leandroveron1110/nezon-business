@@ -41,7 +41,7 @@ export function useOrdersView(businessId: string) {
       .reverse()
       .toArray();
     
-      console.log(`ordenes totales`, orders.length)
+      // console.log(`ordenes totales`, orders.length)
 
     // 3. Ordenar opcionalmente por fecha de creación (más recientes primero)
     orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
