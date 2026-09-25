@@ -17,27 +17,38 @@ import { db } from "@/mini-back/infrastructure/dexie/db";
 import { FinancialMovementDexieRepository } from "@/mini-back/infrastructure/dexie/repositories/admin/financial-movement/financial-movement-dexie.repository";
 
 import { TreasuryAccountDexieRepository } from "@/mini-back/infrastructure/dexie/repositories/admin/treasury/treasury-account.repository";
+
 import { RegisterInternalTransferInput } from "@/mini-back/core/treasury-core/input/financial-movement/register-internal-transfer.input";
+
 import { financialMovementOrchestrator } from "../financial-movement-orchestrator";
+import { businessCapabilities } from "@/mini-back/shared/business-capabilities/business-capabilities";
 
 /**
  * Orquestador encargado de coordinar las operaciones
  * relacionadas con las cuentas de tesorería.
  *
- * Esta capa conecta el Business Core con las implementaciones
- * concretas de infraestructura utilizadas por la aplicación.
+ * Treasury y Financial Movements son Cores independientes,
+ * pero Treasury puede utilizar Financial Movements para
+ * registrar los movimientos que afectan sus cuentas.
  *
- * El Core no conoce Dexie, IndexedDB, React ni Next.js.
+ * Relación:
  *
- * El Orchestrator conoce qué implementaciones concretas deben
- * utilizarse para ejecutar los casos de uso dentro de esta aplicación.
+ * Financial Movements
+ *        ▲
+ *        │ utiliza
+ *        │
+ *     Treasury
  *
- * Actualmente actúa principalmente como punto de composición
- * entre TreasuryAccountService y los repositories de infraestructura.
+ * Financial Movements puede funcionar sin Treasury.
+ * Treasury, en cambio, necesita Financial Movements
+ * para registrar correctamente las operaciones que
+ * modifican los fondos.
  *
- * A medida que el sistema crezca, podrá coordinar operaciones
- * que involucren otros Cores, Services u Orchestrators sin
- * introducir dependencias externas dentro del Business Core.
+ * El Orchestrator conoce las implementaciones concretas
+ * de infraestructura utilizadas por la aplicación.
+ *
+ * El Business Core no conoce Dexie, IndexedDB, React
+ * ni Next.js.
  */
 export class TreasuryAccountOrchestrator {
   private readonly treasuryAccountService: ITreasuryAccountPublicService;
@@ -50,21 +61,75 @@ export class TreasuryAccountOrchestrator {
     });
   }
 
-  // En TreasuryAccountOrchestrator
+  /**
+   * Determina si el negocio tiene habilitado
+   * el Core de Tesorería.
+   */
+  private canUseTreasury(businessId: string): boolean {
+    return businessCapabilities.canUse(businessId, "TREASURY");
+  }
 
+  /**
+   * Transfiere fondos entre dos cuentas de tesorería.
+   *
+   * Treasury coordina la operación, pero delega en
+   * FinancialMovementOrchestrator el registro de los
+   * movimientos financieros.
+   *
+   * Ejemplo:
+   *
+   * Caja
+   *   - $10.000
+   *
+   * Banco
+   *   + $10.000
+   *
+   * Si Financial Movements está deshabilitado,
+   * no se registran los movimientos y Treasury
+   * tampoco recalcula los saldos.
+   */
   async transfer(
     input: RegisterInternalTransferInput,
   ): Promise<FinancialMovement[]> {
-    // 1. Registrar los movimientos financieros (egreso de origen e ingreso a destino)
-    const financialMovementService = financialMovementOrchestrator;
-    const movements =
-      await financialMovementService.registerInternalTransfer(input);
+    /**
+     * Primero protegemos la frontera de Treasury.
+     */
+    if (!this.canUseTreasury(input.businessId)) {
+      return [];
+    }
 
-    // 2. Recalcular saldos de ambas cuentas de manera atómica/secuencial
+    /**
+     * Treasury utiliza Financial Movements,
+     * pero no implementa directamente esa lógica.
+     *
+     * FinancialMovementOrchestrator tiene su propia
+     * validación de capacidad.
+     */
+    const movements =
+      await financialMovementOrchestrator.registerInternalTransfer(input);
+
+    /**
+     * Si Financial Movements no está habilitado,
+     * no hubo movimientos que registrar.
+     *
+     * Por lo tanto, no debemos modificar/recalcular
+     * los saldos de Treasury.
+     */
+    if (movements.length === 0) {
+      return [];
+    }
+
+    /**
+     * Los movimientos ya fueron registrados.
+     *
+     * Ahora Treasury actualiza los saldos materializados
+     * de las cuentas involucradas.
+     */
     await this.recalculateBalance(
       input.businessId,
       input.sourceTreasuryAccountId,
     );
+
     await this.recalculateBalance(
       input.businessId,
       input.destinationTreasuryAccountId,
@@ -74,87 +139,70 @@ export class TreasuryAccountOrchestrator {
   }
 
   /**
-   * Crea una nueva cuenta dentro de la tesorería del negocio.
+   * Crea una nueva cuenta dentro de Treasury.
    *
    * Ejemplos:
    *
    * - Efectivo
    * - Banco Galicia
    * - Mercado Pago
-   * - Caja de seguridad
-   *
-   * La lógica de negocio relacionada con la creación
-   * permanece dentro del TreasuryAccountService.
+   * - Caja fuerte
    */
   async create(input: CreateTreasuryAccountInput): Promise<TreasuryAccount> {
     return this.treasuryAccountService.create(input);
   }
 
   /**
-   * Actualiza los datos administrativos de una cuenta
-   * de tesorería.
-   *
-   * La lógica que determina qué propiedades pueden
-   * modificarse pertenece al Business Core.
+   * Actualiza los datos administrativos
+   * de una cuenta de Treasury.
    */
   async update(input: UpdateTreasuryAccountInput): Promise<TreasuryAccount> {
     return this.treasuryAccountService.update(input);
   }
 
   /**
-   * Busca una cuenta de tesorería por su identificador.
-   *
-   * Devuelve null cuando la cuenta no existe.
+   * Busca una cuenta de Treasury por ID.
    */
   async findById(accountId: string): Promise<TreasuryAccount | null> {
     return this.treasuryAccountService.findById(accountId);
   }
 
   /**
-   * Obtiene todas las cuentas de tesorería de un negocio.
-   *
-   * Incluye tanto cuentas activas como inactivas.
-   *
-   * Resulta útil para:
-   *
-   * - Panel administrativo
-   * - Historial
-   * - Configuración de tesorería
+   * Obtiene todas las cuentas de Treasury
+   * pertenecientes a un negocio.
    */
   async findByBusinessId(businessId: string): Promise<TreasuryAccount[]> {
+    if (!this.canUseTreasury(businessId)) {
+      return [];
+    }
+
     return this.treasuryAccountService.findByBusinessId(businessId);
   }
 
   /**
    * Obtiene únicamente las cuentas activas
-   * de tesorería de un negocio.
-   *
-   * Estas cuentas son las disponibles para
-   * registrar nuevas operaciones financieras.
+   * de Treasury de un negocio.
    */
   async findActiveByBusinessId(businessId: string): Promise<TreasuryAccount[]> {
+    if (!this.canUseTreasury(businessId)) {
+      return [];
+    }
+
     return this.treasuryAccountService.findActiveByBusinessId(businessId);
   }
 
   /**
-   * Desactiva una cuenta de tesorería.
+   * Desactiva una cuenta de Treasury.
    *
    * La cuenta no se elimina físicamente para
-   * conservar el historial financiero asociado.
-   *
-   * Una cuenta desactivada deja de estar disponible
-   * para nuevas operaciones.
+   * conservar el historial asociado.
    */
   async deactivate(accountId: string): Promise<TreasuryAccount> {
     return this.treasuryAccountService.deactivate(accountId);
   }
 
   /**
-   * Reactiva una cuenta de tesorería previamente
-   * desactivada.
-   *
-   * Al activarse vuelve a estar disponible para
-   * nuevas operaciones financieras.
+   * Reactiva una cuenta de Treasury.
    */
   async activate(accountId: string): Promise<TreasuryAccount> {
     return this.treasuryAccountService.activate(accountId);
@@ -162,24 +210,21 @@ export class TreasuryAccountOrchestrator {
 
   /**
    * Recalcula el saldo materializado de una cuenta
-   * de tesorería.
+   * de Treasury.
    *
-   * El saldo se obtiene a partir del historial
-   * financiero asociado a la cuenta.
-   *
-   * La consulta y el cálculo se delegan al
-   * Business Core y a sus Ports correspondientes.
-   *
-   * El Orchestrator solamente coordina la ejecución
-   * utilizando las implementaciones concretas
-   * de infraestructura configuradas para la aplicación.
+   * El cálculo pertenece al Business Core.
+   * El Orchestrator solamente coordina la ejecución.
    */
   async recalculateBalance(
     businessId: string,
-   treasuryAccountIdTemp: string,
+    treasuryAccountIdTemp: string,
   ): Promise<TreasuryAccount> {
+    if (!this.canUseTreasury(businessId)) {
+      throw new Error("Treasury is not enabled for this business");
+    }
+
     return this.treasuryAccountService.recalculateBalance(
-     treasuryAccountIdTemp,
+      treasuryAccountIdTemp,
       businessId,
     );
   }

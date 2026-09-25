@@ -46,6 +46,38 @@ import {
   EMPLOYEE_SETTLEMENT_STORE,
   LocalEmployeeSettlement,
 } from "./shcema/employee-settlement.schema";
+import {
+  INVENTORY_BASE_UNIT_STORE,
+  LocalInventoryBaseUnit,
+} from "./shcema/inventory/inventory-base-unit.schema";
+import {
+  INVENTORY_LOCATION_STORE,
+  LocalInventoryLocation,
+} from "./shcema/inventory/inventory-location.schema";
+import {
+  INVENTORY_PRODUCT_STORE,
+  LocalInventoryProduct,
+} from "./shcema/inventory/inventory-product.schema";
+import {
+  INVENTORY_PRESENTATION_STORE,
+  LocalInventoryPresentation,
+} from "./shcema/inventory/inventory-presentation.schema";
+import {
+  INVENTORY_LOT_STORE,
+  LocalInventoryLot,
+} from "./shcema/inventory/inventory-lot.schema";
+import {
+  INVENTORY_STOCK_STORE,
+  LocalInventoryStock,
+} from "./shcema/inventory/inventory-stock.schema";
+import {
+  INVENTORY_PHYSICAL_STOCK_STORE,
+  LocalInventoryPhysicalStock,
+} from "./shcema/inventory/inventory-physical-stock.schema";
+import {
+  INVENTORY_MOVEMENT_STORE,
+  LocalInventoryMovement,
+} from "./shcema/inventory/inventory-movement.schema";
 
 export class HunayDB extends Dexie {
   business!: Table<LocalBusiness>;
@@ -67,10 +99,20 @@ export class HunayDB extends Dexie {
   employeeWorkSessions!: Table<LocalEmployeeWorkSession, string>;
   employeeSettlements!: Table<LocalEmployeeSettlement, string>;
 
+  // inventory
+  inventoryBaseUnits!: Table<LocalInventoryBaseUnit, string>;
+  inventoryLocations!: Table<LocalInventoryLocation, string>;
+  inventoryProducts!: Table<LocalInventoryProduct, string>;
+  inventoryPresentations!: Table<LocalInventoryPresentation, string>;
+  inventoryLots!: Table<LocalInventoryLot, string>;
+  inventoryStocks!: Table<LocalInventoryStock, string>;
+  inventoryPhysicalStocks!: Table<LocalInventoryPhysicalStock, string>;
+  inventoryMovements!: Table<LocalInventoryMovement, string>;
+
   constructor() {
     super("HunayBusinessDB");
 
-    this.version(6).stores({
+    this.version(9).stores({
       business: BUSINESS_STORE,
       products: PRODUCTS_STORE,
       orders: ORDERS_STORE,
@@ -89,6 +131,15 @@ export class HunayDB extends Dexie {
       positions: POSITION_STORE,
       employeeWorkSessions: EMPLOYEE_WORK_SESSION_STORE,
       employeeSettlements: EMPLOYEE_SETTLEMENT_STORE,
+
+      inventoryBaseUnits: INVENTORY_BASE_UNIT_STORE,
+      inventoryLocations: INVENTORY_LOCATION_STORE,
+      inventoryProducts: INVENTORY_PRODUCT_STORE,
+      inventoryPresentations: INVENTORY_PRESENTATION_STORE,
+      inventoryLots: INVENTORY_LOT_STORE,
+      inventoryStocks: INVENTORY_STOCK_STORE,
+      inventoryPhysicalStocks: INVENTORY_PHYSICAL_STOCK_STORE,
+      inventoryMovements: INVENTORY_MOVEMENT_STORE,
     });
   }
 }

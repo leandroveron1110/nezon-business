@@ -20,10 +20,10 @@ const items = [
     label: "Ventas",
     href: "sales",
   },
-  // {
-  //   label: "Rentabilidad",
-  //   href: "profitability",
-  // },
+  {
+    label: "Inventario",
+    href: "inventory",
+  },
   // {
   //   label: "Personal",
   //   href: "staff",
